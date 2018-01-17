@@ -1,0 +1,265 @@
+// import "module-name";
+// import('./widgetList.js');
+// import does not work yet, just include modules in index.js in "correct order"
+
+/**
+ *
+
+ app.js holds the globle functions and data for the application
+
+ */
+
+class app { ///////////////////////////////////////////////////////////////// start class
+/* class keeps track of widget id -> needed to support document.getElementById.
+could be depricated if we only guaranteed unique id for a widget, and then search
+from the head of the widget down for the id */
+
+// create incrementing unique ID's for widget components so that document.getElementById("") works
+constructor() {
+	// called once by app.js to create the one istance
+	this.widgets   = {}; // store widgets as they are created, remove when closed
+	this.idCounter = 0;  // init id counter
+
+	// used by classDB to access neo4j database,
+	this.authToken = neo4j.v1.auth.basic("neo4j", "neo4j");
+	this.driver    = neo4j.v1.driver("bolt://localhost", this.authToken, {encrypted:false});
+}
+
+
+widget(method, widgetElement) {
+	const id = this.widgetGetId(widgetElement);
+	if (id) {
+		this.widgets[id][method](widgetElement);
+	} else {
+     // create instance of widget and remember it
+		 alert("App.wdiget: Erorr, method= "+ method);
+	}
+}
+
+menuNodesInit(data){
+	let menu = document.getElementById('menuNodes');
+	const selectionTemplate = '<option value="#db#">#db#</option>'
+	let html = "";  // build dropdown menu selections
+	const r = data;  // from the db
+  for (let i=0; i<r.length; i++) {
+    html += selectionTemplate.replace(/#db#/g, r[i]["nodeName"]);
+  }
+	menu.innerHTML += html;
+}
+
+// <option value="">-- my db ---</option>
+//
+// <option value="">-- Movie DB ---</option>
+// <option value="Person">Person</option>
+// <option value="Movie">Movie</option>
+
+/* displays nodes, allow search, add/edit */
+menuNodes(dropDown){
+	let value = dropDown.options[dropDown.selectedIndex].value;
+	if (value==="") return;  // menu comment
+	this.widgets[this.idGet(0)] = new widgetTableNodes(value);
+}
+
+/* displays meta-data on nodes, keysNodes, relations, keysRelations */
+menuDBstats(dropDown){
+	let value = dropDown.options[dropDown.selectedIndex].value;
+	if (value==="") return; // menu comment
+	this.widgets[this.idGet(0)] = new widgetTableQuery(value);
+}
+
+
+// brings up add/edit widget form table for one node
+// keys in first column, values in second column
+widgetNodeNew(nodeName) {
+	// if (typeof(this.db[nodeName]) === 'undefined') {
+	// 	alert("No definition for node type "+ nodeName );
+	// } else {
+     // create instance of widget and remember it
+		this.widgets[this.idGet(0)] = new widgetNode(nodeName);
+//	}
+}
+
+
+
+// /* refresh widget with new database call */
+widgetSearch(domElement) {
+	// called from widgetList
+	const id = this.widgetGetId(domElement);
+	this.widgets[id].search();
+}
+
+
+/* togle expand colapse */
+widgetCollapse(domElement) {
+	// called from widgetList
+	let table=domElement.parentElement.lastElementChild;
+  // above code is brittal, it assumses position of table relative to button.
+
+	table.hidden = !table.hidden  // togle hidden
+	if(table.hidden) {
+		domElement.value = "Expand";
+	} else {
+		domElement.value = 	"Collapse";
+	}
+}
+
+
+/* app.widgetClose(this)
+input - widgetElement
+action - removes widget from screen
+*/
+widgetClose(widgetElement) {
+	const id = this.widgetGetId(widgetElement);
+
+	// delete javascript instance of widgetTable
+	delete this.widgets[id];
+
+	// delete  html2 from page
+	const widget = document.getElementById(id);
+	widget.parentElement.removeChild(widget)
+}
+
+
+/* input - domElememt inside a widget
+   return - string id asscocated with widget
+*/
+widgetGetId(domElememt) {  // was getWidgetId
+	// go up the dom until class="widget" is found,
+	// grap the id and
+	if (domElememt.getAttribute("class") == "widget") {
+		// found start of widget
+		return(domElememt.getAttribute("id"));
+	} else {
+		return(this.widgetGetId(domElememt.parentElement));
+	}
+
+	/* need some error processing if the orignial domElememt passed is not inside a widget,
+	or if there is a widget construction error and the class was not placed there */
+}
+
+
+////////////////////// get,getLast,replace where all id functions
+idGet(increment) {  // was  get
+	// called once for each id created for widget
+	return (this.idCounter+increment).toString();
+}
+
+// when is this used?
+idGetLast() { // was getLast
+	return app.widgets[this.idCounter];
+}
+
+// replace id holeder in widget header with unique ids
+idReplace(html, counter) { // public - was replace
+	// called once for each widget created
+	//replace #id0# with id.counter, #id1# with id.counter+1 etc, then increment counter to next unused id
+	let ret = html.replace("#"+counter++ +"#", "" + this.idCounter++);
+  if (html === ret) {
+		// all the replacements have been done - assume no ids are skiped, will break code
+		// save widget
+		return (ret);
+	} else {
+		// recursively call until there are no more changes to make
+		return( this.idReplace(ret, counter));
+}}
+
+
+
+/* for debugging / dev place to wright messages */
+log(message){
+	document.getElementById('log').innerHTML += "<br>" + message;
+}
+
+}  ///////////////////////////////////////////////////////////////// end class
+
+
+
+
+////////////////////////////////////////
+/*
+
+globle functions called from widgets events.  generaly the widgets call with the parameter "this":
+
+app.widget.close(this);
+
+the globle functions can use the "this" passed in. to get other widget info.
+
+Usually button functions, onclinck events
+
+*/
+
+
+///////////////////////  widget menu functions  ////////////////////////////
+
+
+//
+// /* not sure this is helpfule  */
+// app.widget.t = function (fun,domElement) {
+// 	// called from widgetList
+// 	let widget = app.widget.getWidgetId(domElement);
+// 	widget[fun](domElement);
+// }
+//
+//
+// app.widget.edit = function (domElement) {
+// 	// called from widgetList
+// 	let widget = app.widget.getWidgetId(domElement);
+// 	widget.edit(domElement);
+// }
+//
+//
+// app.widget.add = function (domElement) {
+// 	// called from widgetList
+// 	let widget = app.widget.getWidgetId(domElement);
+// 	widget.add(domElement);
+// }
+
+// app.widget.save = function (domElement) {
+// 	// called from widgetList
+// 	let widget = app.widget.getWidgetId(domElement);
+// 	widget.save(domElement);
+// }
+//
+
+
+//////////// specialized functions
+
+
+//
+// app.widget.test = function () {
+// 	// test memory version
+// 	//app.widgets[app.id.get(0)] = new db("peopleNew");
+// }
+
+
+// app.widget.sort = function (domElement) {
+// 	// called from widgetList
+// 	app.db[ this.tableName ].cypher.orderBy
+// 	app.widgets[domElement.parentElement.id].search();
+// }
+
+// app.widget.editForm = function (domElement) {
+// 	// popup edit form - needs work, must load data from one clicked
+// 	app.widget.getWidgetId(domElement).addEditForm();
+// }
+
+/* not using popup right now */
+// app.widget.addForm = function (domElement) {
+// 	// called from widgetList
+// 	let widget = app.widgets[domElement.parentElement.id]
+// 	widget.addFrom(domElement);
+// }
+
+// app.widget.popUpClose = function (domElement) {
+// 	// called from popUp
+// 	let popUp = domElement.parentElement;
+// 	popUp.parentElement.removeChild(popUp);
+// }
+
+// app.widget.popUpSave = function (domElement) {
+// 	// call the last widget on the list
+// 	let id = domElement.parentElement.parentElement.id;
+//
+// 	app.widgets[id].saveForm(domElement);
+// 	app.widget.popUpClose(domElement);
+// }
