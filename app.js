@@ -19,6 +19,7 @@ constructor() {
 	// called once by app.js to create the one istance
 	this.widgets   = {}; // store widgets as they are created, remove when closed
 	this.idCounter = 0;  // init id counter
+	this.metaData  = new metaData();
 
 	// used by classDB to access neo4j database,
 	this.authToken = neo4j.v1.auth.basic("neo4j", "neo4j");
@@ -27,6 +28,7 @@ constructor() {
 
 
 widget(method, widgetElement) {
+	// app.widget("add",this) on widget to get back to method from html to class
 	const id = this.widgetGetId(widgetElement);
 	if (id) {
 		this.widgets[id][method](widgetElement);
@@ -54,11 +56,13 @@ menuNodesInit(data){
 // <option value="Movie">Movie</option>
 
 /* displays nodes, allow search, add/edit */
-menuNodes(dropDown){
+menuNodes(){
+	let dropDown = document.getElementById('menuNodes');
 	let value = dropDown.options[dropDown.selectedIndex].value;
 	if (value==="") return;  // menu comment
 	this.widgets[this.idGet(0)] = new widgetTableNodes(value);
 }
+
 
 /* displays meta-data on nodes, keysNodes, relations, keysRelations */
 menuDBstats(dropDown){
@@ -68,17 +72,33 @@ menuDBstats(dropDown){
 }
 
 
-// brings up add/edit widget form table for one node
-// keys in first column, values in second column
-widgetNodeNew(nodeName) {
-	// if (typeof(this.db[nodeName]) === 'undefined') {
-	// 	alert("No definition for node type "+ nodeName );
-	// } else {
-     // create instance of widget and remember it
-		this.widgets[this.idGet(0)] = new widgetNode(nodeName);
-//	}
+/* for debugging / dev place to wright messages */
+log(message){
+	if (!document.getElementById('log').hidden) {
+		document.getElementById('log').innerHTML += "<br>" + message;
+	}
 }
 
+
+// togle log on off
+logToggle(button){
+	log = document.getElementById('log');
+	log.hidden = !log.hidden;
+	if (!log.hidden) {
+		// clear Log
+		log.innerHTML = "";
+		this.log("logging started");
+		button.value = "log stop";
+	} else {
+		button.value = "log start";
+	}
+}
+
+// brings up add/edit widget form table for one node
+// keys in first column, values in second column
+widgetNodeNew(nodeName, data) {
+		this.widgets[this.idGet(0)] = new widgetNode(nodeName, data);
+}
 
 
 // /* refresh widget with new database call */
@@ -164,12 +184,6 @@ idReplace(html, counter) { // public - was replace
 }}
 
 
-
-/* for debugging / dev place to wright messages */
-log(message){
-	document.getElementById('log').innerHTML += "<br>" + message;
-}
-
 }  ///////////////////////////////////////////////////////////////// end class
 
 
@@ -214,13 +228,6 @@ Usually button functions, onclinck events
 // 	widget.add(domElement);
 // }
 
-// app.widget.save = function (domElement) {
-// 	// called from widgetList
-// 	let widget = app.widget.getWidgetId(domElement);
-// 	widget.save(domElement);
-// }
-//
-
 
 //////////// specialized functions
 
@@ -254,12 +261,4 @@ Usually button functions, onclinck events
 // 	// called from popUp
 // 	let popUp = domElement.parentElement;
 // 	popUp.parentElement.removeChild(popUp);
-// }
-
-// app.widget.popUpSave = function (domElement) {
-// 	// call the last widget on the list
-// 	let id = domElement.parentElement.parentElement.id;
-//
-// 	app.widgets[id].saveForm(domElement);
-// 	app.widget.popUpClose(domElement);
 // }

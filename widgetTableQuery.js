@@ -16,7 +16,8 @@ constructor (nameQueryObject) {
   this.queryObj        = this.queryObjects[nameQueryObject];  // select one query
   this.fields          = this.queryObj.fields;
 
-  this.db        = new db(this.queryObj.query);   // create object to make query
+  this.db        = new db();   // create object to make query
+  this.db.setQuery(this.queryObj.query);
   this.queryData = {};                            // where returned data will be stored
 
   // runQuery is asynchronous - it will read data in the background and call the method "queryComplete" when done

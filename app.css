@@ -20,6 +20,7 @@ td {
 	vertical-align: top;
 }
 
+.changedData {background-color: yellow}
 /* // not being used
 [draggable=true] {
     cursor: move;

@@ -1,16 +1,29 @@
+/*
+
+var x = new db();
+x.setQuery('match (n) return n');
+x.runQuery('method',this);
+
+*/
 
 //////////////////////////////////////////////
 class db  {
 
-constructor (query) {
-	this.query        = query; // complete Cypher query string
+constructor () {
+	this.query        = ""; // complete Cypher query string
 	this.data         = {};
 
 	// init in Query
-	this.object       = {};
-	this.objectMethod = "";
+	this.object       = {};  // call back object
+	this.objectMethod = "";  // call back method
+
 	this.session      = {};
 	this.data         = [];
+}
+
+
+setQuery(query) {
+	this.query = query;
 }
 
 
@@ -19,7 +32,7 @@ runQuery (object, objectMethod) { // call widget, with widgetMethod when query i
 	// bring data from db into memory structur
 	this.object       = object;
 	this.objectMethod = objectMethod;
-	this.session  = app.driver.session();
+	this.session      = app.driver.session();
 	this.data = [];
 
 	// build data structure
@@ -34,19 +47,11 @@ runQuery (object, objectMethod) { // call widget, with widgetMethod when query i
 ////////////////////////////////////////////////////////////////////
 // called by neo4j for each record returned by query
 onNext(record) {
-  // On receipt of RECORD
-  //	app.widgetTable.add(tr,"td",document.createTextNode(++recordCount)); // add record count to first colum of table
-	if (record["_fields"][0].properties) {
-		// assume a single node object returned
-		this.data.push(record["_fields"][0].properties);
-	} else {
-		// assume a list of things was returned, so put it in an object to push
-		let obj={};
-		for (let i=0; i< record.length; i++) {
-			obj[record.keys[i]]=record._fields[i];
+	let obj={};
+	for (let i=0; i< record.length; i++) {
+		obj[record.keys[i]]=record._fields[i];
 		}
-		this.data.push(obj);
-	}
+	this.data.push(obj);
 }
 
 

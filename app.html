@@ -11,6 +11,7 @@
     <select id="menuNodes" onchange="app.menuNodes(this)">
       <option value="">-- Nodes --</option>
     </select>
+  <input  type="button"  value="New" onclick="app.menuNodes(this)">
 
 <hr>
   |-> debugging
@@ -22,13 +23,14 @@
   <option value="keysRelation">Keys</option>
 </select>
 
-  <input id="debug" type="text" width="180">
+  <input type="button" value="Log" onclick="app.logToggle(this)">
+
+  <input id="debug" type="text" size="80">
    <a href="http://localhost:7474/browser/" target="_blank">neo4j browser </a> neo4j desktop must be running with database started
 
    <div id="widgets" class=""> </div>
 
 <hr>
-<div id="log"></div>
 
 <script src="Libs/neo4j-web.js"></script>
 <script src="app.js"></script>
@@ -36,20 +38,21 @@
 <script src="widgetTableQuery.js"></script>
 <script src="widgetTableNodes.js"></script>
 <script src="widgetNode.js"></script>
+<script src="classMetaData.js"></script>
 <!--
 <script src="widgetNode.js"></script>
 -->
 
 <script type="text/javascript">
 app = new app();  // only globle variable
+
 // build node menu
-app.db   = new db('MATCH (n) unwind labels(n) as L RETURN  distinct L as nodeName');
+app.db   = new db();
+app.db.setQuery('MATCH (n) unwind labels(n) as L RETURN  distinct L as nodeName');
 app.db.runQuery(app, "menuNodesInit");
-
-//app.widgetNodeNew('Person');
-//app.widgetNew('Person');
 </script>
-
+<div id="log"></div>
+<hr>
   </body>
 </html>
 

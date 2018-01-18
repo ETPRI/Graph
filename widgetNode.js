@@ -5,75 +5,88 @@ add/edit nodes in a form
 */
 
 class widgetNode {
-constructor(label, id) {
-  this.id       =  id; // is db identifier,
-  this.label    = label;
-  this.idWidget = app.idGet(0);
-  this.dom      = {};  // = document.getElementById(this.idWidget);
-  this.fields   =
-{
-      name:  {label: "Name" , comment: "given name",  att: 'onclick="app.widget.edit(this)"'}
-     ,born:  {label: "Born" , comment: "Sir name"  ,    }
-     ,email: {label: "email", comment: "primary email"}  // should remove at someponit
-}
+constructor(label, data) {
+  this.data        = data; // is db identifier, not defined means add
+  this.label       = label;
+  this.idWidget    = app.idGet(0); // not sure this is used
+  this.addSave     = app.idGet(1);
+  this.addSaveDOM  = {} // button place holder
+  this.table       = app.idGet(2);
+  this.tableDOM    = {} // place holder, for form data
+  this.queryObject = app.metaData.get(label);
+  this.fields      = this.queryObject.fields;
+  this.db          = new db() ; // place holeder for add
 
-  this.buildForm();
+  this.buildWidget();
+  this.buildData();
 }
 
 
 ////////////////////////////////////////////////////////////////////
-buildForm() { // public - build table header
+buildWidget() { // public - build table header
+  const html =
+  `
+  <div id="#0#" class="widget"><hr>
+  <input type="button" value="Close"   onclick="app.widgetClose(this)"><b> ` + this.label +` </b>
+  <input id="#1#" type="button" onclick="app.widget('saveAdd',this)">
+  <input type="button" value="Colapse" onclick="app.widgetCollapse(this)">
+  <table id="#2#">
+  </table>
+  </div>
+  `
+  const html1 = app.idReplace(html,0);  // replace relative ids with absolute ids
+  document.getElementById('widgets').innerHTML = html1
+    + document.getElementById('widgets').innerHTML;
 
-const html =
-`
-<div id="#0#" class="widget" db="nameTable: #tableName#"><hr><b>
-<input type="button" value="Close"   onclick="app.widgetClose(this)"> ` + this.label +` </b>
-#addEdit#
-<input type="button" value="Colapse" onclick="app.widgetCollapse(this)">
-<table>
-#tr#
-</table>
-</div>
-`
-
-const html1 = app.idReplace(html,0);
-
-// putting in add or save button
-let html2="";
-if (this.id) {
-  // id is defined, so we are doing an edit
-  html2 = html1.replace('#addEdit#', '<input type="button" value="Save" onclick="app.widgetSave(this)">');
-} else {
-  // id is not defined, so we are doing an add
-  html2 = html1.replace('#addEdit#', `<input type="button" value="Add"  onclick="app.widget('add',this)">`);
+  this.addSaveDOM = document.getElementById(this.addSave);
+  this.tableDOM   = document.getElementById(this.table);
 }
 
-//
-let s="";
-for (var fieldName in this.fields) {
-    let s1 = '<tr><th>' + this.fields[fieldName].label + '</th><td><input db="'+ fieldName +'"></td></tr>'
-     s += s1;
+
+buildData() {
+  // put in one field label and input row for each field
+  let html="";
+  for (var fieldName in this.fields) {
+      let s1 = '<tr><th>' + this.fields[fieldName].label + '</th><td><input db="' + fieldName
+      + `" onChange="app.widget('changed',this)"`  +' #value#></td></tr>'
+      let s2="";
+      if (this.data) {
+        // load form with data from db, edit
+        let d=this.data.properties;
+        s2 = s1.replace('#value#', "value='" + d[fieldName] + "'");  // edit, load data
+      } else {
+        s2 = s1.replace('#value#', '');  // add , no data to load
+      }
+       html += s2;
+  }
+  this.tableDOM.innerHTML = html;
+
+  // set the button to be save or added
+  if (this.data) {
+    this.addSaveDOM.value = "Save";
+  } else {
+    this.addSaveDOM.value = "Add";
+  }
 }
 
- document.getElementById('widgets').innerHTML =
-   html2.replace("#tr#", s)
-   + document.getElementById('widgets').innerHTML;
 
-this.dom = document.getElementById(this.idWidget);
-
-if (this.id) {
-  // doing an edit, popup fields with exsiting values
-}
-
+saveAdd(widgetElement) {
+  // director function
+  if (widgetElement.value === "Save") {
+    this.save(widgetElement);
+  } else {
+    this.add(widgetElement);
+  }
 }
 
 
 ////////////////////////////////////////////////////////////////////
 add(widgetElement) { // public - build table header
-  // CREATE (:person {name:'David Bolt', lives:'Knoxville'})
-  let tr     = this.dom.lastElementChild.firstElementChild.firstElementChild;
+  // CREATE (n:person {name:'David Bolt', lives:'Knoxville'}) return n
 
-  const create = "create (:"+ this.label+" {#data#})";
+  let tr = this.tableDOM.firstElementChild.firstElementChild;
+
+  const create = "create (n:"+ this.label+" {#data#}) return n";
   let data="";
   while (tr) {
     let inp = tr.lastElementChild.firstElementChild;
@@ -83,13 +96,71 @@ add(widgetElement) { // public - build table header
   }
 
 
-  let query = create.replace("#data#", data.substr(0,data.length-2) );
-  let db = new db();
-  document.getElementById('debug').value = query;
-
-  this.session.run(query, {}).subscribe(this);
+  const query = create.replace("#data#", data.substr(0,data.length-2) );
+  this.db = new db();
+  this.db.setQuery(query);
+  this.db.runQuery(this,"addComplete");
 }
 
+
+addComplete(data) {
+  this.data = data[0].n // takes single nodes
+  this.buildData();
+}
+
+
+changed(input) {
+  if (!this.data) return;  // no feedback in add mode
+
+  // give visual feed back if edit data is different than db data
+  if (input.value === this.data.properties[input.getAttribute('db')]) {
+    input.setAttribute("class","");
+  } else {
+    input.setAttribute("class","changedData");
+  }
+}
+
+
+save(widgetElement) { // public - build table header
+/*
+  MATCH (n)
+  WHERE id(n)= 146
+  SET n.born = 2003  // loop changed
+  RETURN n
+*/
+
+  let tr = this.tableDOM.firstElementChild.firstElementChild;
+
+  const create = "match (n) where id(n)=" +this.data.identity+ " set #data# return n";
+  let data="";
+  while (tr) {
+    let inp = tr.lastElementChild.firstElementChild;  // find <input> element
+    if(inp.getAttribute("class") === "changedData") {
+      // create a set for this fields
+      let fieldName = inp.getAttribute("db")
+      let d1 = "n."+ fieldName +"=#value#, ";
+      let d2 = "";
+      if (this.fields[fieldName].type === "number") {
+        d2 = inp.value;  // number
+      } else {
+        d2 = '"' + inp.value + '"';  // assume string
+      }
+      data += d1.replace('#value#',d2)
+    }
+    tr=tr.nextElementSibling;
+  }
+
+  const query = create.replace("#data#", data.substr(0,data.length-2) );
+  this.db = new db();
+  this.db.setQuery(query);
+  this.db.runQuery(this,"saveData");
+}
+
+saveData(data) {
+  // redo from as edit now that data is saved
+  this.data = data[0].n;
+  this.buildData();
+}
 
 // ////////////////////////////////////////////////////////////////////
 // getAtt(element,attName) { // private -----------
@@ -102,27 +173,17 @@ add(widgetElement) { // public - build table header
 // 	return(ret);
 // }
 
-
-
-// add() {
-//   // CREATE (:person {name:'David Bolt', lives:'Knoxville'})
-//   let th  = document.getElementById(this.idHeader).firstElementChild.firstElementChild;
-//
-//   const create = "create (:"+ this.tableName +" {#data#})";
-//   let data="";
-//   while (th) {
-//     let inp = th.lastElementChild;
-//
-//
-//
-//     data += this.getAtt(inp,"fieldName") +":'" + inp.value +"', ";
-//     th=th.nextElementSibling;
+// /* */
+// edit(domElement) {
+//   // edit row - move values from click to input nextElementSibling
+//   let th = document.getElementById(this.idHeader).firstElementChild.firstElementChild;
+//   while(domElement){
+//     th.firstElementChild.value = domElement.textContent;
+//     domElement=domElement.nextElementSibling;
+//     th = th.nextElementSibling;
 //   }
 //
-//   let query = create.replace("#data#", data.substr(0,data.length-2) );
-//   document.getElementById('debug').value = query;
-//
-//   this.session.run(query, {}).subscribe(this);
 // }
+
 
 }
