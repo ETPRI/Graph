@@ -29,7 +29,7 @@ setQuery(query) {
 
 ////////////////////////////////////////////////////////////////////
 runQuery (object, objectMethod) { // call widget, with widgetMethod when query is done
-	// bring data from db into memory structur
+	// bring data from db into memory structure
 	this.object       = object;
 	this.objectMethod = objectMethod;
 	this.session      = app.driver.session();

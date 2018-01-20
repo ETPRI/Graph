@@ -8,14 +8,14 @@
 
   <body>
 
-    <select id="menuNodes" onchange="app.menuNodes(this)">
+    <select id="menuNodes" onclick="app.menuNodes(this)"  onfocus = "app.menuNodeFocus()">
       <option value="">-- Nodes --</option>
     </select>
-  <input  type="button"  value="New" onclick="app.menuNodes(this)">
+  <input  type="button" value="New" onclick="app.menuNodes(this)">
 
 <hr>
   |-> debugging
-<select onchange="app.menuDBstats(this)">
+<select onclick="app.menuDBstats(this)" onfocus = "app.menuStatsFocus()">
   <option value="">--Meta Data--</option>
   <option value="nodes">Nodes</option>
   <option value="keysNode">Keys</option>
@@ -44,7 +44,7 @@
 -->
 
 <script type="text/javascript">
-app = new app();  // only globle variable
+app = new app();  // only global variable
 
 // build node menu
 app.db   = new db();
@@ -57,7 +57,7 @@ app.db.runQuery(app, "menuNodesInit");
 </html>
 
 <!-- where all the widgets go
-  <div dragable="true" style="position: absolute;  background-color: #cc3300;  padding: 10px; color: white; ">
+  <div draggable="true" style="position: absolute;  background-color: #cc3300;  padding: 10px; color: white; ">
     (6) Now, try resizing this window by pulling the corner.
   </div>
   <div draggable="true" class="resizable">quae autem nihil aut perferendis aliquid eum in commodi vitae.
