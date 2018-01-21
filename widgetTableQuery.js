@@ -15,6 +15,7 @@ constructor (nameQueryObject) {
   this.queryObjects    = {};  this.queryObjectsInit();            // currently 4 querys
   this.queryObj        = this.queryObjects[nameQueryObject];  // select one query
   this.fields          = this.queryObj.fields;
+  this.tableName = nameQueryObject;
 
   this.db        = new db();   // create object to make query
   this.db.setQuery(this.queryObj.query);
@@ -43,7 +44,7 @@ buildHeader() {
   const html =`
   <div id="#0#" class="widget" db="nameTable: #tableName#"><hr>
   <input type="button" value="Close"   onclick="app.widgetClose(this)"><b> ` + this.tableName +` </b>
-  <input type="button" value="Colapse" onclick="app.widgetCollapse(this)">
+  <input type="button" value="Collapse" onclick="app.widgetCollapse(this)">
   <table>
     <thead>#header#</thead>
     <tbody>#data#</tbody>
@@ -51,14 +52,14 @@ buildHeader() {
   </div>
   `
 
-  const html2 = app.idReplace(html,0);  // replace relative ids with apsolute ides
+  const html2 = app.idReplace(html,0);  // replace relative ids with absolute ides
   const html3 = html2.replace('#tableName#',this.tableName).replace("#header#",
   // create html for header
   (function(fields) {
   	// build search part of buildHeader
     let r="<tr>#fields#</tr>"
 
-    // append lable part of the header
+    // append label part of the header
     let f="";
     for (var propt in fields){
         f += "<th onClick='app.widgetSort(this)'>"+ fields[propt].label + "</th>" ;
