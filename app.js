@@ -11,15 +11,17 @@
 
 class app { ///////////////////////////////////////////////////////////////// start class
 /* class keeps track of widget id -> needed to support document.getElementById.
-could be depricated if we only guaranteed unique id for a widget, and then search
+could be deprecated if we only guaranteed unique id for a widget, and then search
 from the head of the widget down for the id */
 
-// create incrementing unique ID's for widget components so that document.getElementById("") works
+// create incrementing unique IDs for widget components so that document.getElementById("") works
 constructor() {
-	// called once by app.js to create the one istance
+	// called once by app.js to create the one instance
 	this.widgets   = {}; // store widgets as they are created, remove when closed
 	this.idCounter = 0;  // init id counter
 	this.metaData  = new metaData();
+	this.nodesOpen = false;
+	this.statsOpen = false;
 
 	// used by classDB to access neo4j database,
 	this.authToken = neo4j.v1.auth.basic("neo4j", "neo4j");
@@ -57,22 +59,39 @@ menuNodesInit(data){
 
 /* displays nodes, allow search, add/edit */
 menuNodes(){
-	let dropDown = document.getElementById('menuNodes');
-	let value = dropDown.options[dropDown.selectedIndex].value;
-	if (value==="") return;  // menu comment
-	this.widgets[this.idGet(0)] = new widgetTableNodes(value);
+	if (this.nodesOpen) { // if the menu is currently open, then create a new table and note that the menu is now closed
+		let dropDown = document.getElementById('menuNodes');
+		let value = dropDown.options[dropDown.selectedIndex].value;
+		if (value==="") return;  // menu comment
+		this.widgets[this.idGet(0)] = new widgetTableNodes(value);
+		this.nodesOpen = false;
+	}
+	else // If the menu is not currently open, do not create a new table and note that the menu is now open
+		this.nodesOpen = true;
 }
 
+menuNodeFocus(){ // Every time this is deselected and reselected, it STARTS with the menu closed.
+	this.nodesOpen = false;
+}
 
 /* displays meta-data on nodes, keysNodes, relations, keysRelations */
 menuDBstats(dropDown){
-	let value = dropDown.options[dropDown.selectedIndex].value;
-	if (value==="") return; // menu comment
-	this.widgets[this.idGet(0)] = new widgetTableQuery(value);
+	if (this.statsOpen) { // if the menu is currently open, then create a new table and note that the menu is now closed
+		let value = dropDown.options[dropDown.selectedIndex].value;
+		if (value==="") return; // menu comment
+		this.widgets[this.idGet(0)] = new widgetTableQuery(value);
+		this.statsOpen = false;
+	}
+	else // If the menu is not currently open, do not create a new table and note that the menu is now open.
+		this.statsOpen = true;
+}
+
+menuStatsFocus() { // Every time this is deselected and reselected, it STARTS with the menu closed.
+	this.statsOpen = false;
 }
 
 
-/* for debugging / dev place to wright messages */
+/* for debugging / dev place to write messages */
 log(message){
 	if (!document.getElementById('log').hidden) {
 		document.getElementById('log').innerHTML += "<br>" + message;
@@ -80,7 +99,7 @@ log(message){
 }
 
 
-// togle log on off
+// toggle log on off
 logToggle(button){
 	log = document.getElementById('log');
 	log.hidden = !log.hidden;
@@ -116,13 +135,13 @@ widgetHeader(){
 		`)
 }
 
-/* togle expand colapse */
+/* toggle expand collapse */
 widgetCollapse(domElement) {
 	// called from widgetList
 	let table=domElement.parentElement.lastElementChild;
-  // above code is brittal, it assumses position of table relative to button.
+  // above code is brittle, it assumes position of table relative to button.
 
-	table.hidden = !table.hidden  // togle hidden
+	table.hidden = !table.hidden  // toggle hidden
 	if(table.hidden) {
 		domElement.value = "+";
 	} else {
@@ -148,7 +167,7 @@ widgetClose(widgetElement) {
 
 
 /* input - domElememt inside a widget
-   return - string id asscocated with widget
+   return - string id associated with widget
 */
 widgetGetId(domElememt) {  // was getWidgetId
 	// go up the dom until class="widget" is found,
@@ -160,7 +179,7 @@ widgetGetId(domElememt) {  // was getWidgetId
 		return(this.widgetGetId(domElememt.parentElement));
 	}
 
-	/* need some error processing if the orignial domElememt passed is not inside a widget,
+	/* need some error processing if the original domElememt passed is not inside a widget,
 	or if there is a widget construction error and the class was not placed there */
 }
 
@@ -176,13 +195,13 @@ idGetLast() { // was getLast
 	return app.widgets[this.idCounter];
 }
 
-// replace id holeder in widget header with unique ids
+// replace id holder in widget header with unique ids
 idReplace(html, counter) { // public - was replace
 	// called once for each widget created
 	//replace #id0# with id.counter, #id1# with id.counter+1 etc, then increment counter to next unused id
 	let ret = html.replace("#"+counter++ +"#", "" + this.idCounter++);
   if (html === ret) {
-		// all the replacements have been done - assume no ids are skiped, will break code
+		// all the replacements have been done - assume no ids are skipped, will break code
 		// save widget
 		return (ret);
 	} else {
@@ -199,13 +218,13 @@ idReplace(html, counter) { // public - was replace
 ////////////////////////////////////////
 /*
 
-globle functions called from widgets events.  generaly the widgets call with the parameter "this":
+Global functions called from widgets events.  Generally the widgets call with the parameter "this":
 
 app.widget.close(this);
 
-the globle functions can use the "this" passed in. to get other widget info.
+the global functions can use the "this" passed in. to get other widget info.
 
-Usually button functions, onclinck events
+Usually button functions, onclick events
 
 */
 
@@ -214,7 +233,7 @@ Usually button functions, onclinck events
 
 
 //
-// /* not sure this is helpfule  */
+// /* not sure this is helpful  */
 // app.widget.t = function (fun,domElement) {
 // 	// called from widgetList
 // 	let widget = app.widget.getWidgetId(domElement);

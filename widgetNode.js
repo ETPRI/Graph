@@ -20,7 +20,7 @@ constructor(label, data) {
   this.deleteDOM    = {} // place holder
   this.queryObject = app.metaData.get(label);
   this.fields      = this.queryObject.fields;
-  this.db          = new db() ; // place holeder for add
+  this.db          = new db() ; // placeholder for add
 
   this.buildWidget();
   this.buildData();
@@ -58,7 +58,7 @@ buildData() {
         let d=this.data.properties;
         s2 = s1.replace('#value#', "value='" + d[fieldName] + "'");  // edit, load data
       } else {
-        s2 = s1.replace('#value#', '');  // add , no data to load
+        s2 = s1.replace('#value#', '');  // add, no data to load
       }
        html += s2;
   }
@@ -117,7 +117,7 @@ addComplete(data) {
 changed(input) {
   if (!this.data) return;  // no feedback in add mode
 
-  // give visual feed back if edit data is different than db data
+  // give visual feedback if edit data is different than db data
   if (input.value === this.data.properties[input.getAttribute('db')]) {
     input.setAttribute("class","");
   } else {
@@ -141,7 +141,7 @@ save(widgetElement) { // public - build table header
   while (tr) {
     let inp = tr.lastElementChild.firstElementChild;  // find <input> element
     if(inp.getAttribute("class") === "changedData") {
-      // create a set for this fields
+      // create a set for this field
       let fieldName = inp.getAttribute("db")
       let d1 = "n."+ fieldName +"=#value#, ";
       let d2 = "";

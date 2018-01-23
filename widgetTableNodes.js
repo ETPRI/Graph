@@ -34,7 +34,7 @@ search() { // public - call when data changes
 }
 
 
-buildQuery() { // public - called when seach criteria changes
+buildQuery() { // public - called when search criteria change
   // init cypherQuery data
   let match    = "(n:" +this.queryObject.nodeLabel+ ")";
   let where    = this.buildWhere();
@@ -57,8 +57,10 @@ buildWhere() {
   /*   output - nameLast =~"(?i)Bol.*"
   */  // <tr><th><input>  must go up 2 levels to get to tr
   const th  = document.getElementById(this.idHeader).firstElementChild.children; // get collection of th
+
   let where = "n._trash is null and ";
-  // iterrate siblings of input
+  // iterate siblings of input
+
   for(let i=2; i<th.length; i++) {
     let inputDOM = th[i].firstElementChild;  // <input>  tag
     let dropDown = inputDOM.nextElementSibling;
@@ -69,7 +71,7 @@ buildWhere() {
       if (dropDown.options[0].value === "S") {
         w1 = this.getSearchString(inputDOM, searchType);  // assume a string search
       } else {
-        w1 = this.getSearchNumber(inputDOM, searchType);  // assume a number Search
+        w1 = this.getSearchNumber(inputDOM, searchType);  // assume a number search
       }
       where += w1;
       }
@@ -124,6 +126,7 @@ buildHeader() {
   <input type="button" value="Add"     onclick="app.widget('addNode',this)">
   <input type="button" value="Search"  onclick="app.widgetSearch(this)">
   limit <input id="#1#" value ="9" style="width: 20px;">
+
   <table>
     <thead id="#2#">
     <tr><th></th><th></th>#headerSearh#</tr>
@@ -152,7 +155,7 @@ buildHeader() {
   <option value="<">&lt;</option>
   </select></th>`
 
-  const html2 = app.idReplace(html,0);  // replace relative ids with apsolute ids
+  const html2 = app.idReplace(html,0);  // replace relative ids with absolute ids
   const html3 = html2.replace('#tableName#',this.tableName);
 
   // build search part of buildHeader
