@@ -1,5 +1,8 @@
 # dwb
-version 0.0.1
+version 0.0.1 master
+version 0.0.2  dwb
+version 0.0.0 amy
+
 Testing neo4j, developing PM app
 
 for app.html to work:
