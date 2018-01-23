@@ -6,29 +6,111 @@ move hard coded metaData to db at some point
 
 class metaData {
 constructor () { // name of a query Object
-  this.queryObjects = {}; // head of data
-  this.metaDataInit();
+  this.node     = {};  this.initNodeData();
+  this.relation = {};  this.initRelationData();
+}
+
+getRelation(name){
+  return(this.relation[name]);
+}
+
+getNode(name){
+  return(this.node[name]);
 }
 
 
-get(name){
-  return(this.queryObjects[name]);
-}
+/*
+
+creater of the link
+date created
+date modified
+date start
+date end
+
+types of links
+
+*/
+
+initRelationData(){
+this.relation.link = {
+     nodeLabel: "link"
+    ,fields: {
+    	"comment":   {label: "Comment"}
+     ,"_trash":     {label: "Trash"  }
+    }}
+
+}  /////// end method
 
 
-metaDataInit() { // move to DB in the future
-this.queryObjects.people = {
+initNodeData() { // move to DB in the future
+///////////////////////////////////// ETPRI
+this.node.people = {
    nodeLabel: "people"
   ,orderBy: "nameLast"
-  ,fields: {
-  	"nameLast":   {label: "Last Name"}
-   ,"nameFirst":  {label: "First Name"  }
-   ,"email":      {label: "Email"  }
-   ,"state":      {label: "State"  }
-   ,"country":    {label: "Country"  }
+  ,fields: {"name":       {label: "Name"}
+  ,"nameLast":   {label: "Last Name"}
+  ,"nameFirst":  {label: "First Name"  }
+  ,"email":      {label: "Email"  }
+  ,"state":      {label: "State"  }
+  ,"country":    {label: "Country"  }
+  ,"_trash":     {label: "Trash"  }
   }}
 
-this.queryObjects.Person = {
+this.node.address = {
+  nodeLabel: "people"
+  ,orderBy: "postalCode"
+  ,fields: {"street1":     {label: "Street"}
+  ,"street2":    {label: ""  }
+  ,"city":       {label: "City"  }
+  ,"state":      {label: "State"  }
+  ,"postalCode":     {label: "Zip"  }
+  ,"country":    {label: "Country"  }
+  ,"comment":    {label: "Comment"  }
+  ,"_trash":     {label: "Trash"  }
+  }}
+
+this.node.net = {
+  nodeLabel: "net"
+  ,orderBy: "nameLast"
+  ,fields: {"email.home":      {}
+  ,"email.business": {}
+  ,"facebook":       {}
+  ,"linkedIn":       {}
+  ,"state":          {}
+  ,"country":        {}
+  ,"comment":    {label: "Country"  }
+  ,"_trash":     {label: "Trash"  }
+  }}
+
+this.node.phone = {
+  nodeLabel: "phone"
+  ,orderBy: "nameLast"
+  ,fields: {
+  "home":        {}
+  ,"street2":    {}
+  ,"city":       {}
+  ,"state":      {}
+  ,"state":      {}
+  ,"country":    {}
+  ,"comment":    {}
+  ,"_trash":     {}
+  }}
+
+this.node.organization = {
+   nodeLabel: "organization"
+  ,orderBy: "nameLast"
+  ,fields: {"name":       {}
+  ,"nameLast":   {}
+   ,"nameFirst":  {}
+   ,"email":      {}
+   ,"state":      {}
+   ,"country":    {}
+   ,"_trash":     {}
+  }}
+
+
+/////////////////////////  sample DB
+this.node.Person = {
    nodeLabel: "Person"
   ,orderBy: "name"
   ,fields: {
@@ -36,7 +118,7 @@ this.queryObjects.Person = {
    ,"born":  {label: "Born",  type: "number"  }
   }}
 
-this.queryObjects.Movie = {
+this.node.Movie = {
    nodeLabel: "Movie"
   ,orderBy: "nameLast"
   ,fields: {
@@ -45,7 +127,7 @@ this.queryObjects.Movie = {
     ,"tagline":   {label: "Tagline"   }
   }}
 
-}
+} ////// end method
 
 
 } ////////////////////////////////////////////////////// end class

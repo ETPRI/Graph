@@ -108,6 +108,13 @@ widgetSearch(domElement) {
 	this.widgets[id].search();
 }
 
+widgetHeader(){
+	return(`
+<div id="#0#" class="widget" db="nameTable: #tableName#"><hr>
+<input type="button" value="X"   onclick="app.widgetClose(this)">
+<input type="button" value="__" onclick="app.widgetCollapse(this)">
+		`)
+}
 
 /* togle expand colapse */
 widgetCollapse(domElement) {
@@ -117,9 +124,9 @@ widgetCollapse(domElement) {
 
 	table.hidden = !table.hidden  // togle hidden
 	if(table.hidden) {
-		domElement.value = "Expand";
+		domElement.value = "+";
 	} else {
-		domElement.value = 	"Collapse";
+		domElement.value = 	"__";
 	}
 }
 

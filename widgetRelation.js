@@ -1,13 +1,13 @@
 /*
 
-add/edit one node in a form
+add/edit one relation in a form
 
 input: label
        data is optional.  Add mode is used if data is not suplied
 
 */
 
-class widgetNode {
+class widgetRelation {
 constructor(label, data) {
   this.data        = data; // is db identifier, not defined means add
   this.label       = label;

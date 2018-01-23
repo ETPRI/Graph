@@ -13,10 +13,15 @@
     </select>
   <input  type="button"  value="New" onclick="app.menuNodes(this)">
 
+  <select id="menuRelations" onchange="app.menuRelations(this)">
+    <option value="">-- Relations --</option>
+  </select>
+
 <hr>
   |-> debugging
 <select onchange="app.menuDBstats(this)">
   <option value="">--Meta Data--</option>
+  <option value="trash">Trash</option>
   <option value="nodes">Nodes</option>
   <option value="keysNode">Keys</option>
   <option value="relations">Relations</option>

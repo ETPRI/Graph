@@ -40,10 +40,7 @@ queryComplete(data) {
 ////////////////////////////////////////////////////////////////////
 buildHeader() {
   // build header
-  const html =`
-  <div id="#0#" class="widget" db="nameTable: #tableName#"><hr>
-  <input type="button" value="Close"   onclick="app.widgetClose(this)"><b> ` + this.tableName +` </b>
-  <input type="button" value="Colapse" onclick="app.widgetCollapse(this)">
+  const html =app.widgetHeader() +'<b> '+ this.tableName +` </b>
   <table>
     <thead>#header#</thead>
     <tbody>#data#</tbody>
@@ -135,7 +132,18 @@ this.queryObjects.keysRelation = {
   	 ,"type(r)": {label: "-Relation->"  , comment: "Like a table in RDBS"}
   	 ,"count":   {label: "Count"        , comment: ""}
    }}
-}
+
+
+this.queryObjects.trash = {
+   nameTable: "trash"
+  ,query: "match (n) where n._trash is not null return id(n), labels(n), n._trash as trash"
+  ,fields: {
+  		"id(n)":     {label: "ID"    }
+  	 ,"labels(n)": {label: "Labels"}
+  	 ,"trash":     {label: "Trash"   }
+   }}
+
+} /// end method
 
 
 } ////////////////////////////////////////////////// end class
