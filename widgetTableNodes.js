@@ -1,5 +1,5 @@
 /*
-widgetTableNosw
+widgetTableNodes
 
 display, search, add/edit on nodes ******************
 
@@ -12,7 +12,7 @@ class widgetTableNodes {
 constructor (queryObjectName) { // name of a query Object
   this.queryObjectName = queryObjectName;
 //  this.queryObjects    = {};  this.queryObjectsInit();
-  this.queryObject     = app.metaData.get(queryObjectName);
+  this.queryObject     = app.metaData.getNode(queryObjectName);
   this.fields          = this.queryObject.fields;
   this.db              = new db();  // where db object will be new db(this.queryObj)
   this.queryData       = {}; // where returned data will be stored
@@ -57,8 +57,10 @@ buildWhere() {
   /*   output - nameLast =~"(?i)Bol.*"
   */  // <tr><th><input>  must go up 2 levels to get to tr
   const th  = document.getElementById(this.idHeader).firstElementChild.children; // get collection of th
-  let where = "";
+
+  let where = "n._trash is null and ";
   // iterate siblings of input
+
   for(let i=2; i<th.length; i++) {
     let inputDOM = th[i].firstElementChild;  // <input>  tag
     let dropDown = inputDOM.nextElementSibling;
@@ -119,13 +121,12 @@ getAtt(element,attName) { // private -----------
 ////////////////////////////////////////////////////////////////////
 buildHeader() {
   // build header
-  const html =`
-  <div id="#0#" class="widget" db="nameTable: #tableName#"><hr><b>
-  <input type="button" value="Close"   onclick="app.widgetClose(this)"> ` +this.queryObject.nodeLabel +":"+ this.queryObjectName +` </b>
+  const html = app.widgetHeader()
+  +'<b> '+this.queryObject.nodeLabel +":"+ this.queryObjectName +` </b>
   <input type="button" value="Add"     onclick="app.widget('addNode',this)">
   <input type="button" value="Search"  onclick="app.widgetSearch(this)">
-  <input type="button" value="Collapse" onclick="app.widgetCollapse(this)"> limit
-  <input id="#1#" value ="9" style="width: 20px;">
+  limit <input id="#1#" value ="9" style="width: 20px;">
+
   <table>
     <thead id="#2#">
     <tr><th></th><th></th>#headerSearh#</tr>
