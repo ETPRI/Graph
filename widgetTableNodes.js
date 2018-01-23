@@ -11,7 +11,7 @@ class widgetTableNodes {
 // id - for document.getElementById(id)
 constructor (queryObjectName) { // name of a query Object
   this.queryObjectName = queryObjectName;
-//  this.queryObjects    = {};  this.queryObjectsInit();
+  this.queryObjects    = {};  this.queryObjectsInit();
   this.queryObject     = app.metaData.getNode(queryObjectName);
   this.fields          = this.queryObject.fields;
   this.db              = new db();  // where db object will be new db(this.queryObj)
