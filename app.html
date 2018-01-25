@@ -8,18 +8,18 @@
 
   <body>
 
-    <select id="menuNodes" onclick="app.menuNodes(this)"  onfocus = "app.menuNodeFocus()">
+    <select id="menuNodes" onclick="app.menuNodes(this)">
       <option value="">-- Nodes --</option>
     </select>
   <input  type="button" value="New" onclick="app.menuNodes(this)">
 
-  <select id="menuRelations" onchange="app.menuRelations(this)">
+  <select id="menuRelations" onclick="app.menuRelations(this)">
     <option value="">-- Relations --</option>
   </select>
 
 <hr>
   |-> debugging
-<select onclick="app.menuDBstats(this)" onfocus = "app.menuStatsFocus()">
+<select onclick="app.menuDBstats(this)">
   <option value="">--Meta Data--</option>
   <option value="trash">Trash</option>
   <option value="nodes">Nodes</option>

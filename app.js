@@ -20,8 +20,6 @@ constructor() {
 	this.widgets   = {}; // store widgets as they are created, remove when closed
 	this.idCounter = 0;  // init id counter
 	this.metaData  = new metaData();
-	this.nodesOpen = false;
-	this.statsOpen = false;
 
 	// used by classDB to access neo4j database,
 	this.authToken = neo4j.v1.auth.basic("neo4j", "neo4j");
@@ -60,37 +58,18 @@ menuNodesInit(data){
 
 /* displays nodes, allow search, add/edit */
 menuNodes(){
-	if (this.nodesOpen) { // if the menu is currently open, then create a new table and note that the menu is now closed
-		let dropDown = document.getElementById('menuNodes');
-		let value = dropDown.options[dropDown.selectedIndex].value;
-		if (value==="") return;  // menu comment
-		this.widgets[this.idGet(0)] = new widgetTableNodes(value);
-		this.nodesOpen = false;
-	}
-	else // If the menu is not currently open, do not create a new table and note that the menu is now open
-		this.nodesOpen = true;
-}
-
-menuNodeFocus(){ // Every time this is deselected and reselected, it STARTS with the menu closed.
-	this.nodesOpen = false;
+	let dropDown = document.getElementById('menuNodes');
+	let value = dropDown.options[dropDown.selectedIndex].value;
+	if (value==="") return;  // menu comment
+	this.widgets[this.idGet(0)] = new widgetTableNodes(value);
 }
 
 /* displays meta-data on nodes, keysNodes, relations, keysRelations */
 menuDBstats(dropDown){
-	if (this.statsOpen) { // if the menu is currently open, then create a new table and note that the menu is now closed
-		let value = dropDown.options[dropDown.selectedIndex].value;
-		if (value==="") return; // menu comment
-		this.widgets[this.idGet(0)] = new widgetTableQuery(value);
-		this.statsOpen = false;
-	}
-	else // If the menu is not currently open, do not create a new table and note that the menu is now open.
-		this.statsOpen = true;
+	let value = dropDown.options[dropDown.selectedIndex].value;
+	if (value==="") return; // menu comment
+	this.widgets[this.idGet(0)] = new widgetTableQuery(value);
 }
-
-menuStatsFocus() { // Every time this is deselected and reselected, it STARTS with the menu closed.
-	this.statsOpen = false;
-}
-
 
 /* for debugging / dev place to write messages */
 log(message){
