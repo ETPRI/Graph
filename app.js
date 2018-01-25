@@ -39,18 +39,18 @@ widget(method, widgetElement) {
 }
 
 
-menuNodesInit(data){
-	let menu = document.getElementById('menuNodes');
-	const selectionTemplate = '<option value="#db#">#db#</option>'
-	let html = "";  // build dropdown menu selections
-	const r = data;  // from the db
-  for (let i=0; i<r.length; i++) {
-    html += selectionTemplate.replace(/#db#/g, r[i]["nodeName"]);
-  }
-	menu.innerHTML += html;
-}
+// menuNodesInit(data){
+// 	let menu = document.getElementById('menuNodes');
+// 	const selectionTemplate = '<option value="#db#">#db#</option>'
+// 	let html = "";  // build dropdown menu selections
+// 	const r = data;  // from the db
+//   for (let i=0; i<r.length; i++) {
+//     html += selectionTemplate.replace(/#db#/g, r[i]["nodeName"]);
+//   }
+// 	menu.innerHTML += html;
+// }
 
-menuNodesInit2(){
+menuNodesInit(){
 	let menu = document.getElementById('menuNodes');
 	const selectionTemplate = '<option value="#db#">#db#</option>'
 	let html = "";  // build dropdown menu selections
