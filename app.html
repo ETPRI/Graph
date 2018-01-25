@@ -28,7 +28,7 @@
   <option value="keysRelation">Keys</option>
 </select>
 
-  <input type="button" value="Log" onclick="app.logToggle(this)">
+  <input type="button" value="log start" onclick="app.logToggle(this)">
 
   <input id="debug" type="text" size="80">
    <a href="http://localhost:7474/browser/" target="_blank">neo4j browser </a> neo4j desktop must be running with database started
@@ -39,24 +39,26 @@
 
 <script src="Libs/neo4j-web.js"></script>
 <script src="app.js"></script>
-<script src="classDB.js"></script>
+<script src="DB.js"></script>
 <script src="widgetTableQuery.js"></script>
 <script src="widgetTableNodes.js"></script>
 <script src="widgetNode.js"></script>
-<script src="classMetaData.js"></script>
+<script src="MetaData.js"></script>
 <!--
 <script src="widgetNode.js"></script>
 -->
 
 <script type="text/javascript">
-app = new app();  // only global variable
+app = new app();  // only global varia
+app.test();
 
 // build node menu
 app.db   = new db();
 app.db.setQuery('MATCH (n) unwind labels(n) as L RETURN  distinct L as nodeName');
 app.db.runQuery(app, "menuNodesInit");
+
 </script>
-<div id="log"></div>
+<div id="log" hidden="true"></div>
 <hr>
   </body>
 </html>

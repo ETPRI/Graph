@@ -11,9 +11,9 @@ class widgetTableNodes {
 // id - for document.getElementById(id)
 constructor (queryObjectName) { // name of a query Object
   this.queryObjectName = queryObjectName;
-  this.queryObjects    = {};  this.queryObjectsInit();
   this.queryObject     = app.metaData.getNode(queryObjectName);
   this.fields          = this.queryObject.fields;
+  this.fieldsDisplayed = this.queryObject.fieldsDisplayed;
   this.db              = new db();  // where db object will be new db(this.queryObj)
   this.queryData       = {}; // where returned data will be stored
 
@@ -58,7 +58,7 @@ buildWhere() {
   */  // <tr><th><input>  must go up 2 levels to get to tr
   const th  = document.getElementById(this.idHeader).firstElementChild.children; // get collection of th
 
-  let where = "n._trash is null and ";
+  let where = "n._trash = '' and ";
   // iterate siblings of input
 
   for(let i=2; i<th.length; i++) {
@@ -160,7 +160,8 @@ buildHeader() {
 
   // build search part of buildHeader
   let s="";
-  for (var fieldName in this.fields) {
+  for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
+      let fieldName =this.fieldsDisplayed[i];
       let s1 = `<th><input db="fieldName: #1" size="7">`
       if (this.fields[fieldName].type === "number") {
         // number search
@@ -175,8 +176,9 @@ buildHeader() {
 
   // build field name part of header
   let f="";
-  for (var propt in this.fields){
-      f += "<th onClick='app.widgetSort(this)'>"+ this.fields[propt].label + "</th>" ;
+  for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
+      let fieldName =this.fieldsDisplayed[i];
+      f += "<th onClick='app.widgetSort(this)'>"+ this.fields[fieldName].label + "</th>" ;
   }
   const html5 = html4.replace('#header#',f);
 
@@ -193,7 +195,8 @@ buildData(data) {  // build dynamic part of table
   let rowCount = 1;
   for (let i=0; i<r.length; i++) {
     html += '<tr><td>' +rowCount++ + `</td><td onClick="app.widget('edit',this)">` +r[i]["n"].identity+ '</td>'
-    for (let fieldName in this.fields) {
+    for (let j=0; j<this.fieldsDisplayed.length; j++) {
+      let fieldName =this.fieldsDisplayed[j];
       html += '<td '+ this.getatt(fieldName) +'>'+ r[i]["n"].properties[fieldName]  +"</td>" ;
     }
     html += "</tr>"
@@ -226,37 +229,6 @@ edit(element){
 addNode(){
   app.widgetNodeNew(this.queryObject.nodeLabel);
 }
-
-// queryObjectsInit() { // move to DB in the future
-// this.queryObjects.people = {
-//    nodeLabel: "people"
-//   ,orderBy: "nameLast"
-//   ,fields: {
-//   	"nameLast":   {label: "Last Name"}
-//    ,"nameFirst":  {label: "First Name"  }
-//    ,"email":      {label: "Email"  }
-//    ,"state":      {label: "State"  }
-//    ,"country":    {label: "Country"  }
-//   }}
-//
-// this.queryObjects.Person = {
-//    nodeLabel: "Person"
-//   ,orderBy: "name"
-//   ,fields: {
-//   	"name":  {label: "Name"}
-//    ,"born":  {label: "Born",  type: "number"  }
-//   }}
-//
-// this.queryObjects.Movie = {
-//    nodeLabel: "Movie"
-//   ,orderBy: "nameLast"
-//   ,fields: {
-//   	"title":      {label: "Title"     }
-//     ,"released":  {label: "Released",  type: "number"}
-//     ,"tagline":   {label: "Tagline"   }
-//   }}
-//
-// }
 
 
 } ////////////////////////////////////////////////////// end class widgetTableNodes
