@@ -115,24 +115,24 @@ this.node.organization = {
 
 
 /////////////////////////  sample DB
-this.node.Person = {
-   nodeLabel: "Person"
-  ,orderBy: "name"
-  ,fieldsDisplayed: ["name", "born"]
-  ,fields: {
-  	"name":  {label: "Name"}
-   ,"born":  {label: "Born",  type: "number"  }
-  }}
-
-this.node.Movie = {
-   nodeLabel: "Movie"
-  ,orderBy: "nameLast"
-  ,fieldsDisplayed: ["title", "released", "tagline"]
-  ,fields: {
-  	"title":      {label: "Title"     }
-    ,"released":  {label: "Released",  type: "number"}
-    ,"tagline":   {label: "Tagline"   }
-  }}
+// this.node.Person = {
+//    nodeLabel: "Person"
+//   ,orderBy: "name"
+//   ,fieldsDisplayed: ["name", "born"]
+//   ,fields: {
+//   	"name":  {label: "Name"}
+//    ,"born":  {label: "Born",  type: "number"  }
+//   }}
+//
+// this.node.Movie = {
+//    nodeLabel: "Movie"
+//   ,orderBy: "nameLast"
+//   ,fieldsDisplayed: ["title", "released", "tagline"]
+//   ,fields: {
+//   	"title":      {label: "Title"     }
+//     ,"released":  {label: "Released",  type: "number"}
+//     ,"tagline":   {label: "Tagline"   }
+//   }}
 
 } ////// end method
 

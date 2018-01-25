@@ -50,6 +50,17 @@ menuNodesInit(data){
 	menu.innerHTML += html;
 }
 
+menuNodesInit2(){
+	let menu = document.getElementById('menuNodes');
+	const selectionTemplate = '<option value="#db#">#db#</option>'
+	let html = "";  // build dropdown menu selections
+	for (var nodeName in this.metaData.node) { // nodeName is the name of the node, like "people" or "Movie"
+		html += selectionTemplate.replace(/#db#/g, nodeName);
+	}
+	menu.innerHTML += html;
+}
+
+
 // <option value="">-- my db ---</option>
 //
 // <option value="">-- Movie DB ---</option>

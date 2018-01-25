@@ -54,8 +54,10 @@ app.test();
 
 // build node menu
 app.db   = new db();
-app.db.setQuery('MATCH (n) unwind labels(n) as L RETURN  distinct L as nodeName');
-app.db.runQuery(app, "menuNodesInit");
+// app.db.setQuery('MATCH (n) unwind labels(n) as L RETURN  distinct L as nodeName');
+// app.db.runQuery(app, "menuNodesInit");
+app.metaData = new metaData();
+app.menuNodesInit2();
 
 </script>
 <div id="log" hidden="true"></div>
