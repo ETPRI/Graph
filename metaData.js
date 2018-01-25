@@ -60,6 +60,7 @@ this.node.people = {
 this.node.address = {
   nodeLabel: "address"
   ,orderBy: "postalCode"
+  ,fieldsDisplayed: ["street1", "street2", "city", "state"]
   ,fields: {"street1":     {label: "Street"}
   ,"street2":    {label: ""  }
   ,"city":       {label: "City"  }
@@ -73,6 +74,7 @@ this.node.address = {
 this.node.net = {
   nodeLabel: "net"
   ,orderBy: "nameLast"
+  ,fieldsDisplayed: ["email.business", "facebook", "linkedIn"]
   ,fields: {"email.home":      {}
   ,"email.business": {}
   ,"facebook":       {}
@@ -86,6 +88,7 @@ this.node.net = {
 this.node.phone = {
   nodeLabel: "phone"
   ,orderBy: "nameLast"
+  ,fieldsDisplayed: ["home"]
   ,fields: {
   "home":        {}
   ,"street2":    {}
@@ -100,6 +103,7 @@ this.node.phone = {
 this.node.organization = {
    nodeLabel: "organization"
   ,orderBy: "nameLast"
+  ,fieldsDisplayed: ["nameLast", "nameFirst", "email", "state", "country"]
   ,fields: {"name":       {}
   ,"nameLast":   {}
    ,"nameFirst":  {}
@@ -111,22 +115,24 @@ this.node.organization = {
 
 
 /////////////////////////  sample DB
-this.node.Person = {
-   nodeLabel: "Person"
-  ,orderBy: "name"
-  ,fields: {
-  	"name":  {label: "Name"}
-   ,"born":  {label: "Born",  type: "number"  }
-  }}
-
-this.node.Movie = {
-   nodeLabel: "Movie"
-  ,orderBy: "nameLast"
-  ,fields: {
-  	"title":      {label: "Title"     }
-    ,"released":  {label: "Released",  type: "number"}
-    ,"tagline":   {label: "Tagline"   }
-  }}
+// this.node.Person = {
+//    nodeLabel: "Person"
+//   ,orderBy: "name"
+//   ,fieldsDisplayed: ["name", "born"]
+//   ,fields: {
+//   	"name":  {label: "Name"}
+//    ,"born":  {label: "Born",  type: "number"  }
+//   }}
+//
+// this.node.Movie = {
+//    nodeLabel: "Movie"
+//   ,orderBy: "nameLast"
+//   ,fieldsDisplayed: ["title", "released", "tagline"]
+//   ,fields: {
+//   	"title":      {label: "Title"     }
+//     ,"released":  {label: "Released",  type: "number"}
+//     ,"tagline":   {label: "Tagline"   }
+//   }}
 
 } ////// end method
 
