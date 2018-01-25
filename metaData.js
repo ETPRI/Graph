@@ -47,6 +47,7 @@ initNodeData() { // move to DB in the future
 this.node.people = {
    nodeLabel: "people"
   ,orderBy: "nameLast"
+  ,fieldsDisplayed: ["nameLast", "nameFirst", "email"]
   ,fields: {"name":       {label: "Name"}
   ,"nameLast":   {label: "Last Name"}
   ,"nameFirst":  {label: "First Name"  }
@@ -57,7 +58,7 @@ this.node.people = {
   }}
 
 this.node.address = {
-  nodeLabel: "people"
+  nodeLabel: "address"
   ,orderBy: "postalCode"
   ,fields: {"street1":     {label: "Street"}
   ,"street2":    {label: ""  }

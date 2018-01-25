@@ -40,6 +40,7 @@ widget(method, widgetElement) {
 	}
 }
 
+
 menuNodesInit(data){
 	let menu = document.getElementById('menuNodes');
 	const selectionTemplate = '<option value="#db#">#db#</option>'
@@ -116,6 +117,10 @@ logToggle(button){
 // brings up add/edit widget form table for one node
 // keys in first column, values in second column
 widgetNodeNew(nodeName, data) {
+		this.widgets[this.idGet(0)] = new widgetNode(nodeName, data);
+}
+
+widgetNode(nodeName, data) {
 		this.widgets[this.idGet(0)] = new widgetNode(nodeName, data);
 }
 
@@ -209,6 +214,28 @@ idReplace(html, counter) { // public - was replace
 		return( this.idReplace(ret, counter));
 }}
 
+test() {
+	// test
+
+/*
+
+	this.widgets[this.idGet(0)] = new widgetTableQuery('trash');   // problem with edit
+	this.widgets[this.idGet(0)] = new widgetTableQuery('nodes');  // search brokent
+	this.widgets[this.idGet(0)] = new widgetTableQuery('keysNode');  // seems to work
+	this.widgets[this.idGet(0)] = new widgetTableQuery('relations');  // seems to work
+	this.widgets[this.idGet(0)] = new widgetTableQuery('keysRelation');  // seems to work
+*/
+
+	this.widgets[this.idGet(0)] = new widgetTableNodes('people');
+/*
+
+
+
+
+
+*/
+}
+
 
 }  ///////////////////////////////////////////////////////////////// end class
 
@@ -257,12 +284,6 @@ Usually button functions, onclick events
 
 //////////// specialized functions
 
-
-//
-// app.widget.test = function () {
-// 	// test memory version
-// 	//app.widgets[app.id.get(0)] = new db("peopleNew");
-// }
 
 
 // app.widget.sort = function (domElement) {

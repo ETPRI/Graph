@@ -19,7 +19,7 @@ constructor (nameQueryObject) {
 
   this.db        = new db();   // create object to make query
   this.db.setQuery(this.queryObj.query);
-  this.queryData = {};                            // where returned data will be stored
+  this.queryData = {};                       // where returned data will be stored
 
   // runQuery is asynchronous - it will read data in the background and call the method "queryComplete" when done
   this.db.runQuery(this,"queryComplete");         // make query, when done run method queryComplete
@@ -139,14 +139,25 @@ this.queryObjects.keysRelation = {
 
 this.queryObjects.trash = {
    nameTable: "trash"
-  ,query: "match (n) where n._trash is not null return id(n), labels(n), n._trash as trash"
-  ,fields: {
-  		"id(n)":     {label: "ID"    }
-  	 ,"labels(n)": {label: "Labels"}
-  	 ,"trash":     {label: "Trash"   }
-   }}
+   ,query: "match (n) where not n._trash = '' return id(n) as id, labels(n) as labels, n._trash as trash"
+   ,fields: {
+       "id":     {label: "ID",   att: `onclick="app.widget('edit',this)"`}
+   	 ,"labels": {label: "Labels"}
+   	 ,"trash":  {label: "Trash"   }
+    }}
 
 } /// end method
+
+edit(element){
+// this.queryData[0].id.toString() === id
+  let id = element.innerHTML;
+  let n = this.queryData.filter(o => o.id.toString() === id);
+
+  app.widgetNodeNew(this.queryObject.nodeLabel, n[0].n);
+
+
+  widgetNode
+}
 
 
 } ////////////////////////////////////////////////// end class

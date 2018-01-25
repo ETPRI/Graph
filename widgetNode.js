@@ -18,7 +18,7 @@ constructor(label, data) {
   this.tableDOM    = {} // place holder
   this.delete       = app.idGet(3);
   this.deleteDOM    = {} // place holder
-  this.queryObject = app.metaData.get(label);
+  this.queryObject = app.metaData.getNode(label);
   this.fields      = this.queryObject.fields;
   this.db          = new db() ; // placeholder for add
 
@@ -31,7 +31,6 @@ constructor(label, data) {
 buildWidget() { // public - build table header
   const html = app.widgetHeader() +'<b> ' + this.label +` </b>
   <input id="#1#" type="button" onclick="app.widget('saveAdd',this)">
-  <input id="#3#" type="button" value="Trash" onclick="app.widget('trash',this)">
   <table id="#2#">
   </table>
   </div>
@@ -67,10 +66,8 @@ buildData() {
   // set the button to be save or added
   if (this.data) {
     this.addSaveDOM.value = "Save";
-    this.deleteDOM.hidden = false;
   } else {
     this.addSaveDOM.value = "Add";
-    this.deleteDOM.hidden = true;
   }
 }
 
@@ -167,16 +164,16 @@ saveData(data) {
   this.buildData();
 }
 
-trash(domElememt) {
-  // set _trash = "comment why deleting" - remove from trash, removes the attribute
-  let comment = prompt("Reson for moving item to trash");
-  if (!comment) return;
-
-  let query = 'match (n) where id(n) =' + this.data.identity +
-  ' set _trash="' + comment +'"';
-  alert(query);
-  //this.data;
-}
+// trash(domElememt) {
+//   // set _trash = "comment why deleting" - remove from trash, removes the attribute
+//   let comment = prompt("Reson for moving item to trash");
+//   if (!comment) return;
+//
+//   let query = 'match (n) where id(n) =' + this.data.identity +
+//   ' set _trash="' + comment +'"';
+//   alert(query);
+//   //this.data;
+// }
 
 
 // ////////////////////////////////////////////////////////////////////
