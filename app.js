@@ -31,10 +31,10 @@ widget(method, widgetElement) {
 	// app.widget("add",this) on widget to get back to method from html to class
 	const id = this.widgetGetId(widgetElement);
 	if (id) {
-		this.widgets[id][method](widgetElement);
+		this.widgets[id][method](widgetElement); //  Call the method, which belongs to the widget containing widgetElement, and pass in widgetElement?
 	} else {
      // create instance of widget and remember it
-		 alert("App.wdiget: Erorr, method= "+ method);
+		 alert("App.widget: Error, method= "+ method);
 	}
 }
 
@@ -89,6 +89,61 @@ log(message){
 	}
 }
 
+// new methods for logging actions start there
+
+// Logs when any text field is changed, either in a widgetTableNodes or a widgetNode object.
+logText(textBox) {
+	let text = textBox.value;
+	let element = textBox.getAttribute("db");
+	let id = this.widgetGetId(textBox);
+	this.log("Field '" + element + "' in widget with ID " + id + " was set to '" + text + "'.");
+}
+
+// Logs when any button in a widget is clicked. That means any button but New, which is handled by logTableRequest.
+logButton(button) {
+	let name = button.value;
+	let id = this.widgetGetId(button);
+	this.log("The " + name + " button on widget with ID " + id + " was clicked.");
+}
+
+// Logs when the limit in a widgetTableNodes object is changed. This is handled separately from logText because labels don't have a db attribute.
+logLimit(limitBox) {
+	let id = this.widgetGetId(limitBox);
+	let limit = limitBox.value;
+	this.log("The limit for widget with id " + id + " was changed to " + limit + ".");
+}
+
+// Logs when either dropdown list or the New button is used to create a new table.
+logTableRequest(control) { // control may be either dropdown list OR the "New" button.
+	let value = "";
+	let controlName = control.id;
+	if (controlName == "New") { // If the control was the New button, go get the value from the dropdown List
+		let dropDown = document.getElementById('menuNodes');
+		value = dropDown.options[dropDown.selectedIndex].value;
+	}
+	else { // if the control used wasn't the New button, it was the dropdown list itself
+		value = control.options[control.selectedIndex].value;
+	}
+	this.log("The control '" + controlName + "' was used to request a new '" + value + "' table.");
+}
+
+// Logs when a record is opened for editing
+logEdit(element) { // Element is the thing you clicked on to open the Edit widget - a node ID in a table
+	let id = element.innerHTML;
+	let widgetID = this.widgetGetId(element);
+	this.log ("The record with ID " + id + " in the widget with ID " + widgetID + " was opened for editing.")
+}
+
+// Logs when the search criterion for an input field changes
+logSearchChange(selector) { // selector is the dropdown which chooses among "S", "M" or "E" for strings, and "<", ">", "<=", ">=" or "=" for numbers.
+	let id = this.widgetGetId(selector);
+	let input = selector.previousElementSibling;
+	let field = input.getAttribute("db");
+	let value = selector.options[selector.selectedIndex].value
+	this.log("The search criterion for the field '" + field + "' in widget with ID " + id + " was changed to '" + value + "'.");
+}
+
+// End of new methods for logging actions
 
 // toggle log on off
 logToggle(button){
@@ -125,8 +180,8 @@ widgetSearch(domElement) {
 widgetHeader(){
 	return(`
 <div id="#0#" class="widget" db="nameTable: #tableName#"><hr>
-<input type="button" value="X"   onclick="app.widgetClose(this)">
-<input type="button" value="__" onclick="app.widgetCollapse(this)">
+<input type="button" value="X"   onclick="app.widgetClose(this); app.logButton(this)">
+<input type="button" value="__" onclick="app.logButton(this); app.widgetCollapse(this)">
 		`)
 }
 

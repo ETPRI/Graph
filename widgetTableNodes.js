@@ -123,9 +123,9 @@ buildHeader() {
   // build header
   const html = app.widgetHeader()
   +'<b> '+this.queryObject.nodeLabel +":"+ this.queryObjectName +` </b>
-  <input type="button" value="Add"     onclick="app.widget('addNode',this)">
-  <input type="button" value="Search"  onclick="app.widgetSearch(this)">
-  limit <input id="#1#" value ="9" style="width: 20px;">
+  <input type="button" value="Add"     onclick="app.widget('addNode',this); app.logButton(this)">
+  <input type="button" value="Search"  onclick="app.widgetSearch(this); app.logButton(this)">
+  limit <input id="#1#" value ="9" style="width: 20px;" onblur = "app.logLimit(this)">
 
   <table>
     <thead id="#2#">
@@ -139,7 +139,7 @@ buildHeader() {
   `
 
   const strSearch = `
-  <select>
+  <select onclick = "app.logSearchChange(this)">
   <option value="S">S</option>
   <option value="M">M</option>
   <option value="E">E</option>
@@ -147,7 +147,7 @@ buildHeader() {
   </select></th>`
 
   const numSearch = `
-  <select>
+  <select onclick = "app.logSearchChange(this)">
   <option value=">">&gt;</option>
   <option value=">=">&gt;=</option>
   <option value="=">=</option>
@@ -162,7 +162,7 @@ buildHeader() {
   let s="";
   for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
       let fieldName =this.fieldsDisplayed[i];
-      let s1 = `<th><input db="fieldName: #1" size="7">`
+      let s1 = `<th><input db="fieldName: #1" size="7" onblur="app.logText(this)">`
       if (this.fields[fieldName].type === "number") {
         // number search
         s1 += numSearch;
@@ -194,7 +194,7 @@ buildData(data) {  // build dynamic part of table
   const r = data;
   let rowCount = 1;
   for (let i=0; i<r.length; i++) {
-    html += '<tr><td>' +rowCount++ + `</td><td onClick="app.widget('edit',this)">` +r[i]["n"].identity+ '</td>'
+    html += '<tr><td>' +rowCount++ + `</td><td onClick="app.widget('edit',this); app.logEdit(this)">` +r[i]["n"].identity+ '</td>'
     for (let j=0; j<this.fieldsDisplayed.length; j++) {
       let fieldName =this.fieldsDisplayed[j];
       html += '<td '+ this.getatt(fieldName) +'>'+ r[i]["n"].properties[fieldName]  +"</td>" ;
