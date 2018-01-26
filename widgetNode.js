@@ -30,7 +30,7 @@ constructor(label, data) {
 ////////////////////////////////////////////////////////////////////
 buildWidget() { // public - build table header
   const html = app.widgetHeader() +'<b> ' + this.label +` </b>
-  <input id="#1#" type="button" onclick="app.widget('saveAdd',this)">
+  <input id="#1#" type="button" onclick="app.widget('saveAdd',this); app.logButton(this)">
   <table id="#2#">
   </table>
   </div>
@@ -50,7 +50,7 @@ buildData() {
   let html="";
   for (var fieldName in this.fields) {
       let s1 = '<tr><th>' + this.fields[fieldName].label + '</th><td><input db="' + fieldName
-      + `" onChange="app.widget('changed',this)"`  +' #value#></td></tr>'
+      + `" onChange="app.widget('changed',this); app.logText(this)"`  +' #value#></td></tr>'
       let s2="";
       if (this.data) {
         // load form with data from db, edit
