@@ -59,8 +59,8 @@ buildHeader() {
   </div>
   `
 
-  const html2 = app.idReplace(html,0);  // replace relative ids with absolute ides
-  const html3 = html2.replace('#tableName#',this.tableName).replace("#header#",
+//  const html2 = app.idReplace(html,1);  // replace relative ids with absolute ides
+  const html3 = html.replace("#header#",
   // create html for header
   (function(fields) {
   	// build search part of buildHeader

@@ -18,12 +18,14 @@ constructor (queryObjectName, controlId) { // name of a query Object, and ID of 
   this.queryData       = {}; // where returned data will be stored
 
   this.idWidget = app.idGet(0);   // strings
-  this.idLimit  = app.idGet(1);
-  this.idHeader = app.idGet(2);
-  this.idData   = app.idGet(3);
+//  this.idLimit  = app.idGet(1);
+//  this.idHeader = app.idGet(2);
+//  this.idData   = app.idGet(3);
   this.searchTrigger = controlId;
 
   this.buildHeader();  //  show table header on screen
+  this.widget = document.getElementById(this.idWidget);
+
   this.search();       // do search with no criteria
 }
 
@@ -40,7 +42,7 @@ buildQuery() { // public - called when search criteria change
   let match    = "(n:" +this.queryObject.nodeLabel+ ")";
   let where    = this.buildWhere();
   let orderBy  = "n." + this.queryObject.orderBy;
-  let limit    = document.getElementById(this.idLimit).value;
+  let limit    = app.getChildByIdr(this.widget, "limit").value;
 
   let query =
 	    "match " + match
@@ -57,7 +59,7 @@ buildQuery() { // public - called when search criteria change
 buildWhere() {
   /*   output - nameLast =~"(?i)Bol.*"
   */  // <tr><th><input>  must go up 2 levels to get to tr
-  const th  = document.getElementById(this.idHeader).firstElementChild.children; // get collection of th
+  const th  = app.getChildByIdr(this.widget, "header").firstElementChild.children; // get collection of th
 
   let where = "n._trash = '' and ";
   // iterate siblings of input
@@ -126,14 +128,14 @@ buildHeader() {
   +'<b> '+this.queryObject.nodeLabel +":"+ this.queryObjectName +` </b>
   <input type="button" value="Add" idr = "AddButton" onclick="app.widget('addNode',this)">
   <input type="button" value="Search" idr = "SearchButton" onclick="app.widgetSearch(this)">
-  limit <input id="#1#" value ="9" idr = "limit" style="width: 20px;" onblur = "app.logText(this)">
+  limit <input value ="9" idr = "limit" style="width: 20px;" onblur = "app.logText(this)">
 
   <table>
-    <thead id="#2#">
+    <thead idr = "header">
     <tr><th></th><th></th>#headerSearch#</tr>
     <tr><th>#</th><th>ID</th>#header#</tr>
     </thead>
-    <tbody id="#3#"> </tbody>
+    <tbody idr = "data"> </tbody>
   </table>
   <!-- popup goes here -->
   </div>
@@ -156,8 +158,8 @@ buildHeader() {
   <option value="<">&lt;</option>
   </select></th>`
 
-  const html2 = app.idReplace(html,0);  // replace relative ids with absolute ids
-  const html3 = html2.replace('#tableName#',this.tableName);
+//  const html2 = app.idReplace(html,1);  // replace relative ids with absolute ids
+//  const html3 = html.replace('#tableName#',this.tableName); // This variable doesn't seem to exist
 
   // build search part of buildHeader
   let s="";
@@ -173,7 +175,7 @@ buildHeader() {
       }
       s += s1.replace('#1',fieldName)
   }
-  const html4 = html3.replace('#headerSearch#',s)
+  const html4 = html.replace('#headerSearch#',s)
 
   // build field name part of header
   let f="";
@@ -203,7 +205,7 @@ buildData(data) {  // build dynamic part of table
     html += "</tr>"
   }
 
-  document.getElementById(this.idData).innerHTML = html;
+  app.getChildByIdr(this.widget, "data").innerHTML = html;
 
   // New code for creating a JSON object
   let obj = {};

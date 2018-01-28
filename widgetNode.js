@@ -11,13 +11,13 @@ class widgetNode {
 constructor(label, data) {
   this.data        = data; // is db identifier, not defined means add
   this.label       = label;
-  this.idWidget    = app.idGet(0); // not sure this is used
-  this.addSave     = app.idGet(1);
+  this.idWidget    = app.idGet(0);
+//  this.addSave     = app.idGet(1);
   this.addSaveDOM  = {} // place holder
-  this.table       = app.idGet(2);
+//  this.table       = app.idGet(2);
   this.tableDOM    = {} // place holder
-  this.delete       = app.idGet(3);
-  this.deleteDOM    = {} // place holder
+//  this.delete       = app.idGet(3); // Is this ever used? I can't find a reference to it, and it seems to refer to a null object
+//  this.deleteDOM    = {} // place holder
   this.queryObject = app.metaData.getNode(label);
   this.fields      = this.queryObject.fields;
   this.db          = new db() ; // placeholder for add
@@ -30,18 +30,21 @@ constructor(label, data) {
 ////////////////////////////////////////////////////////////////////
 buildWidget() { // public - build table header
   const html = app.widgetHeader() +'<b> ' + this.label +` </b>
-  <input id="#1#" idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
-  <table id="#2#">
+  <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
+  <table idr = "nodeTable">
   </table>
   </div>
   `
-  const html1 = app.idReplace(html,0);  // replace relative ids with absolute ids
-  document.getElementById('widgets').innerHTML = html1
+  document.getElementById('widgets').innerHTML = html
     + document.getElementById('widgets').innerHTML;
 
-  this.addSaveDOM = document.getElementById(this.addSave);
-  this.tableDOM   = document.getElementById(this.table);
-  this.deleteDOM  = document.getElementById(this.delete);
+    // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
+
+  let widget = document.getElementById(this.idWidget);
+
+  this.addSaveDOM = app.getChildByIdr(widget, "addSaveButton");
+  this.tableDOM   = app.getChildByIdr(widget, "nodeTable");
+//  this.deleteDOM  = document.getElementById(this.delete);
 }
 
 
@@ -125,7 +128,7 @@ changed(input) {
     obj.id = app.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.value = input.value;
-    app.log(JSON.stringify(obj));    
+    app.log(JSON.stringify(obj));
     return;  // no feedback in add mode, but do log the change
   }
   // give visual feedback if edit data is different than db data

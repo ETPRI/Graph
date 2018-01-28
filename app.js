@@ -72,14 +72,14 @@ menuNodes(control){
 	let dropDown = document.getElementById('menuNodes');
 	let value = dropDown.options[dropDown.selectedIndex].value;
 	if (value==="") return;  // menu comment
-	this.widgets[this.idGet(0)] = new widgetTableNodes(value, control.id);
+	this.widgets[this.idCounter] = new widgetTableNodes(value, control.id);
 }
 
 /* displays meta-data on nodes, keysNodes, relations, keysRelations */
 menuDBstats(dropDown){
 	let value = dropDown.options[dropDown.selectedIndex].value;
 	if (value==="") return; // menu comment
-	this.widgets[this.idGet(0)] = new widgetTableQuery(value, dropDown.id);
+	this.widgets[this.idCounter] = new widgetTableQuery(value, dropDown.id);
 }
 
 /* for debugging / dev place to write messages */
@@ -88,8 +88,6 @@ log(message){
 		document.getElementById('log').innerHTML += "<br>" + message;
 	}
 }
-
-// new methods for logging actions start here
 
 // Logs when any text field is changed in a widgetTableNodes object.
 logText(textBox) {
@@ -109,8 +107,6 @@ logSearchChange(selector) { // selector is the dropdown which chooses among "S",
 	this.log(JSON.stringify(obj));
 }
 
-// End of new methods for logging actions
-
 // toggle log on off
 logToggle(button){
 	log = document.getElementById('log');
@@ -128,11 +124,11 @@ logToggle(button){
 // brings up add/edit widget form table for one node
 // keys in first column, values in second column
 widgetNodeNew(nodeName, data) {
-		this.widgets[this.idGet(0)] = new widgetNode(nodeName, data);
+		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
 
 widgetNode(nodeName, data) {
-		this.widgets[this.idGet(0)] = new widgetNode(nodeName, data);
+		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
 
 
@@ -146,7 +142,7 @@ widgetSearch(domElement) {
 
 widgetHeader(){
 	return(`
-<div id="#0#" class="widget" db="nameTable: #tableName#"><hr>
+<div id="` + this.idCounter++ + `" class="widget"><hr>
 <input type="button" value="X" idr="closeButton" onclick="app.widgetClose(this)">
 <input type="button" value="__" idr="expandCollapseButton" onclick="app.widgetCollapse(this)">
 		`)
@@ -219,24 +215,35 @@ idGet(increment) {  // was  get
 	return (this.idCounter+increment).toString();
 }
 
-// when is this used?
-idGetLast() { // was getLast
-	return app.widgets[this.idCounter];
-}
+// // when is this used?
+// idGetLast() { // was getLast
+// 	return app.widgets[this.idCounter];
+// }
 
 // replace id holder in widget header with unique ids
-idReplace(html, counter) { // public - was replace
-	// called once for each widget created
-	//replace #id0# with id.counter, #id1# with id.counter+1 etc, then increment counter to next unused id
-	let ret = html.replace("#"+counter++ +"#", "" + this.idCounter++);
-  if (html === ret) {
-		// all the replacements have been done - assume no ids are skipped, will break code
-		// save widget
-		return (ret);
-	} else {
-		// recursively call until there are no more changes to make
-		return( this.idReplace(ret, counter));
-}}
+// idReplace(html, counter) { // public - was replace
+// 	// called once for each widget created
+// 	//replace #id0# with idCounter, #id1# with idCounter+1 etc, then increment idCounter to next unused id
+// 	let ret = html.replace("#"+counter++ +"#", "" + this.idCounter++);
+//   if (html === ret) {
+// 		// all the replacements have been done - assume no ids are skipped, will break code
+// 		// save widget
+// 		return (ret);
+// 	} else {
+// 		// recursively call until there are no more changes to make
+// 		return( this.idReplace(ret, counter));
+// }}
+
+// returns the first child of the given element that has the given idr. If no child has that idr, returns null.
+getChildByIdr(element, idr) {
+	let children = element.querySelectorAll("*"); // get all the element's children...
+	for (let i = 0; i < children.length; i++) { // loop through them...
+		if (children[i].getAttribute("idr") == idr) {
+			return children[i]; // and return the first one whose idr matches...
+		}
+	}
+	return null; // or null if no idr matches
+}
 
 test() {
 	// test
@@ -250,7 +257,7 @@ test() {
 	this.widgets[this.idGet(0)] = new widgetTableQuery('keysRelation');  // seems to work
 */
 
-	this.widgets[this.idGet(0)] = new widgetTableNodes('people');
+	this.widgets[this.idCounter] = new widgetTableNodes('people');
 /*
 
 
