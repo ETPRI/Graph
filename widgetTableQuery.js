@@ -8,7 +8,7 @@ display a cypher query in a table, used mainly for meta data reporting
 
 ////////////////////////////////////////////////////////////////////  class start
 class widgetTableQuery {
-constructor (nameQueryObject) {
+constructor (nameQueryObject, id) {
   // init instance variables
   this.html            = ""; // will contain html that makes up widget
   this.queryObjectName = nameQueryObject;  // key to select queryObj
@@ -16,6 +16,7 @@ constructor (nameQueryObject) {
   this.queryObj        = this.queryObjects[nameQueryObject];  // select one query
   this.fields          = this.queryObj.fields;
   this.tableName = nameQueryObject;
+  this.dropdownId = id;
 
   this.db        = new db();   // create object to make query
   this.db.setQuery(this.queryObj.query);
@@ -35,6 +36,13 @@ queryComplete(data) {
   // add
   document.getElementById('widgets').innerHTML =
     this.html + document.getElementById('widgets').innerHTML;
+
+  // log
+  let obj = {};
+  obj.id = this.dropdownId;
+  obj.value = this.queryObjectName;
+  obj.data = data;
+  app.log(JSON.stringify(obj));
 }
 
 

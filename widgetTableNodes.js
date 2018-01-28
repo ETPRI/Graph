@@ -9,7 +9,7 @@ class widgetTableNodes {
 ////////////////////////////////////////////////////////////////////
 // tableName
 // id - for document.getElementById(id)
-constructor (queryObjectName) { // name of a query Object
+constructor (queryObjectName, controlId) { // name of a query Object, and ID of the control that requested it
   this.queryObjectName = queryObjectName;
   this.queryObject     = app.metaData.getNode(queryObjectName);
   this.fields          = this.queryObject.fields;
@@ -21,6 +21,7 @@ constructor (queryObjectName) { // name of a query Object
   this.idLimit  = app.idGet(1);
   this.idHeader = app.idGet(2);
   this.idData   = app.idGet(3);
+  this.searchTrigger = controlId;
 
   this.buildHeader();  //  show table header on screen
   this.search();       // do search with no criteria
@@ -123,13 +124,13 @@ buildHeader() {
   // build header
   const html = app.widgetHeader()
   +'<b> '+this.queryObject.nodeLabel +":"+ this.queryObjectName +` </b>
-  <input type="button" value="Add"     onclick="app.widget('addNode',this); app.logButton(this)">
-  <input type="button" value="Search"  onclick="app.widgetSearch(this); app.logButton(this)">
-  limit <input id="#1#" value ="9" style="width: 20px;" onblur = "app.logLimit(this)">
+  <input type="button" value="Add" idr = "AddButton" onclick="app.widget('addNode',this)">
+  <input type="button" value="Search" idr = "SearchButton" onclick="app.widgetSearch(this)">
+  limit <input id="#1#" value ="9" idr = "limit" style="width: 20px;" onblur = "app.logText(this)">
 
   <table>
     <thead id="#2#">
-    <tr><th></th><th></th>#headerSearh#</tr>
+    <tr><th></th><th></th>#headerSearch#</tr>
     <tr><th>#</th><th>ID</th>#header#</tr>
     </thead>
     <tbody id="#3#"> </tbody>
@@ -139,7 +140,7 @@ buildHeader() {
   `
 
   const strSearch = `
-  <select onclick = "app.logSearchChange(this)">
+  <select idr = "dropdown#x#", onclick = "app.logSearchChange(this)">
   <option value="S">S</option>
   <option value="M">M</option>
   <option value="E">E</option>
@@ -147,7 +148,7 @@ buildHeader() {
   </select></th>`
 
   const numSearch = `
-  <select onclick = "app.logSearchChange(this)">
+  <select idr = "dropdown#x#" onclick = "app.logSearchChange(this)">
   <option value=">">&gt;</option>
   <option value=">=">&gt;=</option>
   <option value="=">=</option>
@@ -162,17 +163,17 @@ buildHeader() {
   let s="";
   for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
       let fieldName =this.fieldsDisplayed[i];
-      let s1 = `<th><input db="fieldName: #1" size="7" onblur="app.logText(this)">`
+      let s1 = `<th><input idr = "text` + i + `" db="fieldName: #1" size="7" onblur="app.logText(this)">`
       if (this.fields[fieldName].type === "number") {
         // number search
-        s1 += numSearch;
+        s1 += numSearch.replace('#x#', i);
       } else {
         // assume string search
-        s1 += strSearch;
+        s1 += strSearch.replace('#x#', i);
       }
       s += s1.replace('#1',fieldName)
   }
-  const html4 = html3.replace('#headerSearh#',s)
+  const html4 = html3.replace('#headerSearch#',s)
 
   // build field name part of header
   let f="";
@@ -194,7 +195,7 @@ buildData(data) {  // build dynamic part of table
   const r = data;
   let rowCount = 1;
   for (let i=0; i<r.length; i++) {
-    html += '<tr><td>' +rowCount++ + `</td><td onClick="app.widget('edit',this); app.logEdit(this)">` +r[i]["n"].identity+ '</td>'
+    html += '<tr><td>' +rowCount++ + `</td><td idr = "edit` + i + `" onClick="app.widget('edit',this)">` +r[i]["n"].identity+ '</td>'
     for (let j=0; j<this.fieldsDisplayed.length; j++) {
       let fieldName =this.fieldsDisplayed[j];
       html += '<td '+ this.getatt(fieldName) +'>'+ r[i]["n"].properties[fieldName]  +"</td>" ;
@@ -203,6 +204,19 @@ buildData(data) {  // build dynamic part of table
   }
 
   document.getElementById(this.idData).innerHTML = html;
+
+  // New code for creating a JSON object
+  let obj = {};
+  obj.id = this.searchTrigger;
+  if (obj.id == this.idWidget) { // If the call for the search came from this widget, then record the idr of the search button
+    obj.idr = "searchButton";
+  }
+  if (obj.id == "menuNodes") { // If the call came from the menuNodes dropdown, then record the value of the dropDown
+    let dropDown = document.getElementById('menuNodes');
+  	obj.value = dropDown.options[dropDown.selectedIndex].value;
+  }
+  obj.data = data;
+  app.log(JSON.stringify(obj));
 }
 
 
@@ -222,12 +236,24 @@ edit(element){
   let n = this.queryData.filter(o => o.n.identity.toString() === id);
 
   app.widgetNodeNew(this.queryObject.nodeLabel,n[0].n);
+
+  // log
+  let obj = {};
+  obj.id = app.widgetGetId(element);
+  obj.idr = element.getAttribute("idr");
+  app.log(JSON.stringify(obj));
 }
 
 
 // open add widget
-addNode(){
+addNode(element){
   app.widgetNodeNew(this.queryObject.nodeLabel);
+
+  // log
+  let obj = {};
+  obj.id = app.widgetGetId(element);
+  obj.idr = element.getAttribute("idr");
+  app.log(JSON.stringify(obj));
 }
 
 

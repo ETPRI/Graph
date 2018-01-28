@@ -8,18 +8,18 @@
 
   <body>
 
-    <select id="menuNodes" onclick="app.menuNodes(this); app.logTableRequest(this)">
+    <select id="menuNodes" onclick="app.menuNodes(this)">
       <option value="">-- Nodes --</option>
     </select>
-  <input  type="button" id = "New" value="New" onclick="app.menuNodes(this); app.logTableRequest(this)">
+  <input  type="button" id = "New" value="New" onclick="app.menuNodes(this)">
 
-  <select id="menuRelations" onclick="app.menuRelations(this); app.logTableRequest(this)">
+  <select id="menuRelations" onclick="app.menuRelations(this)">
     <option value="">-- Relations --</option>
   </select>
 
 <hr>
   |-> debugging
-<select id = "metaData" onclick="app.menuDBstats(this); app.logTableRequest(this)">
+<select id = "metaData" onclick="app.menuDBstats(this)">
   <option value="">--Meta Data--</option>
   <option value="trash">Trash</option>
   <option value="nodes">Nodes</option>

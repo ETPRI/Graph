@@ -3,7 +3,7 @@
 add/edit one node in a form
 
 input: label
-       data is optional.  Add mode is used if data is not suplied
+       data is optional.  Add mode is used if data is not supplied
 
 */
 
@@ -30,7 +30,7 @@ constructor(label, data) {
 ////////////////////////////////////////////////////////////////////
 buildWidget() { // public - build table header
   const html = app.widgetHeader() +'<b> ' + this.label +` </b>
-  <input id="#1#" type="button" onclick="app.widget('saveAdd',this); app.logButton(this)">
+  <input id="#1#" idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
   <table id="#2#">
   </table>
   </div>
@@ -48,9 +48,10 @@ buildWidget() { // public - build table header
 buildData() {
   // put in one field label and input row for each field
   let html="";
+  let fieldCount = 0;
   for (var fieldName in this.fields) {
       let s1 = '<tr><th>' + this.fields[fieldName].label + '</th><td><input db="' + fieldName
-      + `" onChange="app.widget('changed',this); app.logText(this)"`  +' #value#></td></tr>'
+      + `" idr = "input` + fieldCount++ + `" onChange="app.widget('changed',this)"`  +' #value#></td></tr>'
       let s2="";
       if (this.data) {
         // load form with data from db, edit
@@ -79,6 +80,13 @@ saveAdd(widgetElement) {
   } else {
     this.add(widgetElement);
   }
+
+  // log
+  let obj = {};
+  obj.id = app.widgetGetId(widgetElement);
+  obj.idr = widgetElement.getAttribute("idr");
+  obj.value = widgetElement.value;
+  app.log(JSON.stringify(obj));
 }
 
 
@@ -112,14 +120,27 @@ addComplete(data) {
 
 
 changed(input) {
-  if (!this.data) return;  // no feedback in add mode
-
+  if (!this.data) {
+    let obj = {};
+    obj.id = app.widgetGetId(input);
+    obj.idr = input.getAttribute("idr");
+    obj.value = input.value;
+    app.log(JSON.stringify(obj));    
+    return;  // no feedback in add mode, but do log the change
+  }
   // give visual feedback if edit data is different than db data
   if (input.value === this.data.properties[input.getAttribute('db')]) {
     input.setAttribute("class","");
   } else {
     input.setAttribute("class","changedData");
   }
+
+  // log
+  let obj = {};
+  obj.id = app.widgetGetId(input);
+  obj.idr = input.getAttribute("idr");
+  obj.value = input.value;
+  app.log(JSON.stringify(obj));
 }
 
 

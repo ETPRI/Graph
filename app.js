@@ -68,18 +68,18 @@ menuNodesInit(){
 // <option value="Movie">Movie</option>
 
 /* displays nodes, allow search, add/edit */
-menuNodes(){
+menuNodes(control){
 	let dropDown = document.getElementById('menuNodes');
 	let value = dropDown.options[dropDown.selectedIndex].value;
 	if (value==="") return;  // menu comment
-	this.widgets[this.idGet(0)] = new widgetTableNodes(value);
+	this.widgets[this.idGet(0)] = new widgetTableNodes(value, control.id);
 }
 
 /* displays meta-data on nodes, keysNodes, relations, keysRelations */
 menuDBstats(dropDown){
 	let value = dropDown.options[dropDown.selectedIndex].value;
 	if (value==="") return; // menu comment
-	this.widgets[this.idGet(0)] = new widgetTableQuery(value);
+	this.widgets[this.idGet(0)] = new widgetTableQuery(value, dropDown.id);
 }
 
 /* for debugging / dev place to write messages */
@@ -89,58 +89,24 @@ log(message){
 	}
 }
 
-// new methods for logging actions start there
+// new methods for logging actions start here
 
-// Logs when any text field is changed, either in a widgetTableNodes or a widgetNode object.
+// Logs when any text field is changed in a widgetTableNodes object.
 logText(textBox) {
-	let text = textBox.value;
-	let element = textBox.getAttribute("db");
-	let id = this.widgetGetId(textBox);
-	this.log("Field '" + element + "' in widget with ID " + id + " was set to '" + text + "'.");
-}
-
-// Logs when any button in a widget is clicked. That means any button but New, which is handled by logTableRequest.
-logButton(button) {
-	let name = button.value;
-	let id = this.widgetGetId(button);
-	this.log("The " + name + " button on widget with ID " + id + " was clicked.");
-}
-
-// Logs when the limit in a widgetTableNodes object is changed. This is handled separately from logText because labels don't have a db attribute.
-logLimit(limitBox) {
-	let id = this.widgetGetId(limitBox);
-	let limit = limitBox.value;
-	this.log("The limit for widget with id " + id + " was changed to " + limit + ".");
-}
-
-// Logs when either dropdown list or the New button is used to create a new table.
-logTableRequest(control) { // control may be either dropdown list OR the "New" button.
-	let value = "";
-	let controlName = control.id;
-	if (controlName == "New") { // If the control was the New button, go get the value from the dropdown List
-		let dropDown = document.getElementById('menuNodes');
-		value = dropDown.options[dropDown.selectedIndex].value;
-	}
-	else { // if the control used wasn't the New button, it was the dropdown list itself
-		value = control.options[control.selectedIndex].value;
-	}
-	this.log("The control '" + controlName + "' was used to request a new '" + value + "' table.");
-}
-
-// Logs when a record is opened for editing
-logEdit(element) { // Element is the thing you clicked on to open the Edit widget - a node ID in a table
-	let id = element.innerHTML;
-	let widgetID = this.widgetGetId(element);
-	this.log ("The record with ID " + id + " in the widget with ID " + widgetID + " was opened for editing.")
+	let obj = {};
+	obj.id = this.widgetGetId(textBox);
+	obj.idr = textBox.getAttribute("idr");
+	obj.value = textBox.value;
+	this.log(JSON.stringify(obj));
 }
 
 // Logs when the search criterion for an input field changes
 logSearchChange(selector) { // selector is the dropdown which chooses among "S", "M" or "E" for strings, and "<", ">", "<=", ">=" or "=" for numbers.
-	let id = this.widgetGetId(selector);
-	let input = selector.previousElementSibling;
-	let field = input.getAttribute("db");
-	let value = selector.options[selector.selectedIndex].value
-	this.log("The search criterion for the field '" + field + "' in widget with ID " + id + " was changed to '" + value + "'.");
+  let obj = {};
+	obj.id = this.widgetGetId(selector);
+	obj.idr = selector.getAttribute("idr");
+	obj.value = selector.options[selector.selectedIndex].value;
+	this.log(JSON.stringify(obj));
 }
 
 // End of new methods for logging actions
@@ -174,14 +140,15 @@ widgetNode(nodeName, data) {
 widgetSearch(domElement) {
 	// called from widgetList
 	const id = this.widgetGetId(domElement);
+	this.widgets[id].searchTrigger = id;
 	this.widgets[id].search();
 }
 
 widgetHeader(){
 	return(`
 <div id="#0#" class="widget" db="nameTable: #tableName#"><hr>
-<input type="button" value="X"   onclick="app.widgetClose(this); app.logButton(this)">
-<input type="button" value="__" onclick="app.logButton(this); app.widgetCollapse(this)">
+<input type="button" value="X" idr="closeButton" onclick="app.widgetClose(this)">
+<input type="button" value="__" idr="expandCollapseButton" onclick="app.widgetCollapse(this)">
 		`)
 }
 
@@ -197,6 +164,12 @@ widgetCollapse(domElement) {
 	} else {
 		domElement.value = 	"__";
 	}
+
+	// log
+	let obj = {};
+	obj.id = this.widgetGetId(domElement);
+	obj.idr = domElement.getAttribute('idr');
+	this.log(JSON.stringify(obj));
 }
 
 
@@ -212,7 +185,13 @@ widgetClose(widgetElement) {
 
 	// delete  html2 from page
 	const widget = document.getElementById(id);
-	widget.parentElement.removeChild(widget)
+	widget.parentElement.removeChild(widget);
+
+	// log
+	let obj = {};
+	obj.id = id;
+	obj.idr = widgetElement.getAttribute("idr");
+	this.log(JSON.stringify(obj));
 }
 
 
