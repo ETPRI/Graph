@@ -8,18 +8,18 @@
 
   <body>
 
-    <select id="menuNodes" onclick="app.menuNodes(this)"  onfocus = "app.menuNodeFocus()">
+    <select id="menuNodes" onclick="app.menuNodes(this)">
       <option value="">-- Nodes --</option>
     </select>
-  <input  type="button" value="New" onclick="app.menuNodes(this)">
+  <input  type="button" id = "New" value="New" onclick="app.menuNodes(this)">
 
-  <select id="menuRelations" onchange="app.menuRelations(this)">
+  <select id="menuRelations" onclick="app.menuRelations(this)">
     <option value="">-- Relations --</option>
   </select>
 
 <hr>
   |-> debugging
-<select onclick="app.menuDBstats(this)" onfocus = "app.menuStatsFocus()">
+<select id = "metaData" onclick="app.menuDBstats(this)">
   <option value="">--Meta Data--</option>
   <option value="trash">Trash</option>
   <option value="nodes">Nodes</option>
@@ -54,8 +54,10 @@ app.test();
 
 // build node menu
 app.db   = new db();
-app.db.setQuery('MATCH (n) unwind labels(n) as L RETURN  distinct L as nodeName');
-app.db.runQuery(app, "menuNodesInit");
+// app.db.setQuery('MATCH (n) unwind labels(n) as L RETURN  distinct L as nodeName');
+// app.db.runQuery(app, "menuNodesInit");
+app.metaData = new metaData();
+app.menuNodesInit();
 
 </script>
 <div id="log" hidden="true"></div>

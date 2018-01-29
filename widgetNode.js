@@ -3,7 +3,7 @@
 add/edit one node in a form
 
 input: label
-       data is optional.  Add mode is used if data is not suplied
+       data is optional.  Add mode is used if data is not supplied
 
 */
 
@@ -11,13 +11,13 @@ class widgetNode {
 constructor(label, data) {
   this.data        = data; // is db identifier, not defined means add
   this.label       = label;
-  this.idWidget    = app.idGet(0); // not sure this is used
-  this.addSave     = app.idGet(1);
+  this.idWidget    = app.idGet(0);
+//  this.addSave     = app.idGet(1);
   this.addSaveDOM  = {} // place holder
-  this.table       = app.idGet(2);
+//  this.table       = app.idGet(2);
   this.tableDOM    = {} // place holder
-  this.delete       = app.idGet(3);
-  this.deleteDOM    = {} // place holder
+//  this.delete       = app.idGet(3); // Is this ever used? I can't find a reference to it, and it seems to refer to a null object
+//  this.deleteDOM    = {} // place holder
   this.queryObject = app.metaData.getNode(label);
   this.fields      = this.queryObject.fields;
   this.db          = new db() ; // placeholder for add
@@ -30,27 +30,31 @@ constructor(label, data) {
 ////////////////////////////////////////////////////////////////////
 buildWidget() { // public - build table header
   const html = app.widgetHeader() +'<b> ' + this.label +` </b>
-  <input id="#1#" type="button" onclick="app.widget('saveAdd',this)">
-  <table id="#2#">
+  <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
+  <table idr = "nodeTable">
   </table>
   </div>
   `
-  const html1 = app.idReplace(html,0);  // replace relative ids with absolute ids
-  document.getElementById('widgets').innerHTML = html1
+  document.getElementById('widgets').innerHTML = html
     + document.getElementById('widgets').innerHTML;
 
-  this.addSaveDOM = document.getElementById(this.addSave);
-  this.tableDOM   = document.getElementById(this.table);
-  this.deleteDOM  = document.getElementById(this.delete);
+    // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
+
+  let widget = document.getElementById(this.idWidget);
+
+  this.addSaveDOM = app.getChildByIdr(widget, "addSaveButton");
+  this.tableDOM   = app.getChildByIdr(widget, "nodeTable");
+//  this.deleteDOM  = document.getElementById(this.delete);
 }
 
 
 buildData() {
   // put in one field label and input row for each field
   let html="";
+  let fieldCount = 0;
   for (var fieldName in this.fields) {
       let s1 = '<tr><th>' + this.fields[fieldName].label + '</th><td><input db="' + fieldName
-      + `" onChange="app.widget('changed',this)"`  +' #value#></td></tr>'
+      + `" idr = "input` + fieldCount++ + `" onChange="app.widget('changed',this)"`  +' #value#></td></tr>'
       let s2="";
       if (this.data) {
         // load form with data from db, edit
@@ -79,6 +83,13 @@ saveAdd(widgetElement) {
   } else {
     this.add(widgetElement);
   }
+
+  // log
+  let obj = {};
+  obj.id = app.widgetGetId(widgetElement);
+  obj.idr = widgetElement.getAttribute("idr");
+  obj.value = widgetElement.value;
+  app.log(JSON.stringify(obj));
 }
 
 
@@ -112,14 +123,27 @@ addComplete(data) {
 
 
 changed(input) {
-  if (!this.data) return;  // no feedback in add mode
-
+  if (!this.data) {
+    let obj = {};
+    obj.id = app.widgetGetId(input);
+    obj.idr = input.getAttribute("idr");
+    obj.value = input.value;
+    app.log(JSON.stringify(obj));
+    return;  // no feedback in add mode, but do log the change
+  }
   // give visual feedback if edit data is different than db data
   if (input.value === this.data.properties[input.getAttribute('db')]) {
     input.setAttribute("class","");
   } else {
     input.setAttribute("class","changedData");
   }
+
+  // log
+  let obj = {};
+  obj.id = app.widgetGetId(input);
+  obj.idr = input.getAttribute("idr");
+  obj.value = input.value;
+  app.log(JSON.stringify(obj));
 }
 
 
