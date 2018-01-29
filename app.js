@@ -31,10 +31,10 @@ widget(method, widgetElement) {
 	// app.widget("add",this) on widget to get back to method from html to class
 	const id = this.widgetGetId(widgetElement);
 	if (id) {
-		this.widgets[id][method](widgetElement);
+		this.widgets[id][method](widgetElement); //  Call the method, which belongs to the widget containing widgetElement, and pass in widgetElement?
 	} else {
      // create instance of widget and remember it
-		 alert("App.wdiget: Erorr, method= "+ method);
+		 alert("App.widget: Error, method= "+ method);
 	}
 }
 
@@ -68,18 +68,18 @@ menuNodesInit(){
 // <option value="Movie">Movie</option>
 
 /* displays nodes, allow search, add/edit */
-menuNodes(){
+menuNodes(control){
 	let dropDown = document.getElementById('menuNodes');
 	let value = dropDown.options[dropDown.selectedIndex].value;
 	if (value==="") return;  // menu comment
-	this.widgets[this.idGet(0)] = new widgetTableNodes(value);
+	this.widgets[this.idCounter] = new widgetTableNodes(value, control.id);
 }
 
 /* displays meta-data on nodes, keysNodes, relations, keysRelations */
 menuDBstats(dropDown){
 	let value = dropDown.options[dropDown.selectedIndex].value;
 	if (value==="") return; // menu comment
-	this.widgets[this.idGet(0)] = new widgetTableQuery(value);
+	this.widgets[this.idCounter] = new widgetTableQuery(value, dropDown.id);
 }
 
 /* for debugging / dev place to write messages */
@@ -89,6 +89,23 @@ log(message){
 	}
 }
 
+// Logs when any text field is changed in a widgetTableNodes object.
+logText(textBox) {
+	let obj = {};
+	obj.id = this.widgetGetId(textBox);
+	obj.idr = textBox.getAttribute("idr");
+	obj.value = textBox.value;
+	this.log(JSON.stringify(obj));
+}
+
+// Logs when the search criterion for an input field changes
+logSearchChange(selector) { // selector is the dropdown which chooses among "S", "M" or "E" for strings, and "<", ">", "<=", ">=" or "=" for numbers.
+  let obj = {};
+	obj.id = this.widgetGetId(selector);
+	obj.idr = selector.getAttribute("idr");
+	obj.value = selector.options[selector.selectedIndex].value;
+	this.log(JSON.stringify(obj));
+}
 
 // toggle log on off
 logToggle(button){
@@ -107,11 +124,11 @@ logToggle(button){
 // brings up add/edit widget form table for one node
 // keys in first column, values in second column
 widgetNodeNew(nodeName, data) {
-		this.widgets[this.idGet(0)] = new widgetNode(nodeName, data);
+		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
 
 widgetNode(nodeName, data) {
-		this.widgets[this.idGet(0)] = new widgetNode(nodeName, data);
+		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
 
 
@@ -119,14 +136,15 @@ widgetNode(nodeName, data) {
 widgetSearch(domElement) {
 	// called from widgetList
 	const id = this.widgetGetId(domElement);
+	this.widgets[id].searchTrigger = id;
 	this.widgets[id].search();
 }
 
 widgetHeader(){
 	return(`
-<div id="#0#" class="widget" db="nameTable: #tableName#"><hr>
-<input type="button" value="X"   onclick="app.widgetClose(this)">
-<input type="button" value="__" onclick="app.widgetCollapse(this)">
+<div id="` + this.idCounter++ + `" class="widget"><hr>
+<input type="button" value="X" idr="closeButton" onclick="app.widgetClose(this)">
+<input type="button" value="__" idr="expandCollapseButton" onclick="app.widgetCollapse(this)">
 		`)
 }
 
@@ -142,6 +160,12 @@ widgetCollapse(domElement) {
 	} else {
 		domElement.value = 	"__";
 	}
+
+	// log
+	let obj = {};
+	obj.id = this.widgetGetId(domElement);
+	obj.idr = domElement.getAttribute('idr');
+	this.log(JSON.stringify(obj));
 }
 
 
@@ -157,7 +181,13 @@ widgetClose(widgetElement) {
 
 	// delete  html2 from page
 	const widget = document.getElementById(id);
-	widget.parentElement.removeChild(widget)
+	widget.parentElement.removeChild(widget);
+
+	// log
+	let obj = {};
+	obj.id = id;
+	obj.idr = widgetElement.getAttribute("idr");
+	this.log(JSON.stringify(obj));
 }
 
 
@@ -185,24 +215,35 @@ idGet(increment) {  // was  get
 	return (this.idCounter+increment).toString();
 }
 
-// when is this used?
-idGetLast() { // was getLast
-	return app.widgets[this.idCounter];
-}
+// // when is this used?
+// idGetLast() { // was getLast
+// 	return app.widgets[this.idCounter];
+// }
 
 // replace id holder in widget header with unique ids
-idReplace(html, counter) { // public - was replace
-	// called once for each widget created
-	//replace #id0# with id.counter, #id1# with id.counter+1 etc, then increment counter to next unused id
-	let ret = html.replace("#"+counter++ +"#", "" + this.idCounter++);
-  if (html === ret) {
-		// all the replacements have been done - assume no ids are skipped, will break code
-		// save widget
-		return (ret);
-	} else {
-		// recursively call until there are no more changes to make
-		return( this.idReplace(ret, counter));
-}}
+// idReplace(html, counter) { // public - was replace
+// 	// called once for each widget created
+// 	//replace #id0# with idCounter, #id1# with idCounter+1 etc, then increment idCounter to next unused id
+// 	let ret = html.replace("#"+counter++ +"#", "" + this.idCounter++);
+//   if (html === ret) {
+// 		// all the replacements have been done - assume no ids are skipped, will break code
+// 		// save widget
+// 		return (ret);
+// 	} else {
+// 		// recursively call until there are no more changes to make
+// 		return( this.idReplace(ret, counter));
+// }}
+
+// returns the first child of the given element that has the given idr. If no child has that idr, returns null.
+getChildByIdr(element, idr) {
+	let children = element.querySelectorAll("*"); // get all the element's children...
+	for (let i = 0; i < children.length; i++) { // loop through them...
+		if (children[i].getAttribute("idr") == idr) {
+			return children[i]; // and return the first one whose idr matches...
+		}
+	}
+	return null; // or null if no idr matches
+}
 
 test() {
 	// test
@@ -216,7 +257,7 @@ test() {
 	this.widgets[this.idGet(0)] = new widgetTableQuery('keysRelation');  // seems to work
 */
 
-	this.widgets[this.idGet(0)] = new widgetTableNodes('people');
+	this.widgets[this.idCounter] = new widgetTableNodes('people');
 /*
 
 

@@ -11,7 +11,7 @@
     <select id="menuNodes" onclick="app.menuNodes(this)">
       <option value="">-- Nodes --</option>
     </select>
-  <input  type="button" value="New" onclick="app.menuNodes(this)">
+  <input  type="button" id = "New" value="New" onclick="app.menuNodes(this)">
 
   <select id="menuRelations" onclick="app.menuRelations(this)">
     <option value="">-- Relations --</option>
@@ -19,7 +19,7 @@
 
 <hr>
   |-> debugging
-<select onclick="app.menuDBstats(this)">
+<select id = "metaData" onclick="app.menuDBstats(this)">
   <option value="">--Meta Data--</option>
   <option value="trash">Trash</option>
   <option value="nodes">Nodes</option>
