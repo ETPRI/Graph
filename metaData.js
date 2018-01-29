@@ -110,23 +110,23 @@ this.node.organization = {
   }}
 
 
-/////////////////////////  sample DB
-this.node.Person = {
-   nodeLabel: "Person"
-  ,orderBy: "name"
-  ,fields: {
-  	"name":  {label: "Name"}
-   ,"born":  {label: "Born",  type: "number"  }
-  }}
-
-this.node.Movie = {
-   nodeLabel: "Movie"
-  ,orderBy: "nameLast"
-  ,fields: {
-  	"title":      {label: "Title"     }
-    ,"released":  {label: "Released",  type: "number"}
-    ,"tagline":   {label: "Tagline"   }
-  }}
+// /////////////////////////  sample DB
+// this.node.Person = {
+//    nodeLabel: "Person"
+//   ,orderBy: "name"
+//   ,fields: {
+//   	"name":  {label: "Name"}
+//    ,"born":  {label: "Born",  type: "number"  }
+//   }}
+//
+// this.node.Movie = {
+//    nodeLabel: "Movie"
+//   ,orderBy: "nameLast"
+//   ,fields: {
+//   	"title":      {label: "Title"     }
+//     ,"released":  {label: "Released",  type: "number"}
+//     ,"tagline":   {label: "Tagline"   }
+//   }}
 
 } ////// end method
 
