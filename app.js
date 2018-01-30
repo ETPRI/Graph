@@ -19,6 +19,12 @@ constructor() {
 	// called once by app.js to create the one instance
 	this.widgets   = {}; // store widgets as they are created, remove when closed
 	this.idCounter = 0;  // init id counter
+	// this.recording = false;
+	// this.recordText = {};
+	// this.recordedStep = 1;
+	// this.playing = false;
+	// this.playbackObj = {};
+	// this.instruction = 2;
 	this.metaData  = new metaData();
 
 	// used by classDB to access neo4j database,
@@ -38,7 +44,6 @@ widget(method, widgetElement) {
 	}
 }
 
-
 // menuNodesInit(data){
 // 	let menu = document.getElementById('menuNodes');
 // 	const selectionTemplate = '<option value="#db#">#db#</option>'
@@ -49,6 +54,17 @@ widget(method, widgetElement) {
 //   }
 // 	menu.innerHTML += html;
 // }
+// returns the first child of the given element that has the given idr. If no child has that idr, returns null.
+getChildByIdr(element, idr) {
+	let children = element.querySelectorAll("*"); // get all the element's children...
+	for (let i = 0; i < children.length; i++) { // loop through them...
+		//alert("Checking child " + i + " of widget ID " + element.id + "; idr = " + children[i].getAttribute("idr") + "; target: " + idr);
+		if (children[i].getAttribute("idr") == idr) {
+			return children[i]; // and return the first one whose idr matches...
+		}
+	}
+	return null; // or null if no idr matches
+}
 
 menuNodesInit(){
 	let menu = document.getElementById('menuNodes');
@@ -82,45 +98,6 @@ menuDBstats(dropDown){
 	this.widgets[this.idCounter] = new widgetTableQuery(value, dropDown.id);
 }
 
-/* for debugging / dev place to write messages */
-log(message){
-	if (!document.getElementById('log').hidden) {
-		document.getElementById('log').innerHTML += "<br>" + message;
-	}
-}
-
-// Logs when any text field is changed in a widgetTableNodes object.
-logText(textBox) {
-	let obj = {};
-	obj.id = this.widgetGetId(textBox);
-	obj.idr = textBox.getAttribute("idr");
-	obj.value = textBox.value;
-	this.log(JSON.stringify(obj));
-}
-
-// Logs when the search criterion for an input field changes
-logSearchChange(selector) { // selector is the dropdown which chooses among "S", "M" or "E" for strings, and "<", ">", "<=", ">=" or "=" for numbers.
-  let obj = {};
-	obj.id = this.widgetGetId(selector);
-	obj.idr = selector.getAttribute("idr");
-	obj.value = selector.options[selector.selectedIndex].value;
-	this.log(JSON.stringify(obj));
-}
-
-// toggle log on off
-logToggle(button){
-	log = document.getElementById('log');
-	log.hidden = !log.hidden;
-	if (!log.hidden) {
-		// clear Log
-		log.innerHTML = "";
-		this.log("logging started");
-		button.value = "log stop";
-	} else {
-		button.value = "log start";
-	}
-}
-
 // brings up add/edit widget form table for one node
 // keys in first column, values in second column
 widgetNodeNew(nodeName, data) {
@@ -130,7 +107,6 @@ widgetNodeNew(nodeName, data) {
 widgetNode(nodeName, data) {
 		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
-
 
 // /* refresh widget with new database call */
 widgetSearch(domElement) {
@@ -165,7 +141,9 @@ widgetCollapse(domElement) {
 	let obj = {};
 	obj.id = this.widgetGetId(domElement);
 	obj.idr = domElement.getAttribute('idr');
-	this.log(JSON.stringify(obj));
+	obj.action = "click";
+	this.regression.log(JSON.stringify(obj));
+	this.regression.record(obj);
 }
 
 
@@ -187,7 +165,9 @@ widgetClose(widgetElement) {
 	let obj = {};
 	obj.id = id;
 	obj.idr = widgetElement.getAttribute("idr");
-	this.log(JSON.stringify(obj));
+	obj.action = "click";
+	this.regression.log(JSON.stringify(obj));
+	this.regression.record(obj);
 }
 
 
@@ -234,16 +214,6 @@ idGet(increment) {  // was  get
 // 		return( this.idReplace(ret, counter));
 // }}
 
-// returns the first child of the given element that has the given idr. If no child has that idr, returns null.
-getChildByIdr(element, idr) {
-	let children = element.querySelectorAll("*"); // get all the element's children...
-	for (let i = 0; i < children.length; i++) { // loop through them...
-		if (children[i].getAttribute("idr") == idr) {
-			return children[i]; // and return the first one whose idr matches...
-		}
-	}
-	return null; // or null if no idr matches
-}
 
 test() {
 	// test

@@ -126,9 +126,9 @@ buildHeader() {
   // build header
   const html = app.widgetHeader()
   +'<b> '+this.queryObject.nodeLabel +":"+ this.queryObjectName +` </b>
-  <input type="button" value="Add" idr = "AddButton" onclick="app.widget('addNode',this)">
-  <input type="button" value="Search" idr = "SearchButton" onclick="app.widgetSearch(this)">
-  limit <input value ="9" idr = "limit" style="width: 20px;" onblur = "app.logText(this)">
+  <input type="button" value="Add" idr = "addButton" onclick="app.widget('addNode',this)">
+  <input type="button" value="Search" idr = "searchButton" onclick="app.widgetSearch(this)">
+  limit <input value ="9" idr = "limit" style="width: 20px;" onblur = "app.regression.logText(this)">
 
   <table>
     <thead idr = "header">
@@ -142,7 +142,7 @@ buildHeader() {
   `
 
   const strSearch = `
-  <select idr = "dropdown#x#", onclick = "app.logSearchChange(this)">
+  <select idr = "dropdown#x#", onclick = "app.regression.logSearchChange(this)">
   <option value="S">S</option>
   <option value="M">M</option>
   <option value="E">E</option>
@@ -150,7 +150,7 @@ buildHeader() {
   </select></th>`
 
   const numSearch = `
-  <select idr = "dropdown#x#" onclick = "app.logSearchChange(this)">
+  <select idr = "dropdown#x#" onclick = "app.regression.logSearchChange(this)">
   <option value=">">&gt;</option>
   <option value=">=">&gt;=</option>
   <option value="=">=</option>
@@ -165,7 +165,7 @@ buildHeader() {
   let s="";
   for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
       let fieldName =this.fieldsDisplayed[i];
-      let s1 = `<th><input idr = "text` + i + `" db="fieldName: #1" size="7" onblur="app.logText(this)">`
+      let s1 = `<th><input idr = "text` + i + `" db="fieldName: #1" size="7" onblur="app.regression.logText(this)">`
       if (this.fields[fieldName].type === "number") {
         // number search
         s1 += numSearch.replace('#x#', i);
@@ -192,6 +192,7 @@ buildHeader() {
 
 buildData(data) {  // build dynamic part of table
   this.queryData = data; // only one row should have been returned
+  this.widget = document.getElementById(this.idWidget); // I haven't figured out why the method needs to be reminded what this.widget is, but it seems to.
 
   let html = "";
   const r = data;
@@ -204,21 +205,30 @@ buildData(data) {  // build dynamic part of table
     }
     html += "</tr>"
   }
-
   app.getChildByIdr(this.widget, "data").innerHTML = html;
 
   // New code for creating a JSON object
   let obj = {};
   obj.id = this.searchTrigger;
-  if (obj.id == this.idWidget) { // If the call for the search came from this widget, then record the idr of the search button
+  if (obj.id == this.idWidget) { // If the call for the search came from this widget, then record the idr of the search button and that it was clicked.
     obj.idr = "searchButton";
+    obj.action = "click";
   }
-  if (obj.id == "menuNodes") { // If the call came from the menuNodes dropdown, then record the value of the dropDown
+  if (obj.id == "menuNodes") { // If the call came from the menuNodes dropdown, then record the value of the dropDown and that it was selected.
     let dropDown = document.getElementById('menuNodes');
   	obj.value = dropDown.options[dropDown.selectedIndex].value;
+    obj.action = "select";
   }
-  obj.data = data;
-  app.log(JSON.stringify(obj));
+  if (obj.id == "New") { // If the call came from the New button, just record that it was clicked.
+    obj.action = "click";
+  }
+
+  obj.data = JSON.parse(JSON.stringify(data)); // This should make a COPY of data, so deleting its identity won't affect the original.
+  for (var i = 0; i< obj.data.length; i++) { // Trying to remove the IDs from the log - they're not particularly useful, and can cause problems because they rarely match
+    delete obj.data[i].n.identity;
+  }
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 
@@ -235,7 +245,8 @@ getatt(fieldName){  /* */
 edit(element){
 //  this.data.filter(o => o.n.identity===23)
   let id = element.innerHTML;
-  let n = this.queryData.filter(o => o.n.identity.toString() === id);
+  let data = this.queryData;
+  let n = data.filter(o => o.n.identity.toString() === id);
 
   app.widgetNodeNew(this.queryObject.nodeLabel,n[0].n);
 
@@ -243,7 +254,9 @@ edit(element){
   let obj = {};
   obj.id = app.widgetGetId(element);
   obj.idr = element.getAttribute("idr");
-  app.log(JSON.stringify(obj));
+  obj.action = "click";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 
@@ -255,7 +268,9 @@ addNode(element){
   let obj = {};
   obj.id = app.widgetGetId(element);
   obj.idr = element.getAttribute("idr");
-  app.log(JSON.stringify(obj));
+  obj.action = "click";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 

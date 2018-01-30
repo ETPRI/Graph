@@ -84,12 +84,14 @@ saveAdd(widgetElement) {
     this.add(widgetElement);
   }
 
-  // log
-  let obj = {};
-  obj.id = app.widgetGetId(widgetElement);
-  obj.idr = widgetElement.getAttribute("idr");
-  obj.value = widgetElement.value;
-  app.log(JSON.stringify(obj));
+  // // log
+  // let obj = {};
+  // obj.id = app.widgetGetId(widgetElement);
+  // obj.idr = widgetElement.getAttribute("idr");
+  // obj.value = widgetElement.value;
+  // obj.action = "click";
+  // app.log(JSON.stringify(obj));
+  // app.record(obj);
 }
 
 
@@ -119,6 +121,13 @@ add(widgetElement) { // public - build table header
 addComplete(data) {
   this.data = data[0].n // takes single nodes
   this.buildData();
+  // log
+  let obj = {};
+  obj.id = this.idWidget;
+  obj.idr = "addSaveButton";
+  obj.action = "click";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 
@@ -128,7 +137,9 @@ changed(input) {
     obj.id = app.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.value = input.value;
-    app.log(JSON.stringify(obj));
+    obj.action = "change";
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
     return;  // no feedback in add mode, but do log the change
   }
   // give visual feedback if edit data is different than db data
@@ -143,7 +154,9 @@ changed(input) {
   obj.id = app.widgetGetId(input);
   obj.idr = input.getAttribute("idr");
   obj.value = input.value;
-  app.log(JSON.stringify(obj));
+  obj.action = "change";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 
@@ -186,6 +199,13 @@ saveData(data) {
   // redo from as edit now that data is saved
   this.data = data[0].n;
   this.buildData();
+  // log
+  let obj = {};
+  obj.id = this.idWidget;
+  obj.idr = "addSaveButton";
+  obj.action = "click";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 // trash(domElememt) {
