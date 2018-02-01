@@ -71,9 +71,11 @@ menuNodesInit(){
 	const selectionTemplate = '<option value="#db#">#db#</option>'
 	let html = "";  // build dropdown menu selections
 	for (var nodeName in this.metaData.node) { // nodeName is the name of the node, like "people" or "Movie"
-		html += selectionTemplate.replace(/#db#/g, nodeName);
+		html = selectionTemplate.replace(/#db#/g, nodeName);
+		let dropDown = document.createElement('option');
+		menu.appendChild(dropDown);
+		dropDown.outerHTML = html;
 	}
-	menu.innerHTML += html;
 }
 
 
@@ -104,6 +106,7 @@ widgetNodeNew(nodeName, data) {
 		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
 
+// This does the same thing as the above method - why have both?
 widgetNode(nodeName, data) {
 		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }

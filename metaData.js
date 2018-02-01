@@ -46,7 +46,7 @@ initNodeData() { // move to DB in the future
 ///////////////////////////////////// ETPRI
 this.node.people = {
    nodeLabel: "people"
-  ,orderBy: "nameLast"
+  ,orderBy: "n.nameLast, n.nameFirst, n.email"
   ,fieldsDisplayed: ["nameLast", "nameFirst", "email"]
   ,fields: {"name":       {label: "Name"}
   ,"nameLast":   {label: "Last Name"}
@@ -59,8 +59,8 @@ this.node.people = {
 
 this.node.address = {
   nodeLabel: "address"
-  ,orderBy: "postalCode"
-  ,fieldsDisplayed: ["street1", "street2", "city", "state"]
+  ,orderBy: "n.state, n.postalCode, n.city, n.street1, n.street2"
+  ,fieldsDisplayed: ["street1", "street2", "city", "state", "postalCode"]
   ,fields: {"street1":     {label: "Street"}
   ,"street2":    {label: ""  }
   ,"city":       {label: "City"  }
@@ -73,7 +73,7 @@ this.node.address = {
 
 this.node.net = {
   nodeLabel: "net"
-  ,orderBy: "nameLast"
+  ,orderBy: "n.email.business, n.linkedIn, n.facebook"
   ,fieldsDisplayed: ["email.business", "facebook", "linkedIn"]
   ,fields: {"email.home":      {}
   ,"email.business": {}
@@ -87,7 +87,7 @@ this.node.net = {
 
 this.node.phone = {
   nodeLabel: "phone"
-  ,orderBy: "nameLast"
+  ,orderBy: "n.home"
   ,fieldsDisplayed: ["home"]
   ,fields: {
   "home":        {}
@@ -102,7 +102,7 @@ this.node.phone = {
 
 this.node.organization = {
    nodeLabel: "organization"
-  ,orderBy: "nameLast"
+  ,orderBy: "n.nameLast, n.nameFirst, n.country, n.state, n.email"
   ,fieldsDisplayed: ["nameLast", "nameFirst", "email", "state", "country"]
   ,fields: {"name":       {}
   ,"nameLast":   {}

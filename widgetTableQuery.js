@@ -34,8 +34,11 @@ queryComplete(data) {
   this.buildData();    // add to this.html
 
   // add
-  document.getElementById('widgets').innerHTML =
-    this.html + document.getElementById('widgets').innerHTML;
+  let parent = document.getElementById('widgets');
+  let child = parent.firstElementChild;
+  let newWidget = document.createElement('div'); // create placeholder div
+  parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
+  newWidget.outerHTML = this.html; // replace placeholder with the div that was just written
 
   // log
   let obj = {};
@@ -164,10 +167,5 @@ edit(element){
   let n = this.queryData.filter(o => o.id.toString() === id);
 
   app.widgetNodeNew(this.queryObject.nodeLabel, n[0].n);
-
-
-  widgetNode
 }
-
-
 } ////////////////////////////////////////////////// end class

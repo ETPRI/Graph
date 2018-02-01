@@ -7,12 +7,17 @@ class regressionTesting {
     this.playing = false; // whether actions are being replayed
     this.playbackObj = {}; // Object storing all actions to replay
     this.instruction = 2; // Number of the next action to be replayed by next() - starts at 2 because 1 is processed by play(). Increments when an action is played, resets when Play button is clicked
+    this.linkDiv = document.getElementById("dlink");
+    this.recordings = 1;
     this.db = new db();
   }
 
   log(message){
   	if (!this.logField.hidden) {
-  		this.logField.innerHTML += "<br>" + message;
+      let line = document.createElement('p');
+      let text = document.createTextNode(message);
+      line.appendChild(text);
+  		this.logField.appendChild(line);
   	}
   } // end log method
 
@@ -22,7 +27,9 @@ class regressionTesting {
   	log.hidden = !log.hidden;
   	if (!log.hidden) {
   		// clear Log
-  		log.innerHTML = "";
+  		while (log.hasChildNodes()) {
+        log.removeChild(log.firstChild);
+      }
   		this.log("logging started");
   		button.value = "log stop";
   	} else {
@@ -67,20 +74,28 @@ class regressionTesting {
   		button.value = "Record";
   		let text = JSON.stringify(this.recordText);
   		if (this.playing) { // If actions were being recorded during playback
-        // // This isn't working quite right because of random ordering in nodes with the same orderBy field.
-        // // I need to either ensure that nodes are always returned in the same order, or adjust my logic for checking sameness.
+        // This wasn't working quite right because of random ordering in nodes with the same orderBy field.
+        // I added to the orderBy field for each metaData object, and now nodes should appear in the same order every time.
 
-        // let playbackText = JSON.stringify(this.playbackObj);
-  			// if (text == playbackText) {
-  			// 	alert ("Success!");
-  			// }
-  			// else {
-  			// 	alert ("Failure! Original recording: " + playbackText + "; replay recording: " + text);
-  			// }
+        let playbackText = JSON.stringify(this.playbackObj);
+  			if (text == playbackText) {
+  				alert ("Success!");
+  			}
+  			else {
+  				alert ("Failure! Original recording: " + playbackText + "; replay recording: " + text);
+  			}
   		}
   		else { // If actions were being recorded in order to save them
+        let para = document.createElement('p');
   			let uriContent = "data:application/octet-stream," + encodeURIComponent(text);
-  			document.getElementById("dlink").innerHTML = "<a href=" + uriContent + " download=\"savedfile.txt\">Here is the download link</a>";
+        let link = document.createElement('a');
+        link.href = uriContent;
+        link.download = "savedfile.txt";
+        let message = `Download recording #${this.recordings++}  `;
+        let linkText = document.createTextNode(message);
+        link.appendChild(linkText);
+        para.appendChild(link);
+        this.linkDiv.appendChild(para);
   		}
   		// reset
   		this.recordText = {};
@@ -88,7 +103,6 @@ class regressionTesting {
   	}
     else { // If the page was not recording
   		button.value = "Stop Recording"
-  		document.getElementById("dlink").innerHTML = "Download link goes here";
   	}
   	this.recording = !this.recording;
   } // end recordToggle method
