@@ -33,12 +33,19 @@ buildWidget() { // public - build table header
   <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
   <table idr = "nodeTable">
   </table>
-  </div>
-  `
-  document.getElementById('widgets').innerHTML = html
-    + document.getElementById('widgets').innerHTML;
+ </div>
+`
 
-    // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
+  /*
+  Create new element, append to the widgets div in front of existing widgets
+  */
+  let parent = document.getElementById('widgets');
+  let child = parent.firstElementChild;
+  let newWidget = document.createElement('div'); // create placeholder div
+  parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
+  newWidget.outerHTML = html; // replace placeholder with the div that was just written
+
+  // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
 
   let widget = document.getElementById(this.idWidget);
 
@@ -50,22 +57,37 @@ buildWidget() { // public - build table header
 
 buildData() {
   // put in one field label and input row for each field
-  let html="";
   let fieldCount = 0;
-  for (var fieldName in this.fields) {
-      let s1 = '<tr><th>' + this.fields[fieldName].label + '</th><td><input db="' + fieldName
-      + `" idr = "input` + fieldCount++ + `" onChange="app.widget('changed',this)"`  +' #value#></td></tr>'
-      let s2="";
-      if (this.data) {
-        // load form with data from db, edit
-        let d=this.data.properties;
-        s2 = s1.replace('#value#', "value='" + d[fieldName] + "'");  // edit, load data
-      } else {
-        s2 = s1.replace('#value#', '');  // add, no data to load
-      }
-       html += s2;
+  var value = "";
+
+  // Clear any existing data
+  while (this.tableDOM.hasChildNodes()) {
+    this.tableDOM.removeChild(this.tableDOM.firstChild);
   }
-  this.tableDOM.innerHTML = html;
+
+  for (var fieldName in this.fields) {
+    // Create a table row
+    let row = document.createElement('tr');
+    this.tableDOM.appendChild(row);
+
+    // Create the first cell, a th cell containing the label as text
+    let header = document.createElement('th');
+    row.appendChild(header);
+    let labelText = document.createTextNode(this.fields[fieldName].label);
+    header.appendChild(labelText);
+
+    // Create the second cell, a td cell containing an input which has an idr, an onChange event, and a value which may be an empty string
+    if (this.data) {
+      let d=this.data.properties;
+      value = d[fieldName];
+    }
+
+    let dataField = document.createElement('td');
+    row.appendChild(dataField);
+    let input = document.createElement('input');
+    dataField.appendChild(input);
+    input.outerHTML = `<input db = ${fieldName} idr = "input${fieldCount++}" onChange = "app.widget('changed',this)" value = ${value}>`
+  }
 
   // set the button to be save or added
   if (this.data) {
@@ -84,12 +106,14 @@ saveAdd(widgetElement) {
     this.add(widgetElement);
   }
 
-  // log
-  let obj = {};
-  obj.id = app.widgetGetId(widgetElement);
-  obj.idr = widgetElement.getAttribute("idr");
-  obj.value = widgetElement.value;
-  app.log(JSON.stringify(obj));
+  // // log
+  // let obj = {};
+  // obj.id = app.widgetGetId(widgetElement);
+  // obj.idr = widgetElement.getAttribute("idr");
+  // obj.value = widgetElement.value;
+  // obj.action = "click";
+  // app.log(JSON.stringify(obj));
+  // app.record(obj);
 }
 
 
@@ -97,7 +121,7 @@ saveAdd(widgetElement) {
 add(widgetElement) { // public - build table header
   // CREATE (n:person {name:'David Bolt', lives:'Knoxville'}) return n
 
-  let tr = this.tableDOM.firstElementChild.firstElementChild;
+  let tr = this.tableDOM.firstElementChild;
 
   const create = "create (n:"+ this.label+" {#data#}) return n";
   let data="";
@@ -119,6 +143,13 @@ add(widgetElement) { // public - build table header
 addComplete(data) {
   this.data = data[0].n // takes single nodes
   this.buildData();
+  // log
+  let obj = {};
+  obj.id = this.idWidget;
+  obj.idr = "addSaveButton";
+  obj.action = "click";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 
@@ -128,7 +159,9 @@ changed(input) {
     obj.id = app.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.value = input.value;
-    app.log(JSON.stringify(obj));
+    obj.action = "change";
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
     return;  // no feedback in add mode, but do log the change
   }
   // give visual feedback if edit data is different than db data
@@ -143,7 +176,9 @@ changed(input) {
   obj.id = app.widgetGetId(input);
   obj.idr = input.getAttribute("idr");
   obj.value = input.value;
-  app.log(JSON.stringify(obj));
+  obj.action = "change";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 
@@ -155,7 +190,7 @@ save(widgetElement) { // public - build table header
   RETURN n
 */
 
-  let tr = this.tableDOM.firstElementChild.firstElementChild;
+  let tr = this.tableDOM.firstElementChild;
 
   const create = "match (n) where id(n)=" +this.data.identity+ " set #data# return n";
   let data="";
@@ -186,7 +221,15 @@ saveData(data) {
   // redo from as edit now that data is saved
   this.data = data[0].n;
   this.buildData();
+  // log
+  let obj = {};
+  obj.id = this.idWidget;
+  obj.idr = "addSaveButton";
+  obj.action = "click";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
+
 
 // trash(domElememt) {
 //   // set _trash = "comment why deleting" - remove from trash, removes the attribute

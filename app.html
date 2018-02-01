@@ -28,7 +28,14 @@
   <option value="keysRelation">Keys</option>
 </select>
 
-  <input type="button" value="log start" onclick="app.logToggle(this)">
+  <input type="button" id = "LogButton" value="log start" onclick="app.regression.logToggle(this)">
+  <input type="button" id = "Record" value="Record" onclick="app.regression.recordToggle(this)">
+  <input type ="button" id = "Clear" value = "Clear ALL" onclick = "app.regression.clearAll()">
+  Select a playback file:
+  <input type="file" id="playback">
+  <input type="button" value = "Replay" onclick = "app.regression.play()">
+
+  <p id="dlink"></p>
 
   <input id="debug" type="text" size="80">
    <a href="http://localhost:7474/browser/" target="_blank">neo4j browser </a> neo4j desktop must be running with database started
@@ -44,12 +51,18 @@
 <script src="widgetTableNodes.js"></script>
 <script src="widgetNode.js"></script>
 <script src="MetaData.js"></script>
+<script src="regressionTesting.js"></script>
 <!--
 <script src="widgetNode.js"></script>
 -->
+<div id="log" hidden="true"></div>
+<hr>
+  </body>
+</html>
 
 <script type="text/javascript">
-app = new app();  // only global varia
+app = new app();  // only global variables
+app.regression = new regressionTesting();
 app.test();
 
 // build node menu
@@ -60,10 +73,7 @@ app.metaData = new metaData();
 app.menuNodesInit();
 
 </script>
-<div id="log" hidden="true"></div>
-<hr>
-  </body>
-</html>
+
 
 <!-- where all the widgets go
   <div draggable="true" style="position: absolute;  background-color: #cc3300;  padding: 10px; color: white; ">
