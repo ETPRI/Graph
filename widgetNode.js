@@ -103,14 +103,18 @@ buildWidget() { // public - build table header
   <td><b>${this.label}#${id}</b>
   <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
   <table idr = "nodeTable">
-  </table></td>
-  <td idr="to"></td>
-  </tr></table>
-  </div>`
 
-  // add new widget header to top of widget stack
-  document.getElementById('widgets').innerHTML = html
-    + document.getElementById('widgets').innerHTML;
+  </table>
+ </div>
+`
+  /*
+  Create new element, append to the widgets div in front of existing widgets
+  */
+  let parent = document.getElementById('widgets');
+  let child = parent.firstElementChild;
+  let newWidget = document.createElement('div'); // create placeholder div
+  parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
+  newWidget.outerHTML = html; // replace placeholder with the div that was just written
 
   // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
   let widget = document.getElementById(this.idWidget);
@@ -122,10 +126,18 @@ buildWidget() { // public - build table header
 }
 
 
+
 buildDataNode() {   // put in one field label and input row for each field
-  let html="";
   let fieldCount = 0;
+  var value = "";
+
+  // Clear any existing data
+  while (this.tableDOM.hasChildNodes()) {
+    this.tableDOM.removeChild(this.tableDOM.firstChild);
+  }
+
   for (var fieldName in this.fields) {
+/* old david code
     let value="";   // assume add
     if (this.dataNode) {
       // this is an edit,
@@ -134,8 +146,29 @@ buildDataNode() {   // put in one field label and input row for each field
     //    <input db="name" idr="input0" onchange="app.widget('changed',this)" value="">
     html +=  `<tr><th>${this.fields[fieldName].label}</th><td><input db="${fieldName}"
     idr="input${fieldCount++}" onChange="app.widget('changed',this)" value="${value}"</td></tr>`
+*/
+    // Create a table row
+    let row = document.createElement('tr');
+    this.tableDOM.appendChild(row);
+
+    // Create the first cell, a th cell containing the label as text
+    let header = document.createElement('th');
+    row.appendChild(header);
+    let labelText = document.createTextNode(this.fields[fieldName].label);
+    header.appendChild(labelText);
+
+    // Create the second cell, a td cell containing an input which has an idr, an onChange event, and a value which may be an empty string
+    if (this.data) {
+      let d=this.data.properties;
+      value = d[fieldName];
+    }
+
+    let dataField = document.createElement('td');
+    row.appendChild(dataField);
+    let input = document.createElement('input');
+    dataField.appendChild(input);
+    input.outerHTML = `<input db = ${fieldName} idr = "input${fieldCount++}" onChange = "app.widget('changed',this)" value = ${value}>`
   }
-  this.tableDOM.innerHTML = html;
 
   // set the button to be save or added
   if (this.dataNode) {this.addSaveDOM.value = "Save";
@@ -151,12 +184,14 @@ saveAdd(widgetElement) {
     this.add(widgetElement);
   }
 
-  // log
-  let obj = {};
-  obj.id = app.widgetGetId(widgetElement);
-  obj.idr = widgetElement.getAttribute("idr");
-  obj.value = widgetElement.value;
-  app.log(JSON.stringify(obj));
+  // // log
+  // let obj = {};
+  // obj.id = app.widgetGetId(widgetElement);
+  // obj.idr = widgetElement.getAttribute("idr");
+  // obj.value = widgetElement.value;
+  // obj.action = "click";
+  // app.log(JSON.stringify(obj));
+  // app.record(obj);
 }
 
 
@@ -164,7 +199,7 @@ saveAdd(widgetElement) {
 add(widgetElement) { // public - build table header
   // CREATE (n:person {name:'David Bolt', lives:'Knoxville'}) return n
 
-  let tr = this.tableDOM.firstElementChild.firstElementChild;
+  let tr = this.tableDOM.firstElementChild;
 
   const create = "create (n:"+ this.label+" {#data#}) return n";
   let data="";
@@ -184,8 +219,15 @@ add(widgetElement) { // public - build table header
 
 
 addComplete(data) {
-  this.dataNode = data[0].n // takes single nodes
-  this.buildDataNode();
+  this.data = data[0].n // takes single nodes
+  this.buildData();
+  // log
+  let obj = {};
+  obj.id = this.idWidget;
+  obj.idr = "addSaveButton";
+  obj.action = "click";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 
@@ -195,7 +237,9 @@ changed(input) {
     obj.id = app.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.value = input.value;
-    app.log(JSON.stringify(obj));
+    obj.action = "change";
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
     return;  // no feedback in add mode, but do log the change
   }
   // give visual feedback if edit data is different than db data
@@ -210,7 +254,9 @@ changed(input) {
   obj.id = app.widgetGetId(input);
   obj.idr = input.getAttribute("idr");
   obj.value = input.value;
-  app.log(JSON.stringify(obj));
+  obj.action = "change";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 
@@ -222,7 +268,7 @@ save(widgetElement) { // public - build table header
   RETURN n
 */
 
-  let tr = this.tableDOM.firstElementChild.firstElementChild;
+  let tr = this.tableDOM.firstElementChild;
 
   let data="";
   while (tr) {
@@ -251,10 +297,15 @@ save(widgetElement) { // public - build table header
 }
 saveData(data) {
   // redo from as edit now that data is saved
-  this.dataNode = data[0].n;
-  this.buildDataNode();
+  this.data = data[0].n;
+  this.buildData();
+  // log
+  let obj = {};
+  obj.id = this.idWidget;
+  obj.idr = "addSaveButton";
+  obj.action = "click";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
-
-
 
 } ///////////////////// endclass

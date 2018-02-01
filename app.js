@@ -11,6 +11,7 @@ constructor() {
 	// called once by app.js to create the one instance
 	this.widgets   = {}; // store widgets as they are created, remove when closed
 	this.idCounter = 0;  // init id counter - used get getElementById, is the id of the widget
+
 	this.metaData  = new metaData();
 	this.db        = new db();
 
@@ -42,13 +43,38 @@ widget(method, widgetElement) {
 }
 
 
-menuNodesInit() { // build node dropdown menu from node meta data
-	const menu = document.getElementById('menuNodes');
+// menuNodesInit(data){
+// 	let menu = document.getElementById('menuNodes');
+// 	const selectionTemplate = '<option value="#db#">#db#</option>'
+// 	let html = "";  // build dropdown menu selections
+// 	const r = data;  // from the db
+//   for (let i=0; i<r.length; i++) {
+//     html += selectionTemplate.replace(/#db#/g, r[i]["nodeName"]);
+//   }
+// 	menu.innerHTML += html;
+// }
+// returns the first child of the given element that has the given idr. If no child has that idr, returns null.
+getChildByIdr(element, idr) {
+	let children = element.querySelectorAll("*"); // get all the element's children...
+	for (let i = 0; i < children.length; i++) { // loop through them...
+		//alert("Checking child " + i + " of widget ID " + element.id + "; idr = " + children[i].getAttribute("idr") + "; target: " + idr);
+		if (children[i].getAttribute("idr") == idr) {
+			return children[i]; // and return the first one whose idr matches...
+		}
+	}
+	return null; // or null if no idr matches
+}
+
+menuNodesInit(){
+	let menu = document.getElementById('menuNodes');
+	const selectionTemplate = '<option value="#db#">#db#</option>'
 	let html = "";  // build dropdown menu selections
 	for (var nodeName in this.metaData.node) { // nodeName is the name of the node, like "people" or "Movie"
-		html += `<option value="${nodeName}">${nodeName}</option>`
+		html = selectionTemplate.replace(/#db#/g, nodeName);
+		let dropDown = document.createElement('option');
+		menu.appendChild(dropDown);
+		dropDown.outerHTML = html;
 	}
-	menu.innerHTML += html;
 }
 
 
@@ -67,55 +93,16 @@ menuDBstats(dropDown){
 	this.widgets[this.idCounter] = new widgetTableQuery(value, dropDown.id);
 }
 
-/* for debugging / dev place to write messages */
-log(message){
-	if (!document.getElementById('log').hidden) {
-		document.getElementById('log').innerHTML += "<br>" + message;
-	}
-}
-
-
-logText(textBox) {  // Logs when any text field is changed in a widgetTableNodes object.
-	let obj = {};
-	obj.id = this.widgetGetId(textBox);
-	obj.idr = textBox.getAttribute("idr");
-	obj.value = textBox.value;
-	this.log(JSON.stringify(obj));
-}
-
-// Logs when the search criterion for an input field changes
-logSearchChange(selector) { // selector is the dropdown which chooses among "S", "M" or "E" for strings, and "<", ">", "<=", ">=" or "=" for numbers.
-  let obj = {};
-	obj.id = this.widgetGetId(selector);
-	obj.idr = selector.getAttribute("idr");
-	obj.value = selector.options[selector.selectedIndex].value;
-	this.log(JSON.stringify(obj));
-}
-
-
-logToggle(button) { // toggle log on off
-	log = document.getElementById('log');
-	log.hidden = !log.hidden;
-	if (!log.hidden) {
-		// clear Log
-		log.innerHTML = "";
-		this.log("logging started");
-		button.value = "log stop";
-	} else {
-		button.value = "log start";
-	}
-}
-
 // brings up add/edit widget form table for one node
 // keys in first column, values in second column
 widgetNodeNew(nodeName, data) {
 		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
 
+// This does the same thing as the above method - why have both?
 widgetNode(nodeName, data) {
 		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
-
 
 // /* refresh widget with new database call */
 widgetSearch(domElement) {
@@ -153,7 +140,9 @@ widgetCollapse(domElement) {
 	let obj = {};
 	obj.id = this.widgetGetId(domElement);
 	obj.idr = domElement.getAttribute('idr');
-	this.log(JSON.stringify(obj));
+	obj.action = "click";
+	this.regression.log(JSON.stringify(obj));
+	this.regression.record(obj);
 }
 
 
@@ -175,7 +164,9 @@ widgetClose(widgetElement) {
 	let obj = {};
 	obj.id = id;
 	obj.idr = widgetElement.getAttribute("idr");
-	this.log(JSON.stringify(obj));
+	obj.action = "click";
+	this.regression.log(JSON.stringify(obj));
+	this.regression.record(obj);
 }
 
 
@@ -197,6 +188,8 @@ widgetGetId(domElememt) {
 }
 
 
+
+/* dwb, I assume this is still used, the merged flagged it, so I'm commenting it out
 getChildByIdr(element, idr) {
 	// returns the first child of the given element that has the given idr. If no child has that idr, returns null.
 	let children = element.querySelectorAll("*"); // get all the element's children...
@@ -207,6 +200,33 @@ getChildByIdr(element, idr) {
 	}
 	return null; // or null if no idr matches
 }
+*/
+
+////////////////////// get,getLast,replace where all id functions
+idGet(increment) {  // was  get
+	// called once for each id created for widget
+	return (this.idCounter+increment).toString();
+}
+
+// // when is this used?
+// idGetLast() { // was getLast
+// 	return app.widgets[this.idCounter];
+// }
+
+// replace id holder in widget header with unique ids
+// idReplace(html, counter) { // public - was replace
+// 	// called once for each widget created
+// 	//replace #id0# with idCounter, #id1# with idCounter+1 etc, then increment idCounter to next unused id
+// 	let ret = html.replace("#"+counter++ +"#", "" + this.idCounter++);
+//   if (html === ret) {
+// 		// all the replacements have been done - assume no ids are skipped, will break code
+// 		// save widget
+// 		return (ret);
+// 	} else {
+// 		// recursively call until there are no more changes to make
+// 		return( this.idReplace(ret, counter));
+// }}
+
 
 test() {  // used for testing, UI can be hard coded here to reduce amount of clicking to test code
 }

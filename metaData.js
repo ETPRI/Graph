@@ -46,6 +46,7 @@ initNodeData() { // move to DB in the future
 ///////////////////////////////////// ETPRI
 this.node.people = {
    nodeLabel: "people"
+
   ,orderBy: "nameLast"
   ,fieldsDisplayed: ["name","nameLast", "nameFirst", "email"]
   ,fields: {
@@ -58,7 +59,6 @@ this.node.people = {
   ,"newField":   {label: "newField"  }
   ,"_trash":     {label: "Trash"     }
   }}
-
 
 this.node.organization = {
    nodeLabel: "organization"
@@ -84,10 +84,9 @@ this.node.topic = {
 
 this.node.address = {
   nodeLabel: "address"
-  ,orderBy: "postalCode"
-  ,fieldsDisplayed: ["street1", "street2", "city", "state"]
-  ,fields: {"name": {label: "Name"}
-  ,"street1":    {label: "Street"}
+  ,orderBy: "n.state, n.postalCode, n.city, n.street1, n.street2"
+  ,fieldsDisplayed: ["street1", "street2", "city", "state", "postalCode"]
+  ,fields: {"street1":     {label: "Street"}
   ,"street2":    {label: ""  }
   ,"city":       {label: "City"  }
   ,"state":      {label: "State"  }
