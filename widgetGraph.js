@@ -1,13 +1,25 @@
 /*
 
-add/edit one node in a form  -  not currenlty used, 
+navigate a graph -
 
-input: label
-       data is optional.  Add mode is used if data is not supplied
+input: node ID
+
+A node is displayed -   [r1]->[N]->[r2]
+
+match (n) where id(n)=#  retrun n  // get N
+
+match [r]->[n]   where id(n)=# return r // get r1
+
+match [n]->[r] where id(n)=# return r // get r2
+
+display as
+
+<div>
+
 
 */
 
-class widgetRelation {
+class widgetGraph {
 constructor(label, data) {
   this.data        = data; // is db identifier, not defined means add
   this.label       = label;
@@ -24,11 +36,11 @@ constructor(label, data) {
 
 
 buildWidget() { // public - build table header
-  const html = app.widgetHeader() +`<b>${this.label}</b>
+  const html = app.widgetHeader('span') +`<b>${this.label}</b>
   <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
   <table idr = "nodeTable">
   </table>
-  </div>`
+  </span>`
 
   // add new widget header to top of widget stack
   document.getElementById('widgets').innerHTML = html

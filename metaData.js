@@ -46,16 +46,41 @@ initNodeData() { // move to DB in the future
 ///////////////////////////////////// ETPRI
 this.node.people = {
    nodeLabel: "people"
-  ,orderBy: "n.nameLast, n.nameFirst, n.email"
-  ,fieldsDisplayed: ["nameLast", "nameFirst", "email"]
-  ,fields: {"name":       {label: "Name"}
-  ,"nameLast":   {label: "Last Name"}
-  ,"nameFirst":  {label: "First Name"  }
-  ,"email":      {label: "Email"  }
-  ,"state":      {label: "State"  }
-  ,"country":    {label: "Country"  }
-  ,"_trash":     {label: "Trash"  }
+
+  ,orderBy: "nameLast"
+  ,fieldsDisplayed: ["name","nameLast", "nameFirst", "email"]
+  ,fields: {
+   "name":       {label: "Name" , att: `onclick="app.widget('relationAdd',this)"` }
+  ,"nameLast":   {label: "Last Name" }
+  ,"nameFirst":  {label: "First Name"}
+  ,"email":      {label: "Email"     }
+  ,"state":      {label: "State"     }
+  ,"comment":    {label: "Comment"   }
+  ,"newField":   {label: "newField"  }
+  ,"_trash":     {label: "Trash"     }
   }}
+
+this.node.organization = {
+   nodeLabel: "organization"
+  ,orderBy: "name"
+  ,fieldsDisplayed: ["name", "web"]
+  ,fields: {"name":       {label: "Name" }
+    ,"web":      {label: "Web"}
+    ,"comment":  {label: "Comment"  }
+    ,"newField": {label: "newField"  }
+    ,"_trash":   {label: "Trash"}
+  }}
+
+this.node.topic = {
+   nodeLabel: "topic"
+  ,orderBy: "name"
+  ,fieldsDisplayed: ["name", "comment"]
+  ,fields: {"name":       {label: "Name" }
+    ,"comment":    {label: "Comment"}
+    ,"newField":   {label: "newField"  }
+    ,"_trash": {label: "Trash"}
+  }}
+
 
 this.node.address = {
   nodeLabel: "address"
@@ -65,75 +90,11 @@ this.node.address = {
   ,"street2":    {label: ""  }
   ,"city":       {label: "City"  }
   ,"state":      {label: "State"  }
-  ,"postalCode":     {label: "Zip"  }
+  ,"postalCode": {label: "Zip"  }
   ,"country":    {label: "Country"  }
   ,"comment":    {label: "Comment"  }
   ,"_trash":     {label: "Trash"  }
   }}
-
-this.node.net = {
-  nodeLabel: "net"
-  ,orderBy: "n.email.business, n.linkedIn, n.facebook"
-  ,fieldsDisplayed: ["email.business", "facebook", "linkedIn"]
-  ,fields: {"email.home":      {}
-  ,"email.business": {}
-  ,"facebook":       {}
-  ,"linkedIn":       {}
-  ,"state":          {}
-  ,"country":        {}
-  ,"comment":    {label: "Country"  }
-  ,"_trash":     {label: "Trash"  }
-  }}
-
-this.node.phone = {
-  nodeLabel: "phone"
-  ,orderBy: "n.home"
-  ,fieldsDisplayed: ["home"]
-  ,fields: {
-  "home":        {}
-  ,"street2":    {}
-  ,"city":       {}
-  ,"state":      {}
-  ,"state":      {}
-  ,"country":    {}
-  ,"comment":    {}
-  ,"_trash":     {}
-  }}
-
-this.node.organization = {
-   nodeLabel: "organization"
-  ,orderBy: "n.nameLast, n.nameFirst, n.country, n.state, n.email"
-  ,fieldsDisplayed: ["nameLast", "nameFirst", "email", "state", "country"]
-  ,fields: {"name":       {}
-  ,"nameLast":   {}
-   ,"nameFirst":  {}
-   ,"email":      {}
-   ,"state":      {}
-   ,"country":    {}
-   ,"_trash":     {}
-  }}
-
-
-
-/////////////////////////  sample DB
-// this.node.Person = {
-//    nodeLabel: "Person"
-//   ,orderBy: "name"
-//   ,fieldsDisplayed: ["name", "born"]
-//   ,fields: {
-//   	"name":  {label: "Name"}
-//    ,"born":  {label: "Born",  type: "number"  }
-//   }}
-//
-// this.node.Movie = {
-//    nodeLabel: "Movie"
-//   ,orderBy: "nameLast"
-//   ,fieldsDisplayed: ["title", "released", "tagline"]
-//   ,fields: {
-//   	"title":      {label: "Title"     }
-//     ,"released":  {label: "Released",  type: "number"}
-//     ,"tagline":   {label: "Tagline"   }
-//   }}
 
 } ////// end method
 

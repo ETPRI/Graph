@@ -83,6 +83,7 @@ class widgetTableNodes {
   }
 
 
+
   getSearchNumber(inputDOM, searchType) {
     // n.born <= 1958   match (n:Person) where n.name=~"(?i)ton.*" return n order by n.nameLast  limit 9
     const w = "n."+ this.getAtt(inputDOM,"fieldName") +searchType + inputDOM.value +' and ';
@@ -270,11 +271,13 @@ class widgetTableNodes {
       ret="";
     }
 
-    return (ret);
-  }
 
+relationAdd(element) {
+  alert(element.previousElementSibling.textContent)
+}
 
-  edit(element){
+    
+edit(element){
   //  this.data.filter(o => o.n.identity===23)
     let id = element.innerHTML;
     let data = this.queryData;

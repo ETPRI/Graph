@@ -1,41 +1,112 @@
 /*
 
-add/edit one node in a form
+add/edit one node in a form - view Relations
 
 input: label
        data is optional.  Add mode is used if data is not supplied
+       navigate a graph -
 
+
+       input: node ID
+
+       match (a) where id(p)=0
+       match (b) where id(a)=12
+       create (a)-[:worksAt2 {}]->(b)
 */
+
 
 class widgetNode {
 constructor(label, data) {
-  this.data        = data; // is db identifier, not defined means add
+  // data to be dislplayed
+  this.dataNode    = data; // is db identifier, not defined means add
+  this.relationsFrom = {}; // place holder for relations ->(n)
+  this.relationsTo   = {}; // place holder for relations   (n)->
   this.label       = label;
   this.idWidget    = app.idGet(0);
-//  this.addSave     = app.idGet(1);
-  this.addSaveDOM  = {} // place holder
-//  this.table       = app.idGet(2);
-  this.tableDOM    = {} // place holder
-//  this.delete       = app.idGet(3); // Is this ever used? I can't find a reference to it, and it seems to refer to a null object
-//  this.deleteDOM    = {} // place holder
+
+  // DOM pointers to data that will change, just make place holders
+  this.widgetDOM   = {};
+  this.addSaveDOM  = {};
+  this.tableDOM    = {};
+  this.fromDOM     = {};
+  this.toDOM       = {};
+  this.endDOM      = {}; // button
+  this.startDOM    = {}; // button
+
   this.queryObject = app.metaData.getNode(label);
   this.fields      = this.queryObject.fields;
   this.db          = new db() ; // placeholder for add
 
   this.buildWidget();
-  this.buildData();
+  this.buildDataNode();
+  this.buildRelationsEnd(); // runsbuildRelationsStart();
 }
 
 
-////////////////////////////////////////////////////////////////////
+buildRelationsEnd() {
+  if (!this.dataNode) return;  // new node, so no relations
+  this.db.setQuery( `match ()-[r]->(n) where id(n)=${this.dataNode.identity} return r` );
+  this.db.runQuery(this,"endComplete");
+}
+endComplete(data) {
+  this.fromDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
+    <table>${this.complete(data)}</table>`;
+  this.endDOM = app.getChildByIdr(this.widgetDOM, "end"); // button
+  this.buildRelationsStart();
+}
+relationEnd(){
+  document.getElementById("relationEnd").value   = this.dataNode.identity;
+}
+toggle(button){
+  if (button.value ==="+") {
+    button.value = ".";
+    button.nextElementSibling.hidden = false;
+  } else {
+    button.value = "+";
+    button.nextElementSibling.hidden = true;
+  }
+}
+
+
+buildRelationsStart() {
+  if (!this.dataNode) return;  // new node, so no relations
+  this.db.setQuery( `match (n)-[r]->() where id(n)=${this.dataNode.identity} return r` );
+  this.db.runQuery(this,"startComplete");
+}
+startComplete(data) {
+  this.toDOM.innerHTML = `<input idr = "start" type="button" value="Start" onclick="app.widget('relationStart',this)">
+    <table>${this.complete(data)}</table>`;
+  this.startDOM  = app.getChildByIdr(this.widgetDOM, "start"); // button
+}
+relationStart(){
+  this.startDOM.setAttribute('style','background-color: yellow');
+  document.getElementById("relationStart").value   = this.dataNode.identity; // remember node that starts relation
+}
+
+complete(data){
+  let html = "<tr> <th>#</th> <th>R#</th> <th>N#</th> <th>Relation type</th> </tr>";
+  for(let i=0; i<data.length; i++) {
+    let d= data[i].r
+    html += `<tr><td>${i}</td> <td>${d.identity}</td> <td>${d.end}</td> <td>${d.type}</td></tr>`;
+  }
+  return html;
+}
+
+
 buildWidget() { // public - build table header
-  const html = app.widgetHeader() +'<b> ' + this.label +` </b>
+  let id="";  // assume add mode
+  if (this.dataNode) {
+    // we are edit mode
+    id = this.dataNode.identity;
+  }
+  const html = app.widgetHeader() +`<table><tr>><td idr="from"></td>
+  <td><b>${this.label}#${id}</b>
   <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
   <table idr = "nodeTable">
+
   </table>
  </div>
 `
-
   /*
   Create new element, append to the widgets div in front of existing widgets
   */
@@ -46,17 +117,17 @@ buildWidget() { // public - build table header
   newWidget.outerHTML = html; // replace placeholder with the div that was just written
 
   // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
-
   let widget = document.getElementById(this.idWidget);
-
+  this.widgetDOM  = widget;
   this.addSaveDOM = app.getChildByIdr(widget, "addSaveButton");
   this.tableDOM   = app.getChildByIdr(widget, "nodeTable");
-//  this.deleteDOM  = document.getElementById(this.delete);
+  this.fromDOM    = app.getChildByIdr(widget, "from");
+  this.toDOM      = app.getChildByIdr(widget, "to");
 }
 
 
-buildData() {
-  // put in one field label and input row for each field
+
+buildDataNode() {   // put in one field label and input row for each field
   let fieldCount = 0;
   var value = "";
 
@@ -66,6 +137,16 @@ buildData() {
   }
 
   for (var fieldName in this.fields) {
+/* old david code
+    let value="";   // assume add
+    if (this.dataNode) {
+      // this is an edit,
+      value = this.dataNode.properties[fieldName];
+    }
+    //    <input db="name" idr="input0" onchange="app.widget('changed',this)" value="">
+    html +=  `<tr><th>${this.fields[fieldName].label}</th><td><input db="${fieldName}"
+    idr="input${fieldCount++}" onChange="app.widget('changed',this)" value="${value}"</td></tr>`
+*/
     // Create a table row
     let row = document.createElement('tr');
     this.tableDOM.appendChild(row);
@@ -90,11 +171,8 @@ buildData() {
   }
 
   // set the button to be save or added
-  if (this.data) {
-    this.addSaveDOM.value = "Save";
-  } else {
-    this.addSaveDOM.value = "Add";
-  }
+  if (this.dataNode) {this.addSaveDOM.value = "Save";
+  } else {this.addSaveDOM.value = "Add";}
 }
 
 
@@ -134,7 +212,7 @@ add(widgetElement) { // public - build table header
 
 
   const query = create.replace("#data#", data.substr(0,data.length-2) );
-  this.db = new db();
+//  this.db = new db();
   this.db.setQuery(query);
   this.db.runQuery(this,"addComplete");
 }
@@ -154,7 +232,7 @@ addComplete(data) {
 
 
 changed(input) {
-  if (!this.data) {
+  if (!this.dataNode) {
     let obj = {};
     obj.id = app.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
@@ -165,7 +243,7 @@ changed(input) {
     return;  // no feedback in add mode, but do log the change
   }
   // give visual feedback if edit data is different than db data
-  if (input.value === this.data.properties[input.getAttribute('db')]) {
+  if (input.value === this.dataNode.properties[input.getAttribute('db')]) {
     input.setAttribute("class","");
   } else {
     input.setAttribute("class","changedData");
@@ -192,13 +270,12 @@ save(widgetElement) { // public - build table header
 
   let tr = this.tableDOM.firstElementChild;
 
-  const create = "match (n) where id(n)=" +this.data.identity+ " set #data# return n";
   let data="";
   while (tr) {
     let inp = tr.lastElementChild.firstElementChild;  // find <input> element
     if(inp.getAttribute("class") === "changedData") {
       // create a set for this field
-      let fieldName = inp.getAttribute("db")
+      let fieldName = inp.getAttribute("db");
       let d1 = "n."+ fieldName +"=#value#, ";
       let d2 = "";
       if (this.fields[fieldName].type === "number") {
@@ -211,12 +288,13 @@ save(widgetElement) { // public - build table header
     tr=tr.nextElementSibling;
   }
 
-  const query = create.replace("#data#", data.substr(0,data.length-2) );
-  this.db = new db();
-  this.db.setQuery(query);
-  this.db.runQuery(this,"saveData");
+  if (data==="") {
+    alert("no changes to save")
+  } else {
+    this.db.setQuery( `match (n) where id(n)=${this.dataNode.identity} set ${data.substr(0,data.length-2)} return n` );
+    this.db.runQuery(this,"saveData");
+  }
 }
-
 saveData(data) {
   // redo from as edit now that data is saved
   this.data = data[0].n;
@@ -230,41 +308,4 @@ saveData(data) {
   app.regression.record(obj);
 }
 
-
-// trash(domElememt) {
-//   // set _trash = "comment why deleting" - remove from trash, removes the attribute
-//   let comment = prompt("Reson for moving item to trash");
-//   if (!comment) return;
-//
-//   let query = 'match (n) where id(n) =' + this.data.identity +
-//   ' set _trash="' + comment +'"';
-//   alert(query);
-//   //this.data;
-// }
-
-
-// ////////////////////////////////////////////////////////////////////
-// getAtt(element,attName) { // private -----------
-// 	/*
-//   input - element - is DOM input Object
-//           attName - name of attribute in db
-//   return - attribute value from db
-// 	*/
-//   const ret = element.getAttribute("db").split(attName+":")[1].split(";")[0].trim();
-// 	return(ret);
-// }
-
-// /* */
-// edit(domElement) {
-//   // edit row - move values from click to input nextElementSibling
-//   let th = document.getElementById(this.idHeader).firstElementChild.firstElementChild;
-//   while(domElement){
-//     th.firstElementChild.value = domElement.textContent;
-//     domElement=domElement.nextElementSibling;
-//     th = th.nextElementSibling;
-//   }
-//
-// }
-
-
-}
+} ///////////////////// endclass

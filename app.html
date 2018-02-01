@@ -11,11 +11,10 @@
     <select id="menuNodes" onclick="app.menuNodes(this)">
       <option value="">-- Nodes --</option>
     </select>
-  <input  type="button" id = "New" value="New" onclick="app.menuNodes(this)">
-
-  <select id="menuRelations" onclick="app.menuRelations(this)">
-    <option value="">-- Relations --</option>
-  </select>
+  <input  type="button" value="New" onclick="app.menuNodes(this)">
+| relation: start <input id="relationStart" size="7"> end <input id="relationEnd" size="7">
+  <input id="relationAddSave" type="button" value="Add" onclick="app.relationAddEdit()">
+comment <input id="relationComment" size=80>
 
 <hr>
   |-> debugging

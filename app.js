@@ -2,34 +2,32 @@
 // import('./widgetList.js');
 // import does not work yet, just include modules in index.js in "correct order"
 
-/**
- *
+// app.js holds the globle functions and data for the application
 
- app.js holds the globle functions and data for the application
-
- */
 
 class app { ///////////////////////////////////////////////////////////////// start class
-/* class keeps track of widget id -> needed to support document.getElementById.
-could be deprecated if we only guaranteed unique id for a widget, and then search
-from the head of the widget down for the id */
 
-// create incrementing unique IDs for widget components so that document.getElementById("") works
 constructor() {
 	// called once by app.js to create the one instance
 	this.widgets   = {}; // store widgets as they are created, remove when closed
-	this.idCounter = 0;  // init id counter
-	// this.recording = false;
-	// this.recordText = {};
-	// this.recordedStep = 1;
-	// this.playing = false;
-	// this.playbackObj = {};
-	// this.instruction = 2;
+	this.idCounter = 0;  // init id counter - used get getElementById, is the id of the widget
+
 	this.metaData  = new metaData();
+	this.db        = new db();
 
 	// used by classDB to access neo4j database,
 	this.authToken = neo4j.v1.auth.basic("neo4j", "neo4j");
 	this.driver    = neo4j.v1.driver("bolt://localhost", this.authToken, {encrypted:false});
+}
+
+relationAddEdit(){
+	this.db.setQuery( `match (s) where id(s)=${document.getElementById('relationStart').value}
+	                   match(e)  where id(e)=${document.getElementById('relationEnd').value}
+										 create (s)-[:directed {comment: "${document.getElementById('relationComment').value}"}]->(e)` );
+	this.db.runQuery(this,"relationCreate");
+}
+relationCreate(){
+	alert("create Relation")
 }
 
 
@@ -43,6 +41,7 @@ widget(method, widgetElement) {
 		 alert("App.widget: Error, method= "+ method);
 	}
 }
+
 
 // menuNodesInit(data){
 // 	let menu = document.getElementById('menuNodes');
@@ -79,23 +78,17 @@ menuNodesInit(){
 }
 
 
-// <option value="">-- my db ---</option>
-//
-// <option value="">-- Movie DB ---</option>
-// <option value="Person">Person</option>
-// <option value="Movie">Movie</option>
-
-/* displays nodes, allow search, add/edit */
-menuNodes(control){
-	let dropDown = document.getElementById('menuNodes');
+menuNodes(control){  // displays widgetTableNodes based on menu selection - nodes, allow search, add/edit
+	const dropDown = document.getElementById('menuNodes');
 	let value = dropDown.options[dropDown.selectedIndex].value;
 	if (value==="") return;  // menu comment
 	this.widgets[this.idCounter] = new widgetTableNodes(value, control.id);
 }
 
+
 /* displays meta-data on nodes, keysNodes, relations, keysRelations */
 menuDBstats(dropDown){
-	let value = dropDown.options[dropDown.selectedIndex].value;
+	const value = dropDown.options[dropDown.selectedIndex].value;
 	if (value==="") return; // menu comment
 	this.widgets[this.idCounter] = new widgetTableQuery(value, dropDown.id);
 }
@@ -115,13 +108,16 @@ widgetNode(nodeName, data) {
 widgetSearch(domElement) {
 	// called from widgetList
 	const id = this.widgetGetId(domElement);
-	this.widgets[id].searchTrigger = id;
+	this.widgets[id].searchTrigger = id;  
 	this.widgets[id].search();
 }
 
-widgetHeader(){
+widgetHeader(tag){
+	if (!tag) {
+		var tag = "div";
+	}
 	return(`
-<div id="` + this.idCounter++ + `" class="widget"><hr>
+<${tag} id="${this.idCounter++}" class="widget"><hr>
 <input type="button" value="X" idr="closeButton" onclick="app.widgetClose(this)">
 <input type="button" value="__" idr="expandCollapseButton" onclick="app.widgetCollapse(this)">
 		`)
@@ -150,11 +146,11 @@ widgetCollapse(domElement) {
 }
 
 
-/* app.widgetClose(this)
-input - widgetElement
-action - removes widget from screen
-*/
 widgetClose(widgetElement) {
+	/* app.widgetClose(this)
+	input - widgetElement
+	action - removes widget from screen
+	*/
 	const id = this.widgetGetId(widgetElement);
 
 	// delete javascript instance of widgetTable
@@ -174,10 +170,10 @@ widgetClose(widgetElement) {
 }
 
 
-/* input - domElememt inside a widget
-   return - string id associated with widget
-*/
-widgetGetId(domElememt) {  // was getWidgetId
+widgetGetId(domElememt) {
+	/* input - domElememt inside a widget
+	   return - string id associated with widget
+	*/
 	// go up the dom until class="widget" is found,
 	// grap the id and
 	if (domElememt.getAttribute("class") == "widget") {
@@ -191,6 +187,20 @@ widgetGetId(domElememt) {  // was getWidgetId
 	or if there is a widget construction error and the class was not placed there */
 }
 
+
+
+/* dwb, I assume this is still used, the merged flagged it, so I'm commenting it out
+getChildByIdr(element, idr) {
+	// returns the first child of the given element that has the given idr. If no child has that idr, returns null.
+	let children = element.querySelectorAll("*"); // get all the element's children...
+	for (let i = 0; i < children.length; i++) { // loop through them...
+		if (children[i].getAttribute("idr") == idr) {
+			return children[i]; // and return the first one whose idr matches...
+		}
+	}
+	return null; // or null if no idr matches
+}
+*/
 
 ////////////////////// get,getLast,replace where all id functions
 idGet(increment) {  // was  get
@@ -218,98 +228,15 @@ idGet(increment) {  // was  get
 // }}
 
 
-test() {
-	// test
-
-/*
-
-	this.widgets[this.idGet(0)] = new widgetTableQuery('trash');   // problem with edit
-	this.widgets[this.idGet(0)] = new widgetTableQuery('nodes');  // search brokent
-	this.widgets[this.idGet(0)] = new widgetTableQuery('keysNode');  // seems to work
-	this.widgets[this.idGet(0)] = new widgetTableQuery('relations');  // seems to work
-	this.widgets[this.idGet(0)] = new widgetTableQuery('keysRelation');  // seems to work
-*/
-
-	this.widgets[this.idCounter] = new widgetTableNodes('people');
-/*
-
-
-
-
-
-*/
+test() {  // used for testing, UI can be hard coded here to reduce amount of clicking to test code
 }
 
 
+/////// code to deprecate
+////////////////////// get,getLast,replace where all id functions
+idGet(increment) {  // was  get
+	// called once for each id created for widget
+	return (this.idCounter+increment).toString();
+}
+
 }  ///////////////////////////////////////////////////////////////// end class
-
-
-
-
-////////////////////////////////////////
-/*
-
-Global functions called from widgets events.  Generally the widgets call with the parameter "this":
-
-app.widget.close(this);
-
-the global functions can use the "this" passed in. to get other widget info.
-
-Usually button functions, onclick events
-
-*/
-
-
-///////////////////////  widget menu functions  ////////////////////////////
-
-
-//
-// /* not sure this is helpful  */
-// app.widget.t = function (fun,domElement) {
-// 	// called from widgetList
-// 	let widget = app.widget.getWidgetId(domElement);
-// 	widget[fun](domElement);
-// }
-//
-//
-// app.widget.edit = function (domElement) {
-// 	// called from widgetList
-// 	let widget = app.widget.getWidgetId(domElement);
-// 	widget.edit(domElement);
-// }
-//
-//
-// app.widget.add = function (domElement) {
-// 	// called from widgetList
-// 	let widget = app.widget.getWidgetId(domElement);
-// 	widget.add(domElement);
-// }
-
-
-//////////// specialized functions
-
-
-
-// app.widget.sort = function (domElement) {
-// 	// called from widgetList
-// 	app.db[ this.tableName ].cypher.orderBy
-// 	app.widgets[domElement.parentElement.id].search();
-// }
-
-// app.widget.editForm = function (domElement) {
-// 	// popup edit form - needs work, must load data from one clicked
-// 	app.widget.getWidgetId(domElement).addEditForm();
-// }
-
-/* not using popup right now */
-// app.widget.addForm = function (domElement) {
-// 	// called from widgetList
-// 	let widget = app.widgets[domElement.parentElement.id]
-// 	widget.addFrom(domElement);
-// }
-
-// app.widget.popUpClose = function (domElement) {
-// 	// called from popUp
-// 	let popUp = domElement.parentElement;
-// 	popUp.parentElement.removeChild(popUp);
-// }
