@@ -162,9 +162,6 @@ edit(element){
   let n = this.queryData.filter(o => o.id.toString() === id);
 
   app.widgetNodeNew(this.queryObject.nodeLabel, n[0].n);
-
-
-  widgetNode
 }
 
 

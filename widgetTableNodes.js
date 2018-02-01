@@ -18,9 +18,6 @@ constructor (queryObjectName, controlId) { // name of a query Object, and ID of 
   this.queryData       = {}; // where returned data will be stored
 
   this.idWidget = app.idGet(0);   // strings
-//  this.idLimit  = app.idGet(1);
-//  this.idHeader = app.idGet(2);
-//  this.idData   = app.idGet(3);
   this.searchTrigger = controlId;
 
   this.buildHeader();  //  show table header on screen
@@ -125,24 +122,39 @@ getAtt(element,attName) { // private -----------
 buildHeader() {
   // build header
   const html = app.widgetHeader()
-  +'<b> '+this.queryObject.nodeLabel +":"+ this.queryObjectName +` </b>
-  <input type="button" value="Add" idr = "AddButton" onclick="app.widget('addNode',this)">
-  <input type="button" value="Search" idr = "SearchButton" onclick="app.widgetSearch(this)">
-  limit <input value ="9" idr = "limit" style="width: 20px;" onblur = "app.logText(this)">
+  +`<b>${this.queryObject.nodeLabel}:${this.queryObjectName}</b>
+  <input type="button" value="Add" idr="AddButton" onclick="app.widget('addNode',this)">
+  <input type="button" value="Search" idr="SearchButton" onclick="app.widgetSearch(this)">
+  limit <input value ="9" idr="limit" style="width: 20px;" onblur = "app.logText(this)">
 
   <table>
-    <thead idr = "header">
-    <tr><th></th><th></th>#headerSearch#</tr>
-    <tr><th>#</th><th>ID</th>#header#</tr>
+    <thead idr="header">
+    <tr><th></th><th></th>${this.headerSearch()}</tr>
+    <tr><th>#</th><th>ID</th>${this.fieldName()}</tr>
     </thead>
-    <tbody idr = "data"> </tbody>
+    <tbody idr="data"> </tbody>
   </table>
-  <!-- popup goes here -->
   </div>
   `
+  document.getElementById('widgets').innerHTML =
+    html + document.getElementById('widgets').innerHTML;
+}
 
+
+fieldName() {
+  // build field name part of header
+  let f="";
+  for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
+      let fieldName =this.fieldsDisplayed[i];
+      f += "<th onClick='app.widgetSort(this)'>"+ this.fields[fieldName].label + "</th>" ;
+  }
+  return f;
+}
+
+
+headerSearch() {
   const strSearch = `
-  <select idr = "dropdown#x#", onclick = "app.logSearchChange(this)">
+  <select idr="dropdown#x#", onclick = "app.logSearchChange(this)">
   <option value="S">S</option>
   <option value="M">M</option>
   <option value="E">E</option>
@@ -150,7 +162,7 @@ buildHeader() {
   </select></th>`
 
   const numSearch = `
-  <select idr = "dropdown#x#" onclick = "app.logSearchChange(this)">
+  <select idr="dropdown#x#" onclick = "app.logSearchChange(this)">
   <option value=">">&gt;</option>
   <option value=">=">&gt;=</option>
   <option value="=">=</option>
@@ -158,46 +170,32 @@ buildHeader() {
   <option value="<">&lt;</option>
   </select></th>`
 
-//  const html2 = app.idReplace(html,1);  // replace relative ids with absolute ids
-//  const html3 = html.replace('#tableName#',this.tableName); // This variable doesn't seem to exist
-
   // build search part of buildHeader
   let s="";
   for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
-      let fieldName =this.fieldsDisplayed[i];
-      let s1 = `<th><input idr = "text` + i + `" db="fieldName: #1" size="7" onblur="app.logText(this)">`
-      if (this.fields[fieldName].type === "number") {
-        // number search
-        s1 += numSearch.replace('#x#', i);
-      } else {
-        // assume string search
-        s1 += strSearch.replace('#x#', i);
-      }
-      s += s1.replace('#1',fieldName)
+    let fieldName =this.fieldsDisplayed[i];
+    let s1 = `<th><input idr="text${i}" db="fieldName: ${fieldName}" size="7" onblur="app.logText(this)">`
+    if (this.fields[fieldName].type === "number") {
+      // number search
+      s1 += numSearch.replace('#x#', i);
+    } else {
+      // assume string search
+      s1 += strSearch.replace('#x#', i);
+    }
+    s += s1;
   }
-  const html4 = html.replace('#headerSearch#',s)
-
-  // build field name part of header
-  let f="";
-  for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
-      let fieldName =this.fieldsDisplayed[i];
-      f += "<th onClick='app.widgetSort(this)'>"+ this.fields[fieldName].label + "</th>" ;
-  }
-  const html5 = html4.replace('#header#',f);
-
-  document.getElementById('widgets').innerHTML =
-    html5 + document.getElementById('widgets').innerHTML;
+  return(s);
 }
 
 
 buildData(data) {  // build dynamic part of table
-  this.queryData = data; // only one row should have been returned
+  this.queryData = data;
 
   let html = "";
   const r = data;
   let rowCount = 1;
   for (let i=0; i<r.length; i++) {
-    html += '<tr><td>' +rowCount++ + `</td><td idr = "edit` + i + `" onClick="app.widget('edit',this)">` +r[i]["n"].identity+ '</td>'
+    html += `<tr><td>${rowCount++}</td><td idr="edit${i}" onClick="app.widget('edit',this)">${r[i]["n"].identity}</td>`
     for (let j=0; j<this.fieldsDisplayed.length; j++) {
       let fieldName =this.fieldsDisplayed[j];
       html += '<td '+ this.getatt(fieldName) +'>'+ r[i]["n"].properties[fieldName]  +"</td>" ;
@@ -229,6 +227,11 @@ getatt(fieldName){  /* */
   }
 
   return (ret);
+}
+
+
+relationAdd(element) {
+  alert(element.previousElementSibling.textContent)
 }
 
 

@@ -47,93 +47,55 @@ initNodeData() { // move to DB in the future
 this.node.people = {
    nodeLabel: "people"
   ,orderBy: "nameLast"
-  ,fieldsDisplayed: ["nameLast", "nameFirst", "email"]
-  ,fields: {"name":       {label: "Name"}
-  ,"nameLast":   {label: "Last Name"}
-  ,"nameFirst":  {label: "First Name"  }
-  ,"email":      {label: "Email"  }
-  ,"state":      {label: "State"  }
-  ,"country":    {label: "Country"  }
-  ,"_trash":     {label: "Trash"  }
+  ,fieldsDisplayed: ["name","nameLast", "nameFirst", "email"]
+  ,fields: {
+   "name":       {label: "Name" , att: `onclick="app.widget('relationAdd',this)"` }
+  ,"nameLast":   {label: "Last Name" }
+  ,"nameFirst":  {label: "First Name"}
+  ,"email":      {label: "Email"     }
+  ,"state":      {label: "State"     }
+  ,"comment":    {label: "Comment"   }
+  ,"newField":   {label: "newField"  }
+  ,"_trash":     {label: "Trash"     }
   }}
+
+
+this.node.organization = {
+   nodeLabel: "organization"
+  ,orderBy: "name"
+  ,fieldsDisplayed: ["name", "web"]
+  ,fields: {"name":       {label: "Name" }
+    ,"web":      {label: "Web"}
+    ,"comment":  {label: "Comment"  }
+    ,"newField": {label: "newField"  }
+    ,"_trash":   {label: "Trash"}
+  }}
+
+this.node.topic = {
+   nodeLabel: "topic"
+  ,orderBy: "name"
+  ,fieldsDisplayed: ["name", "comment"]
+  ,fields: {"name":       {label: "Name" }
+    ,"comment":    {label: "Comment"}
+    ,"newField":   {label: "newField"  }
+    ,"_trash": {label: "Trash"}
+  }}
+
 
 this.node.address = {
   nodeLabel: "address"
   ,orderBy: "postalCode"
   ,fieldsDisplayed: ["street1", "street2", "city", "state"]
-  ,fields: {"street1":     {label: "Street"}
+  ,fields: {"name": {label: "Name"}
+  ,"street1":    {label: "Street"}
   ,"street2":    {label: ""  }
   ,"city":       {label: "City"  }
   ,"state":      {label: "State"  }
-  ,"postalCode":     {label: "Zip"  }
+  ,"postalCode": {label: "Zip"  }
   ,"country":    {label: "Country"  }
   ,"comment":    {label: "Comment"  }
   ,"_trash":     {label: "Trash"  }
   }}
-
-this.node.net = {
-  nodeLabel: "net"
-  ,orderBy: "nameLast"
-  ,fieldsDisplayed: ["email.business", "facebook", "linkedIn"]
-  ,fields: {"email.home":      {}
-  ,"email.business": {}
-  ,"facebook":       {}
-  ,"linkedIn":       {}
-  ,"state":          {}
-  ,"country":        {}
-  ,"comment":    {label: "Country"  }
-  ,"_trash":     {label: "Trash"  }
-  }}
-
-this.node.phone = {
-  nodeLabel: "phone"
-  ,orderBy: "nameLast"
-  ,fieldsDisplayed: ["home"]
-  ,fields: {
-  "home":        {}
-  ,"street2":    {}
-  ,"city":       {}
-  ,"state":      {}
-  ,"state":      {}
-  ,"country":    {}
-  ,"comment":    {}
-  ,"_trash":     {}
-  }}
-
-this.node.organization = {
-   nodeLabel: "organization"
-  ,orderBy: "nameLast"
-  ,fieldsDisplayed: ["nameLast", "nameFirst", "email", "state", "country"]
-  ,fields: {"name":       {}
-  ,"nameLast":   {}
-   ,"nameFirst":  {}
-   ,"email":      {}
-   ,"state":      {}
-   ,"country":    {}
-   ,"_trash":     {}
-  }}
-
-
-
-/////////////////////////  sample DB
-// this.node.Person = {
-//    nodeLabel: "Person"
-//   ,orderBy: "name"
-//   ,fieldsDisplayed: ["name", "born"]
-//   ,fields: {
-//   	"name":  {label: "Name"}
-//    ,"born":  {label: "Born",  type: "number"  }
-//   }}
-//
-// this.node.Movie = {
-//    nodeLabel: "Movie"
-//   ,orderBy: "nameLast"
-//   ,fieldsDisplayed: ["title", "released", "tagline"]
-//   ,fields: {
-//   	"title":      {label: "Title"     }
-//     ,"released":  {label: "Released",  type: "number"}
-//     ,"tagline":   {label: "Tagline"   }
-//   }}
 
 } ////// end method
 
