@@ -39,8 +39,7 @@ runQuery (object, objectMethod) { // call widget, with widgetMethod when query i
 	document.getElementById('debug').value = this.query;
 
 	this.session.run(this.query, {}).subscribe(this);
-	// added onNext and onCompleted methods for neo4j to call
-	//  app.neo4j.session.run(query, {}).subscribe(this);
+	// added onNext,onCompleted, onError - methods for neo4j to call
 }
 
 
@@ -69,8 +68,8 @@ onCompleted(metadata){
 // need to find all call back methods of session run and do stuff
 ////////////////////////////////////////////////////////////////////
 // called by neo4j after the query has run
-onError() {
-
+onError(err) {
+alert("error db.js-"+err)
 }
 
 

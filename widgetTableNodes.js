@@ -265,18 +265,19 @@ class widgetTableNodes {
   }
 
 
-  getatt(fieldName){  /* */
-    let ret = this.fields[fieldName].att
-    if (!ret) {
-      ret="";
-    }
+getatt(fieldName) {
+  let ret = this.fields[fieldName].att
+  if (!ret) {
+    ret="";
+  }
+}
 
 
 relationAdd(element) {
   alert(element.previousElementSibling.textContent)
 }
 
-    
+
 edit(element){
   //  this.data.filter(o => o.n.identity===23)
     let id = element.innerHTML;
