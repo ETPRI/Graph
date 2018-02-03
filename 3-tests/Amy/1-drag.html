@@ -8,33 +8,32 @@
 			.div1 {width:200px; height: 150px; padding: 10px; border: 1px solid green;}
 		</style>
 
-    <script src = "dragDrop.js"></script>
-
+    <script src="dragDrop.js"></script>
   </head>
 
   <body>
 		<h2>Draggable</h2>
 
-    <input type = "button" id = "showHide" value = "Hide input" onmousedown = "dragDrop.inputToggle(this)" onclick = "dragDrop.inputFocusToggle()">
+    <input type="button" id="showHide" value="Hide input" onmousedown="dragDrop.inputToggle(this)" onclick="dragDrop.inputFocusToggle()">
 
     <ol>
-      <li>insert- just type into insert box, hit return or click outside box.</li>
-      <li>edit- double click text (clearing all text will delete)</li>
-      <li>drag- click and drag</li>
+      <li>insert- Type into insert box, then hit return or click outside box.</li>
+      <li>edit- Double click text, type, then hit return or click outside box. (Clearing all text will delete that item.)</li>
+      <li>move- Click and drag.</li>
     </ol>
 
-    <input id="ed" type="hidden" onblur="dragDrop.save()" onkeydown="dragDrop.LookForEnter(event, this)">
+    <input id="edit" type="text" hidden onblur="dragDrop.save()" onkeydown="dragDrop.LookForEnter(event, this)">
 
     <ol>
       <li  ondrop="dragDrop.drop(event)" ondragover="dragDrop.allowDrop(event)" draggable="true" ondragstart="dragDrop.drag(event)">
-        Insert <input id = "insert" autofocus onblur="dragDrop.insert(this)" onkeydown="dragDrop.LookForEnter(event,this)"> --
+        Insert <input id="insert" autofocus onblur="dragDrop.insert(this)" onkeydown="dragDrop.LookForEnter(event,this)"> --
       </li>
     </ol>
 
     <ul id=eventLog>
     </ul>
 
-    <script type = "text/javascript">
+    <script type="text/javascript">
       dragDrop = new dragDrop();
     </script>
   </body>

@@ -108,7 +108,7 @@ widgetNode(nodeName, data) {
 widgetSearch(domElement) {
 	// called from widgetList
 	const id = this.widgetGetId(domElement);
-	this.widgets[id].searchTrigger = id;  
+	this.widgets[id].searchTrigger = id;
 	this.widgets[id].search();
 }
 
@@ -188,6 +188,9 @@ widgetGetId(domElememt) {
 }
 
 
+// AMF: Yes, this is still used, but I moved it while trying to debug part of the code. 
+// I should have put it back when I realized its location didn't actually matter. Sorry.
+// The new version is at the top of the class, so it's fine to comment out this duplicate.
 
 /* dwb, I assume this is still used, the merged flagged it, so I'm commenting it out
 getChildByIdr(element, idr) {
