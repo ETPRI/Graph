@@ -1,6 +1,9 @@
 class dragDrop {
   constructor() {
     var dwb_node; // node which is being dragged
+    this.input = document.getElementById("insert");
+    this.inputLine = this.input.parentElement;
+    this.inserting = true; // tracks whether the insert textbox is visible. I had to use a variable because the visibility wasn't changing fast enough to just check that.
   }
 
   drag(ev){ // sets value of dwb_node
@@ -13,7 +16,7 @@ class dragDrop {
 
   drop(ev) { // drops the dwb node above or below the target. ev is the drop event and its target is what's being dropped onto
   	ev.preventDefault();
-  	if (dwb_node.offsetTop < ev.target.offsetTop) {  // drag down
+  	if (this.dwb_node.offsetTop < ev.target.offsetTop) {  // drag down
   		ev.target.parentNode.insertBefore(this.dwb_node, ev.target.nextSibling); // Insert after target
   	}
     else { // drag up
@@ -28,8 +31,8 @@ class dragDrop {
   }
 
   insert(input) { // Insert a new node
-    this.log("insert");
-    if (input.value === "") return;
+    // DOES NOT insert if there is nothing in the text box OR if this.inserting is false
+    if (input.value === "" || !this.inserting) return;
 
     // Create new li with the text from the input box
     const newEl = document.createElement('li');
@@ -49,6 +52,8 @@ class dragDrop {
     newEl.setAttribute("ondragstart"   ,"dragDrop.drag(event)"     );
     newEl.setAttribute("ondblclick"    ,"dragDrop.edit(event)"  );
     newEl.draggable  = true;
+
+    this.log("insert");
   }
 
   edit(ev) { // edit an existing node
@@ -88,5 +93,26 @@ log(s) { // Add a message to the eventLog
     var li = document.createElement("li");
     li.appendChild(document.createTextNode(s));
     ul.appendChild(li);
+  }
+
+  inputToggle(button) { // Toggles visibility of the input text box and value of the Show/Hide button. Called onmousedown so it will fire before the textbox blurs
+    this.inputLine.hidden = !this.inputLine.hidden;
+    if (this.inputLine.hidden) {
+      this.inserting = false;
+      button.value = "Show input";
+    }
+    else {
+      this.inserting = true;
+      button.value = "Hide input";
+    }
+  }
+
+  // NOTE: This is the part of this code I'm least happy with. I tried giving the text box focus in inputToggle, but it was gaining focus
+  // before it was finished becoming visible, and apparently when it became visible, it lost focus. I was forced to write this new function
+  // and call it using onclick rather than onmousedown.
+  inputFocusToggle() { // Focuses on the input text box when it becomes visible
+    if (!this.inputLine.hidden) {
+      this.input.focus();
+    }
   }
 }

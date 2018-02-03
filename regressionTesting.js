@@ -90,7 +90,9 @@ class regressionTesting {
   			let uriContent = "data:application/octet-stream," + encodeURIComponent(text);
         let link = document.createElement('a');
         link.href = uriContent;
-        link.download = "savedfile.txt";
+        let now = new Date();
+        let numberDate = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}_${now.getHours()}:${now.getMinutes()}`
+        link.download = `Recording_${numberDate}.txt`;
         let message = `Download recording #${this.recordings++}  `;
         let linkText = document.createTextNode(message);
         link.appendChild(linkText);
