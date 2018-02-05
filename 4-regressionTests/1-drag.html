@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+		<title>Drag and Drop List</title>
+
+		<style>
+			.div1 {width:200px; height: 150px; padding: 10px; border: 1px solid green;}
+		</style>
+
+    <script src="dragDrop.js"></script>
+    <script src="../regressionTesting.js"></script>
+    <script src="../db.js"></script>
+    <script src="../app.js"></script>
+    <script src="../metaData.js"></script>
+    <script src="../Libs/neo4j-web.js"></script>
+
+  </head>
+
+  <body>
+		<h2>Draggable</h2>
+
+    <input type="button" id="showHide">
+    <input type="button" id="Record" value="Record" onclick="app.regression.recordToggle(this)">
+    <input type="button" id="test" value="Run test code" onclick="app.dragDrop.test()">
+
+    Select a playback file:
+    <input type="file" id="playback">
+    <input type="button" value = "Replay" onclick = "app.regression.play()">
+
+    <p id="dlink"></p>
+
+    <ol>
+      <li>insert- Type into insert box, then hit return or click outside box.</li>
+      <li>edit- Double click text, type, then hit return or click outside box. (Clearing all text will delete that item.)</li>
+      <li>move- Click and drag.</li>
+    </ol>
+
+    <input id="edit" type="text" hidden onblur="app.dragDrop.save()" onkeydown="app.dragDrop.LookForEnter(event, this)">
+
+    <ol id = "container">
+      <li></li>
+    </ol>
+
+    <ul id=eventLog>
+    </ul>
+
+    <script type="text/javascript">
+      app = new app();
+      app.dragDrop = new dragDrop("container", "showHide");
+      app.regression = new regressionTesting();
+    </script>
+  </body>
+</html>

@@ -220,7 +220,7 @@ add(widgetElement) { // public - build table header
 
 addComplete(data) {
   this.data = data[0].n // takes single nodes
-  this.buildData();
+  this.buildDataNode();
   // log
   let obj = {};
   obj.id = this.idWidget;

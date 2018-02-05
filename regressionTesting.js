@@ -54,7 +54,7 @@ class regressionTesting {
   	obj.id = app.widgetGetId(selector);
   	obj.idr = selector.getAttribute("idr");
   	obj.value = selector.options[selector.selectedIndex].value;
-  	obj.action = "select";
+  	obj.action = "click";
   	this.log(JSON.stringify(obj));
   	this.record(obj);
   } // end logSearchChange method
@@ -91,7 +91,7 @@ class regressionTesting {
         let link = document.createElement('a');
         link.href = uriContent;
         let now = new Date();
-        let numberDate = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}_${now.getHours()}:${now.getMinutes()}`
+        let numberDate = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}_${now.getHours()}-${now.getMinutes()}`
         link.download = `Recording_${numberDate}.txt`;
         let message = `Download recording #${this.recordings++}  `;
         let linkText = document.createTextNode(message);
@@ -155,36 +155,18 @@ class regressionTesting {
 
   processPlayback(instructionObj) { // takes a single instruction object as argument, plays it
   	let id = instructionObj.id;
-  	let text = "ID: " + id;
 
   	let element = document.getElementById(id);
   	if ('idr' in instructionObj) {
   		element = app.getChildByIdr(element, instructionObj.idr);
-  		text += ", IDR: " + instructionObj.idr;
   	}
 
   	if ('value' in instructionObj) {
   		element.value = instructionObj.value;
-  		text += ", Value: " + instructionObj.value;
   	}
 
-  	text += ", Action: " + instructionObj.action;
-  //	alert("Processing instruction " + text);
-
-  	switch (instructionObj.action){
-  		case "click":
-  		case "select":
-  			element.onclick();
-  			break;
-  		case "change":
-  			element.onchange();
-  			break;
-  		case "blur":
-  			element.onblur();
-  			break;
-  		default:
-  			alert("Unsupported action.");
-  	}
+    let evnt = new Event(instructionObj.action);
+    element.dispatchEvent(evnt);
   } // end processPlayback method
 
   clearAll() {
