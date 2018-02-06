@@ -44,7 +44,7 @@ queryComplete(data) {
   let obj = {};
   obj.id = this.dropdownId;
   obj.value = this.queryObjectName;
-  obj.action = "select";
+  obj.action = "click";
   obj.data = data;
   app.regression.log(JSON.stringify(obj));
   app.regression.record(obj);
