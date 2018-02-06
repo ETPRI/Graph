@@ -170,17 +170,17 @@ widgetClose(widgetElement) {
 }
 
 
-widgetGetId(domElememt) {
+widgetGetId(domElement) {
 	/* input - domElememt inside a widget
 	   return - string id associated with widget
 	*/
 	// go up the dom until class="widget" is found,
 	// grap the id and
-	if (domElememt.getAttribute("class") == "widget") {
+	if (domElement.getAttribute("class") == "widget") {
 		// found start of widget
-		return(domElememt.getAttribute("id"));
+		return(domElement.getAttribute("id"));
 	} else {
-		return(this.widgetGetId(domElememt.parentElement));
+		return(this.widgetGetId(domElement.parentElement));
 	}
 
 	/* need some error processing if the original domElememt passed is not inside a widget,
@@ -188,7 +188,7 @@ widgetGetId(domElememt) {
 }
 
 
-// AMF: Yes, this is still used, but I moved it while trying to debug part of the code. 
+// AMF: Yes, this is still used, but I moved it while trying to debug part of the code.
 // I should have put it back when I realized its location didn't actually matter. Sorry.
 // The new version is at the top of the class, so it's fine to comment out this duplicate.
 
