@@ -1,0 +1,1 @@
+{"1":{"id":"metaData","value":"nodes","action":"select","data":[{"L":"people","count":{"low":1871,"high":0}},{"L":"topic","count":{"low":1,"high":0}},{"L":"organization","count":{"low":1,"high":0}}]}}
