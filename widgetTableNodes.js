@@ -250,7 +250,7 @@ class widgetTableNodes {
     if (obj.id == "menuNodes") { // If the call came from the menuNodes dropdown, then record the value of the dropDown and that it was selected.
       let dropDown = document.getElementById('menuNodes');
     	obj.value = dropDown.options[dropDown.selectedIndex].value;
-      obj.action = "select";
+      obj.action = "click";
     }
     if (obj.id == "New") { // If the call came from the New button, just record that it was clicked.
       obj.action = "click";
