@@ -4,9 +4,10 @@
   <head>
 		<title>Drag and Drop List</title>
 
-    <script src="dragDrop.js"></script>
+    <script src="../DragDrop/dragDrop.js"></script>
     <script src="../../regressionTesting.js"></script>
     <script src="../../domFunctions.js"></script>
+    <script src="tableDragDrop.js"></script>
 
     <link href="../../app.css" type="text/css" rel="stylesheet" />
   </head>
@@ -35,15 +36,19 @@
 
     <input id="edit">
 
-    <ol id = "container">
-      <li></li>
-    </ol>
+    <table>
+      <thead>
+        <tr id = "template"><th>Column 1</th><th>Column 2</th></tr>
+      </thead>
+      <tbody id = "container">
+      </tbody>
+    </table>
 
     <ul id=eventLog>
     </ul>
 
     <script type="text/javascript">
-      dragDrop = new dragDrop ("container", "showHide", "edit", "Record", "replay");
+      dragDrop = new tableDragDrop("template", "container", "showHide", "edit", "Record", "replay");
     </script>
   </body>
 </html>

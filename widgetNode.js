@@ -51,7 +51,7 @@ buildRelationsEnd() {
 endComplete(data) {
   this.fromDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
     <table>${this.complete(data)}</table>`;
-  this.endDOM = app.getChildByIdr(this.widgetDOM, "end"); // button
+  this.endDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
   this.buildRelationsStart();
 }
 relationEnd(){
@@ -76,7 +76,7 @@ buildRelationsStart() {
 startComplete(data) {
   this.toDOM.innerHTML = `<input idr = "start" type="button" value="Start" onclick="app.widget('relationStart',this)">
     <table>${this.complete(data)}</table>`;
-  this.startDOM  = app.getChildByIdr(this.widgetDOM, "start"); // button
+  this.startDOM  = app.domFunctions.getChildByIdr(this.widgetDOM, "start"); // button
 }
 relationStart(){
   this.startDOM.setAttribute('style','background-color: yellow');
@@ -119,10 +119,10 @@ buildWidget() { // public - build table header
   // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
   let widget = document.getElementById(this.idWidget);
   this.widgetDOM  = widget;
-  this.addSaveDOM = app.getChildByIdr(widget, "addSaveButton");
-  this.tableDOM   = app.getChildByIdr(widget, "nodeTable");
-  this.fromDOM    = app.getChildByIdr(widget, "from");
-  this.toDOM      = app.getChildByIdr(widget, "to");
+  this.addSaveDOM = app.domFunctions.getChildByIdr(widget, "addSaveButton");
+  this.tableDOM   = app.domFunctions.getChildByIdr(widget, "nodeTable");
+  this.fromDOM    = app.domFunctions.getChildByIdr(widget, "from");
+  this.toDOM      = app.domFunctions.getChildByIdr(widget, "to");
 }
 
 
@@ -186,7 +186,7 @@ saveAdd(widgetElement) {
 
   // // log
   // let obj = {};
-  // obj.id = app.widgetGetId(widgetElement);
+  // obj.id = app.domFunctions.widgetGetId(widgetElement);
   // obj.idr = widgetElement.getAttribute("idr");
   // obj.value = widgetElement.value;
   // obj.action = "click";
@@ -234,7 +234,7 @@ addComplete(data) {
 changed(input) {
   if (!this.dataNode) {
     let obj = {};
-    obj.id = app.widgetGetId(input);
+    obj.id = app.domFunctions.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.value = input.value;
     obj.action = "change";
@@ -251,7 +251,7 @@ changed(input) {
 
   // log
   let obj = {};
-  obj.id = app.widgetGetId(input);
+  obj.id = app.domFunctions.widgetGetId(input);
   obj.idr = input.getAttribute("idr");
   obj.value = input.value;
   obj.action = "change";

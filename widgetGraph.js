@@ -49,8 +49,8 @@ buildWidget() { // public - build table header
   // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
   let widget = document.getElementById(this.idWidget);
 
-  this.addSaveDOM = app.getChildByIdr(widget, "addSaveButton");
-  this.tableDOM   = app.getChildByIdr(widget, "nodeTable");
+  this.addSaveDOM = app.domFunctions.getChildByIdr(widget, "addSaveButton");
+  this.tableDOM   = app.domFunctions.getChildByIdr(widget, "nodeTable");
 }
 
 
@@ -85,7 +85,7 @@ saveAdd(widgetElement) {
 
   // log
   let obj = {};
-  obj.id = app.widgetGetId(widgetElement);
+  obj.id = app.domFunctions.widgetGetId(widgetElement);
   obj.idr = widgetElement.getAttribute("idr");
   obj.value = widgetElement.value;
   app.log(JSON.stringify(obj));
@@ -124,7 +124,7 @@ addComplete(data) {
 changed(input) {
   if (!this.data) {
     let obj = {};
-    obj.id = app.widgetGetId(input);
+    obj.id = app.domFunctions.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.value = input.value;
     app.log(JSON.stringify(obj));
@@ -139,7 +139,7 @@ changed(input) {
 
   // log
   let obj = {};
-  obj.id = app.widgetGetId(input);
+  obj.id = app.domFunctions.widgetGetId(input);
   obj.idr = input.getAttribute("idr");
   obj.value = input.value;
   app.log(JSON.stringify(obj));

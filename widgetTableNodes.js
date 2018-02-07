@@ -42,7 +42,7 @@ class widgetTableNodes {
     let match    = "(n:" +this.queryObject.nodeLabel+ ")";
     let where    = this.buildWhere();
     let orderBy  = this.queryObject.orderBy;
-    let limit    = app.getChildByIdr(this.widget, "limit").value;
+    let limit    = app.domFunctions.getChildByIdr(this.widget, "limit").value;
 
     let query =
   	    "match " + match
@@ -59,7 +59,7 @@ class widgetTableNodes {
   buildWhere() {
     /*   output - nameLast =~"(?i)Bol.*"
     */  // <tr><th><input>  must go up 2 levels to get to tr
-    const th  = app.getChildByIdr(this.widget, "header").firstElementChild.children; // get collection of th
+    const th  = app.domFunctions.getChildByIdr(this.widget, "header").firstElementChild.children; // get collection of th
 
     let where = "n._trash = '' and ";
     // iterate siblings of input
@@ -205,7 +205,7 @@ class widgetTableNodes {
     var cell; // the cell currently being built
     var row; // the row currently being built
     var text; // the text to go in the cell
-    var table = app.getChildByIdr(this.widget, "data");
+    var table = app.domFunctions.getChildByIdr(this.widget, "data");
 
     // Delete what's already in the table
     while (table.hasChildNodes()) {
@@ -288,7 +288,7 @@ edit(element){
 
     // log
     let obj = {};
-    obj.id = app.widgetGetId(element);
+    obj.id = app.domFunctions.widgetGetId(element);
     obj.idr = element.getAttribute("idr");
     obj.action = "click";
     app.regression.log(JSON.stringify(obj));
@@ -302,7 +302,7 @@ edit(element){
 
     // log
     let obj = {};
-    obj.id = app.widgetGetId(element);
+    obj.id = app.domFunctions.widgetGetId(element);
     obj.idr = element.getAttribute("idr");
     obj.action = "click";
     app.regression.log(JSON.stringify(obj));
