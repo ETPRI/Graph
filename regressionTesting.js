@@ -10,7 +10,7 @@ class regressionTesting {
     this.linkDiv = document.getElementById("dlink");
     this.recordings = 1;
     this.playFiles = 0;
-    this.db = new db();
+    this.domFunctions = new domFunctions();
   }
 
   log(message){
@@ -41,7 +41,7 @@ class regressionTesting {
   // Logs when any text field is changed in a widgetTableNodes object.
   logText(textBox) {
   	let obj = {};
-  	obj.id = app.widgetGetId(textBox);
+  	obj.id = this.domFunctions.widgetGetId(textBox);
   	obj.idr = textBox.getAttribute("idr");
   	obj.value = textBox.value;
   	obj.action = "blur";
@@ -52,7 +52,7 @@ class regressionTesting {
   // Logs when the search criterion for an input field changes
   logSearchChange(selector) { // selector is the dropdown which chooses among "S", "M" or "E" for strings, and "<", ">", "<=", ">=" or "=" for numbers.
     let obj = {};
-  	obj.id = app.widgetGetId(selector);
+  	obj.id = this.domFunctions.widgetGetId(selector);
   	obj.idr = selector.getAttribute("idr");
   	obj.value = selector.options[selector.selectedIndex].value;
   	obj.action = "click";
@@ -120,6 +120,7 @@ class regressionTesting {
   		this.playing = true;
   		this.instruction = 2;
   		this.playbackObj = {}; // Reset playback variables
+      let regression = this;
   		if (!this.recording) {
   			this.recordToggle(document.getElementById("Record")); // make sure app is recording
   		}
@@ -129,9 +130,9 @@ class regressionTesting {
   		fileReader.onload = function(fileLoadedEvent){ // ANONYMOUS INNER FUNCTION STARTS HERE! Cannot use 'this' to refer to regressionTesting object here!
   			replayText = fileLoadedEvent.target.result;
 
-  			app.regression.playbackObj = JSON.parse(replayText);
+  			regression.playbackObj = JSON.parse(replayText);
 
-  			app.regression.processPlayback(app.regression.playbackObj["1"]); // process the first instruction
+  			regression.processPlayback(regression.playbackObj["1"]); // process the first instruction
   		} // end anonymous function
   		fileReader.readAsText(myFile, "UTF-8");
       this.playFiles++; // go on to the next file
@@ -169,7 +170,7 @@ class regressionTesting {
 
   	let element = document.getElementById(id);
   	if ('idr' in instructionObj) {
-  		element = app.getChildByIdr(element, instructionObj.idr);
+  		element = this.domFunctions.getChildByIdr(element, instructionObj.idr);
   	}
 
   	if ('value' in instructionObj) {
@@ -183,7 +184,7 @@ class regressionTesting {
     element.dispatchEvent(evnt);
   } // end processPlayback method
 
-  clearAll() {
+  clearAll(app) {
   	if (confirm("This will clear ALL DATA from the database and remove ALL WIDGETS from the webpage. Are you sure you want to do this?")) {
   		for (var id in app.widgets) {
   			// Remove widget objects
@@ -195,8 +196,8 @@ class regressionTesting {
   		}
   		// Remove nodes and relationships
   		let command = "MATCH (n) DETACH DELETE n";
-  		this.db.setQuery(command);
-  		this.db.runQuery(this, "dummy");
+  		app.db.setQuery(command);
+  		app.db.runQuery(this, "dummy");
 
   		// reset all variables to ensure same state every time "Clear All" is chosen
   		app.idCounter = 0; // reset ID counter

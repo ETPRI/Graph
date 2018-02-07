@@ -12,8 +12,9 @@ constructor() {
 	this.widgets   = {}; // store widgets as they are created, remove when closed
 	this.idCounter = 0;  // init id counter - used get getElementById, is the id of the widget
 
-	this.metaData  = new metaData();
-	this.db        = new db();
+	this.metaData  			= new metaData();
+	this.db        			= new db();
+	this.domFunctions 	= new domFunctions();
 
 	// used by classDB to access neo4j database,
 	this.authToken = neo4j.v1.auth.basic("neo4j", "neo4j");
@@ -33,7 +34,7 @@ relationCreate(){
 
 widget(method, widgetElement) {
 	// app.widget("add",this) on widget to get back to method from html to class
-	const id = this.widgetGetId(widgetElement);
+	const id = this.domFunctions.widgetGetId(widgetElement);
 	if (id) {
 		this.widgets[id][method](widgetElement); //  Call the method, which belongs to the widget containing widgetElement, and pass in widgetElement?
 	} else {
@@ -54,16 +55,16 @@ widget(method, widgetElement) {
 // 	menu.innerHTML += html;
 // }
 // returns the first child of the given element that has the given idr. If no child has that idr, returns null.
-getChildByIdr(element, idr) {
-	let children = element.querySelectorAll("*"); // get all the element's children...
-	for (let i = 0; i < children.length; i++) { // loop through them...
-		//alert("Checking child " + i + " of widget ID " + element.id + "; idr = " + children[i].getAttribute("idr") + "; target: " + idr);
-		if (children[i].getAttribute("idr") == idr) {
-			return children[i]; // and return the first one whose idr matches...
-		}
-	}
-	return null; // or null if no idr matches
-}
+// getChildByIdr(element, idr) {
+// 	let children = element.querySelectorAll("*"); // get all the element's children...
+// 	for (let i = 0; i < children.length; i++) { // loop through them...
+// 		//alert("Checking child " + i + " of widget ID " + element.id + "; idr = " + children[i].getAttribute("idr") + "; target: " + idr);
+// 		if (children[i].getAttribute("idr") == idr) {
+// 			return children[i]; // and return the first one whose idr matches...
+// 		}
+// 	}
+// 	return null; // or null if no idr matches
+// }
 
 menuNodesInit(){
 	let menu = document.getElementById('menuNodes');
@@ -107,7 +108,7 @@ widgetNode(nodeName, data) {
 // /* refresh widget with new database call */
 widgetSearch(domElement) {
 	// called from widgetList
-	const id = this.widgetGetId(domElement);
+	const id = this.domFunctions.widgetGetId(domElement);
 	this.widgets[id].searchTrigger = id;
 	this.widgets[id].search();
 }
@@ -138,7 +139,7 @@ widgetCollapse(domElement) {
 
 	// log
 	let obj = {};
-	obj.id = this.widgetGetId(domElement);
+	obj.id = this.domFunctions.widgetGetId(domElement);
 	obj.idr = domElement.getAttribute('idr');
 	obj.action = "click";
 	this.regression.log(JSON.stringify(obj));
@@ -151,7 +152,7 @@ widgetClose(widgetElement) {
 	input - widgetElement
 	action - removes widget from screen
 	*/
-	const id = this.widgetGetId(widgetElement);
+	const id = this.domFunctions.widgetGetId(widgetElement);
 
 	// delete javascript instance of widgetTable
 	delete this.widgets[id];
@@ -170,23 +171,22 @@ widgetClose(widgetElement) {
 }
 
 
-widgetGetId(domElement) {
-	/* input - domElememt inside a widget
-	   return - string id associated with widget
-	*/
-	// go up the dom until class="widget" is found,
-	// grap the id and
-	if (domElement.getAttribute("class") == "widget") {
-		// found start of widget
-		return(domElement.getAttribute("id"));
-	} else {
-		return(this.widgetGetId(domElement.parentElement));
-	}
+// widgetGetId(domElement) {
+// 	/* input - domElememt inside a widget
+// 	   return - string id associated with widget
+// 	*/
+// 	// go up the dom until class="widget" is found,
+// 	// grap the id and
+// 	if (domElement.getAttribute("class") == "widget") {
+// 		// found start of widget
+// 		return(domElement.getAttribute("id"));
+// 	} else {
+// 		return(this.widgetGetId(domElement.parentElement));
+// 	}
 
 	/* need some error processing if the original domElememt passed is not inside a widget,
 	or if there is a widget construction error and the class was not placed there */
-}
-
+// 
 
 // AMF: Yes, this is still used, but I moved it while trying to debug part of the code.
 // I should have put it back when I realized its location didn't actually matter. Sorry.
