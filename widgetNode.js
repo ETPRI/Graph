@@ -1,6 +1,6 @@
 /*
 
-add/edit one node in a form - view Relations
+add/edit one node in a form including start and end Relations
 
 input: label
        data is optional.  Add mode is used if data is not supplied
@@ -36,6 +36,7 @@ constructor(label, data) {
   this.queryObject = app.metaData.getNode(label);
   this.fields      = this.queryObject.fields;
   this.db          = new db() ; // placeholder for add
+  this.dragDrop    = {} // placeholder
 
   this.buildWidget();
   this.buildDataNode();

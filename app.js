@@ -16,7 +16,7 @@ constructor() {
 	this.db        = new db();
 
 	// used by classDB to access neo4j database,
-	this.authToken = neo4j.v1.auth.basic("neo4j", "neo4j");
+	this.authToken = neo4j.v1.auth.basic("neo4j", "38?32h8H1");
 	this.driver    = neo4j.v1.driver("bolt://localhost", this.authToken, {encrypted:false});
 }
 
@@ -108,7 +108,7 @@ widgetNode(nodeName, data) {
 widgetSearch(domElement) {
 	// called from widgetList
 	const id = this.widgetGetId(domElement);
-	this.widgets[id].searchTrigger = id;  
+	this.widgets[id].searchTrigger = id;
 	this.widgets[id].search();
 }
 
