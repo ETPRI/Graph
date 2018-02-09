@@ -4,12 +4,12 @@
   <head>
 		<title>Drag and Drop List</title>
 
-    <script src="../DragDrop/dragDrop.js"></script>
-    <script src="../../regressionTesting.js"></script>
-    <script src="../../domFunctions.js"></script>
-    <script src="tableDragDrop.js"></script>
+    <script src="../../LV3/DragDrop/dragDrop.js"></script>
+    <script src="../../../regressionTesting.js"></script>
+    <script src="../../LV1/domFunctions/domFunctions.js"></script>
+    <script src="dragDropTable.js"></script>
 
-    <link href="../../app.css" type="text/css" rel="stylesheet" />
+    <link href="../../../app.css" type="text/css" rel="stylesheet" />
   </head>
 
   <body>
@@ -29,9 +29,10 @@
     <p id="dlink"></p>
 
     <ol>
-      <li>insert- Type into insert box, then hit return or click outside box.</li>
-      <li>edit- Double click text, type, then hit return or click outside box. (Clearing all text will delete that item.)</li>
-      <li>move- Click and drag.</li>
+      <li>insert- Type into insert box, then hit return.</li>
+      <li>edit- Double click text, type, then hit return.</li>
+      <li>delete- Click the X button.</li>
+      <li>move- Click and drag.</li>
     </ol>
 
     <input id="edit">
@@ -48,7 +49,7 @@
     </ul>
 
     <script type="text/javascript">
-      dragDrop = new tableDragDrop("template", "container", "showHide", "edit", "Record", "replay");
+      dragDrop = new dragDropTable("template", "container", "showHide", "edit", "Record", "replay");
     </script>
   </body>
 </html>

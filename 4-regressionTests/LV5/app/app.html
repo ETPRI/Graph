@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>ETPRI Data</title>
+    <link href="app.css" type="text/css" rel="stylesheet" />
+  </head>
+
+  <body>
+
+    <select id="menuNodes" onclick="app.menuNodes(this)">
+      <option value="">-- Nodes --</option>
+    </select>
+  <input  type="button" value="New" onclick="app.menuNodes(this)">
+| relation: start <input id="relationStart" size="7"> end <input id="relationEnd" size="7">
+  <input id="relationAddSave" type="button" value="Add" onclick="app.relationAddEdit()">
+comment <input id="relationComment" size=80>
+
+<hr>
+  |-> debugging
+<select id = "metaData" onclick="app.menuDBstats(this)">
+  <option value="">--Meta Data--</option>
+  <option value="trash">Trash</option>
+  <option value="nodes">Nodes</option>
+  <option value="keysNode">Keys</option>
+  <option value="relations">Relations</option>
+  <option value="keysRelation">Keys</option>
+</select>
+
+  <input type="button" id = "LogButton" value="log start" onclick="app.regression.logToggle(this)">
+  <input type="button" id = "Record" value="Record" onclick="app.regression.recordToggle(this)">
+  <input type ="button" id = "Clear" value = "Clear ALL" onclick = "app.regression.clearAll(app)">
+  Select a playback file:
+  <input type="file" id="playback">
+  <input type="button" value = "Replay" onclick = "app.regression.play()">
+
+  <p id="dlink"></p>
+
+  <input id="debug" type="text" size="80">
+   <a href="http://localhost:7474/browser/" target="_blank">neo4j browser </a> neo4j desktop must be running with database started
+
+   <div id="widgets" class=""> </div>
+
+<hr>
+
+<script src="../../../Libs/neo4j-web.js"></script>
+<script src="app.js"></script>
+<script src="../../LV2/db/DB.js"></script>
+<script src="../../LV4/widgetTableQuery/widgetTableQuery.js"></script>
+<script src="../../LV4/widgetTableNodes/widgetTableNodes.js"></script>
+<script src="../../LV3/widgetNode/widgetNode.js"></script>
+<script src="../../../MetaData.js"></script>
+<script src="../../../regressionTesting.js"></script>
+<script src="../../LV1/domFunctions/domFunctions.js"></script>
+<!--
+<script src="widgetNode.js"></script>
+-->
+<div id="log" hidden="true"></div>
+<hr>
+  </body>
+</html>
+
+<script type="text/javascript">
+app = new app();  // only global variables
+app.regression = new regressionTesting();
+app.test();
+
+// build node menu
+app.db   = new db();
+// app.db.setQuery('MATCH (n) unwind labels(n) as L RETURN  distinct L as nodeName');
+// app.db.runQuery(app, "menuNodesInit");
+app.metaData = new metaData();
+app.menuNodesInit();
+
+</script>
+
+
+<!-- where all the widgets go
+  <div draggable="true" style="position: absolute;  background-color: #cc3300;  padding: 10px; color: white; ">
+    (6) Now, try resizing this window by pulling the corner.
+  </div>
+  <div draggable="true" class="resizable">quae autem nihil aut perferendis aliquid eum in commodi vitae.
+    Nihil ducimus enim ad nam facere.</div>
+  -->

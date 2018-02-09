@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>ETPRI Data</title>
+    <script src="../../../regressionTesting.js"></script>
+    <script src="domFunctions.js"></script>
+    <script src="domFunctionsTest.js"></script>
+  </head>
+
+  <body>
+    <input type="button" id = "Record" value="Record" onclick="domFunctionsTest.regressionTesting.recordToggle(this)">
+    Select a playback file:
+    <input type="file" id="playback">
+    <input type="button" value = "Replay" onclick = "domFunctionsTest.regressionTesting.play()">
+
+    <p id="dlink"></p>
+    Click a button to search for its widgetID
+    <br><br>
+
+    <input type="button" id="outsideButton" value="Get my widgetID" onclick="domFunctionsTest.getId(this)">
+    Type an IDR here and click "Search". <input id="IDRtext" type="text" onchange="domFunctionsTest.textChange(this)">
+    <input type="button" id="Search" value="Search" onclick="domFunctionsTest.searchIDR(this)">
+    <br><br>
+
+    topWidget:
+    <div id = "topWidget" class = "widget">
+      My idr is "First" and my ID is "1" <input type="text" id="1" idr="First" readonly>
+      My idr is "Second" and my ID is "2" <input type="text" id="2" idr="Second" readonly>
+      <input type="button" id="topButton" idr="topButton" value="Get my widgetID" onclick="domFunctionsTest.getId(this)">
+    </div>
+    <br>
+    bottomWidget:
+    <div id = "bottomWidget" class = "widget">
+      My idr is "First" and my ID is "3" <input type="text" id="3" idr="First" readonly>
+      My idr is "Last" and my ID is "4" <input type="text" id="4" idr="Last" readonly>
+      <input type="button" id="bottomButton" idr="bottomButton" value="Get my widgetID" onclick="domFunctionsTest.getId(this)">
+    </div>
+
+    <div id = "log"></div>
+  </body>
+</html>
+
+<script type="text/javascript">
+  domFunctionsTest = new domFunctionsTest();
+</script>

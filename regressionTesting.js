@@ -166,22 +166,26 @@ class regressionTesting {
   } // end next method
 
   processPlayback(instructionObj) { // takes a single instruction object as argument, plays it
-  	let id = instructionObj.id;
+    if ('id' in instructionObj) { // Can only replay an action or set a value if this instruction defines an element, using an id and maybe an idr
+  	  let id = instructionObj.id;
+    	let element = document.getElementById(id);
 
-  	let element = document.getElementById(id);
-  	if ('idr' in instructionObj) {
-  		element = this.domFunctions.getChildByIdr(element, instructionObj.idr);
-  	}
+    	if ('idr' in instructionObj) {
+    		element = this.domFunctions.getChildByIdr(element, instructionObj.idr);
+    	}
 
-  	if ('value' in instructionObj) {
-  		element.value = instructionObj.value;
-  	}
+    	if ('value' in instructionObj) {
+    		element.value = instructionObj.value;
+    	}
 
-    let evnt = new Event(instructionObj.action);
-    if (instructionObj.action == "keydown" && 'key' in instructionObj) { // keydown events have a "key" value that determines WHICH key was pressed
-      evnt.key = instructionObj.key;
-    }
-    element.dispatchEvent(evnt);
+      if ('action' in instructionObj) {
+        let evnt = new Event(instructionObj.action);
+        if (instructionObj.action == "keydown" && 'key' in instructionObj) { // keydown events have a "key" value that determines WHICH key was pressed
+          evnt.key = instructionObj.key;
+        }
+        element.dispatchEvent(evnt);
+      } // end if (the instruction contains an action)
+    } // end if (the instruction has an id)
   } // end processPlayback method
 
   clearAll(app) {
