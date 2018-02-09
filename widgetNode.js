@@ -99,13 +99,14 @@ buildWidget() { // public - build table header
     // we are edit mode
     id = this.dataNode.identity;
   }
-  const html = app.widgetHeader() +`<table><tr>><td idr="from"></td>
+  const html = app.widgetHeader() +`<table><tbody><tr>
+  <td idr="from"></td>
   <td><b>${this.label}#${id}</b>
-  <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
-  <table idr = "nodeTable">
-
-  </table>
- </div>
+    <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
+    <table idr = "nodeTable"></table>
+  </td>
+  <td idr="to"></td>
+</tr></tbody></table></div>
 `
   /*
   Create new element, append to the widgets div in front of existing widgets
@@ -158,8 +159,8 @@ buildDataNode() {   // put in one field label and input row for each field
     header.appendChild(labelText);
 
     // Create the second cell, a td cell containing an input which has an idr, an onChange event, and a value which may be an empty string
-    if (this.data) {
-      let d=this.data.properties;
+    if (this.dataNode) {
+      let d=this.dataNode.properties;
       value = d[fieldName];
     }
 

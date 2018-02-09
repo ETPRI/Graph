@@ -152,7 +152,7 @@ this.queryObjects.keysRelation = {
 
 this.queryObjects.trash = {
    nameTable: "trash"
-   ,query: "match (n) where not n._trash = '' return id(n) as id, labels(n) as labels, n._trash as trash"
+   ,query: "match (n) where not n._trash = '' return id(n) as id, labels(n) as labels, n._trash as trash, n"
    ,fields: {
        "id":     {label: "ID",   att: `onclick="app.widget('edit',this)"`}
    	 ,"labels": {label: "Labels"}
@@ -166,6 +166,6 @@ edit(element){
   let id = element.innerHTML;
   let n = this.queryData.filter(o => o.id.toString() === id);
 
-  app.widgetNodeNew(this.queryObject.nodeLabel, n[0].n);
+  app.widgetNodeNew(element.nextElementSibling.innerText, n[0].n);
 }
 } ////////////////////////////////////////////////// end class

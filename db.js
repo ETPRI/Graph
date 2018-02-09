@@ -11,7 +11,6 @@ class db  {
 
 constructor () {
 	this.query        = ""; // complete Cypher query string
-	this.data         = {};
 
 	// init in Query
 	this.object       = {};  // call back object
