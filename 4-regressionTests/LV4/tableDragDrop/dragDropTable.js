@@ -1,4 +1,4 @@
-class tableDragDrop extends dragDrop {
+class dragDropTable extends dragDrop {
   constructor(templateID, containerID, buttonID, editID, recordID, replayID) {
     let template = document.getElementById(templateID); // the template should be the tr with the ths in it
     let container = document.getElementById(containerID);
