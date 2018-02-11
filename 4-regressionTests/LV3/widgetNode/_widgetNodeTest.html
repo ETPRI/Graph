@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>ETPRI Data</title>
+    <link href="../../../app.css" type="text/css" rel="stylesheet" />
+
+    <script src="widgetNode.js"></script>
+    <script src="widgetNodeTest.js"></script>
+    <script src="../../../regressionTesting.js"></script>
+    <script src="../../LV1/domFunctions/domFunctions.js"></script>
+    <script src="../../LV5/app/app.js"></script>
+    <script src="../../../Libs/neo4j-web.js"></script>
+    <script src="../../LV2/db/db.js"></script>
+    <script src="../../../metaData.js"></script>
+  </head>
+
+  <body>
+    <!--
+      Testing - a copy of all the record stuff should appear HERE
+    -->
+    <div id="regressionHeader"></div>
+
+    <input type="button" id="clear" value="Clear test nodes" onclick="widgetNodeTest.clearAll(this)">
+    <input type="button" id="new" value="Create new test node" onclick="widgetNodeTest.create(this)">
+    <input type="button" id="edit" value="Edit first test node" onclick="widgetNodeTest.getFirst(this)">
+    <input type="button" id="getAll" value="Log all test nodes" onclick="widgetNodeTest.getAll(this)">
+    | relation: start <input id="relationStart" size="7"> end <input id="relationEnd" size="7">
+    <br>
+    <input id="debug" type="text" size="80">
+    <div id="widgets"></div>
+    <div id="log"></div>
+  </body>
+
+  <script type="text/javascript">
+    widgetNodeTest = new widgetNodeTest();
+    app = new app();
+    app.regression = new regressionTesting("app");
+  </script>
+</html>

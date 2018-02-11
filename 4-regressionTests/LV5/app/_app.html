@@ -17,6 +17,8 @@
 comment <input id="relationComment" size=80>
 
 <hr>
+<div id="regressionHeader"></div>
+
   |-> debugging
 <select id = "metaData" onclick="app.menuDBstats(this)">
   <option value="">--Meta Data--</option>
@@ -27,14 +29,9 @@ comment <input id="relationComment" size=80>
   <option value="keysRelation">Keys</option>
 </select>
 
-  <input type="button" id = "LogButton" value="log start" onclick="app.regression.logToggle(this)">
-  <input type="button" id = "Record" value="Record" onclick="app.regression.recordToggle(this)">
-  <input type ="button" id = "Clear" value = "Clear ALL" onclick = "app.regression.clearAll(app)">
-  Select a playback file:
-  <input type="file" id="playback">
-  <input type="button" value = "Replay" onclick = "app.regression.play()">
 
-  <p id="dlink"></p>
+  <input type="button" id = "LogButton" value="log start" onclick="app.regression.logToggle(this)">
+  <input type ="button" id = "Clear" value = "Clear ALL" onclick = "app.regression.clearAll(app)">
 
   <input id="debug" type="text" size="80">
    <a href="http://localhost:7474/browser/" target="_blank">neo4j browser </a> neo4j desktop must be running with database started
@@ -62,7 +59,7 @@ comment <input id="relationComment" size=80>
 
 <script type="text/javascript">
 app = new app();  // only global variables
-app.regression = new regressionTesting();
+app.regression = new regressionTesting("app");
 app.test();
 
 // build node menu

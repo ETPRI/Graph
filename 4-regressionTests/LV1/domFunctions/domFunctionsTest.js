@@ -1,7 +1,6 @@
 class domFunctionsTest {
   constructor() {
     this.domFunctions = new domFunctions();
-    this.regressionTesting = new regressionTesting();
     this.idrText = document.getElementById("IDRtext");
     this.top = document.getElementById("topWidget");
     this.bottom = document.getElementById("bottomWidget");

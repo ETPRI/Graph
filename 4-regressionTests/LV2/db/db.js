@@ -68,7 +68,7 @@ onCompleted(metadata){
 ////////////////////////////////////////////////////////////////////
 // called by neo4j after the query has run
 onError(err) {
-alert("error db.js-"+err)
+alert("error db.js-"+err+". Original query: "+this.query)
 }
 
 

@@ -186,7 +186,7 @@ widgetClose(widgetElement) {
 
 	/* need some error processing if the original domElememt passed is not inside a widget,
 	or if there is a widget construction error and the class was not placed there */
-// 
+//
 
 // AMF: Yes, this is still used, but I moved it while trying to debug part of the code.
 // I should have put it back when I realized its location didn't actually matter. Sorry.
