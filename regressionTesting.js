@@ -2,14 +2,12 @@ class regressionTesting {
   constructor(globalVar) {
     this.logField = document.getElementById('log'); // DOM element - log field
     this.recording = false; // whether actions are being recorded
-    this.recordText = {}; // Object storing all recorded actions
-    this.recordedStep = 1; // Number of the next action to be recorded - increments whenever an action is recorded and resets when recording stops
+    this.recordText = []; // Object storing all recorded actions
     this.playing = false; // whether actions are being replayed continuously
     this.stepThrough = false; // whether actions are being stepped through one at a time
     this.fileRunning = false; // whether a file has already been accessed and is currently being played
     this.playbackObj = {}; // Object storing all actions to replay
-    this.instruction = 2; // Number of the next action to be replayed by next() - starts at 2 because 1 is processed by play(). Increments when an action is played, resets when Play button is clicked
-    this.linkDiv = document.getElementById("dlink");
+    this.instruction = 1; // Number of the next action to be replayed by next() - starts at 1 because 0 is processed by play(). Increments when an action is played, resets when Play button is clicked
     this.recordings = 1;
     this.playFiles = 0;
     this.domFunctions = new domFunctions();
@@ -24,6 +22,7 @@ class regressionTesting {
     this.stepDOM = document.getElementById("stepThrough");
     this.delayMS = document.getElementById("delayMS");
     this.delayOn = document.getElementById("delayOn");
+    this.linkDiv = document.getElementById("dlink");
   }
 
   buildRegressionHeader() {
@@ -128,7 +127,8 @@ class regressionTesting {
 
   record(message) {
   	if (this.recording) {
-  		this.recordText[this.recordedStep++] = message;
+  		// this.recordText[this.recordedStep++] = message;
+      this.recordText.push(message);
   	}
   	if (this.playing) {
       if (this.delayOn.checked) {
@@ -187,13 +187,12 @@ class regressionTesting {
       if (button == this.stepDOM) { // if play was called by the stepThrough button
         this.stepThrough = true;
         this.playing = false;
-        this.next(this);
       }
       else { // if play was called by play button
         this.playing = true;
         this.stepThrough = false;
-        this.next(this);
       }
+      this.next(this);
     }
     else { // if a file is NOT already running
     	let fileButton = document.getElementById("playback");
@@ -201,6 +200,7 @@ class regressionTesting {
 
     	if ('files' in fileButton && fileButton.files.length > this.playFiles) { // If there's another file to play back
         alert("Now Playing: " + fileButton.files[this.playFiles].name);
+
         if ((!button && this.stepThrough) || button == this.stepDOM) { // If play was called by the stepThrough button, or called by next when stepping through
       		this.playing = false;
           this.stepThrough = true;
@@ -209,7 +209,8 @@ class regressionTesting {
           this.playing = true;
           this.stepThrough = false;
         }
-    		this.instruction = 2;
+
+    		this.instruction = 1;
     		this.playbackObj = {}; // Reset playback variables
         let regression = this;
 
@@ -222,7 +223,7 @@ class regressionTesting {
     		fileReader.onload = function(fileLoadedEvent){ // ANONYMOUS INNER FUNCTION STARTS HERE! Cannot use 'this' to refer to regressionTesting object here!
     			replayText = fileLoadedEvent.target.result;
     			regression.playbackObj = JSON.parse(replayText);
-    			regression.processPlayback(regression.playbackObj["1"]); // process the first instruction
+    			regression.processPlayback(regression.playbackObj[0]); // process the first instruction
     		} // end anonymous function
     		fileReader.readAsText(myFile, "UTF-8");
         this.fileRunning = true;
@@ -241,23 +242,15 @@ class regressionTesting {
     } // end if (file is not already playing)
   } // end play method
 
-  next(regression) { // Replays the next recorded action from a file, if it exists. If not, checks for another file. If all files done, wraps up recording.
-  	let instString = regression.instruction.toString();
-  	regression.instruction++; // Prepare to go on to the next instruction
-  	if (instString in regression.playbackObj) { // If there is an instruction with this number
-      regression.processPlayback(regression.playbackObj[instString]);
+  next(regression) { // Replays the next recorded action from a file, if it exists. If not, checks for another file.
+    if (regression.playbackObj.length > regression.instruction) {
+      regression.processPlayback(regression.playbackObj[regression.instruction]);
+      regression.instruction++;
   	}
-  	else { // Playback is finished. Check for success, then check for another file
+  	else { // Playback is finished. Check for success, then try to play next file
       regression.recordToggle(document.getElementById("Record"));
       this.fileRunning = false;
-      let fileButton = document.getElementById("playback");
-      if (fileButton.files.length > regression.playFiles) { // If there's another file to play back
-        regression.play(); // play it
-      }
-      else { // if we're done playing back all files
-    		regression.playing = false;
-        regression.playFiles = 0;
-      }
+      regression.play();
   	}
   } // end next method
 

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>ETPRI Data</title>
+    <link href="../../../app.css" type="text/css" rel="stylesheet" />
+  </head>
+
+  <body>
+    <select id="menuNodes" onclick="app.menuNodes(this)">
+      <option value="">-- Nodes --</option>
+    </select>
+    <div id="regressionHeader"></div>
+    <input id="debug" type="text" size="80">
+    <div id="widgets"></div>
+    <div id="log" hidden="true"></div>
+
+    <script src="../../../Libs/neo4j-web.js"></script>
+    <script src="../../LV5/app/app.js"></script>
+    <script src="../../LV2/db/DB.js"></script>
+    <script src="widgetTableNodes.js"></script>
+    <script src="../../LV3/widgetNode/widgetNode.js"></script>
+    <script src="../../../MetaData.js"></script>
+    <script src="../../../regressionTesting.js"></script>
+    <script src="../../LV1/domFunctions/domFunctions.js"></script>
+  </body>
+</html>
+
+<script type="text/javascript">
+  app=new app();
+  app.regression = new regressionTesting("app");
+  app.menuNodesInit();
+</script>
