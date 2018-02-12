@@ -17,7 +17,7 @@ constructor() {
 	this.domFunctions 	= new domFunctions();
 
 	// used by classDB to access neo4j database,
-	this.authToken = neo4j.v1.auth.basic("neo4j", "neo4j");
+	this.authToken = neo4j.v1.auth.basic("neo4j", "paleo3i");
 	this.driver    = neo4j.v1.driver("bolt://localhost", this.authToken, {encrypted:false});
 }
 
@@ -97,11 +97,6 @@ menuDBstats(dropDown){
 // brings up add/edit widget form table for one node
 // keys in first column, values in second column
 widgetNodeNew(nodeName, data) {
-		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
-}
-
-// This does the same thing as the above method - why have both?
-widgetNode(nodeName, data) {
 		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
 
@@ -186,7 +181,7 @@ widgetClose(widgetElement) {
 
 	/* need some error processing if the original domElememt passed is not inside a widget,
 	or if there is a widget construction error and the class was not placed there */
-// 
+//
 
 // AMF: Yes, this is still used, but I moved it while trying to debug part of the code.
 // I should have put it back when I realized its location didn't actually matter. Sorry.

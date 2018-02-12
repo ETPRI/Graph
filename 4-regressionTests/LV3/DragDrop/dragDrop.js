@@ -1,8 +1,8 @@
 class dragDrop {
   constructor(containerID, buttonID, editID, recordID, replayID) {
     var activeNode; // node which is being dragged
-    this.domFunctions = new domFunctions();
-    this.regression = new regressionTesting();
+    // this.domFunctions = new domFunctions();
+    // this.regression = new regressionTesting();
 
     // Set up Show/Hide button
     this.showHide = document.getElementById(buttonID);
@@ -17,14 +17,14 @@ class dragDrop {
     edit.setAttribute("hidden", "true");
 
     // Set up record button
-    let record = document.getElementById(recordID);
-    record.setAttribute("value", "Record");
-    record.setAttribute("onclick", "dragDrop.regression.recordToggle(this)");
+    // let record = document.getElementById(recordID);
+    // record.setAttribute("value", "Record");
+    // record.setAttribute("onclick", "dragDrop.regression.recordToggle(this)");
 
     // Set up replay button
-    let replay = document.getElementById(replayID);
-    replay.setAttribute("value", "Replay");
-    replay.setAttribute("onclick", "dragDrop.regression.play()");
+    // let replay = document.getElementById(replayID);
+    // replay.setAttribute("value", "Replay");
+    // replay.setAttribute("onclick", "dragDrop.regression.play()");
 
     this.container = document.getElementById(containerID);
     this.container.setAttribute("class", "widget");

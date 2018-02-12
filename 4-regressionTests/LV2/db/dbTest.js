@@ -1,7 +1,6 @@
 class dbTest {
   constructor() {
     this.db = new db();
-    this.regression = new regressionTesting();
     this.input = document.getElementById("input");
   }
 

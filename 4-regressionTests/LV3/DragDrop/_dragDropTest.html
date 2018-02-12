@@ -15,18 +15,8 @@
 		<h2>Draggable</h2>
 
     <input type="button" id="showHide">
-    <input type="button" id="Record">
 
-    <!--
-      <input type="button" id="test" value="Run test code" onclick="app.dragDrop.test()">
-    -->
-
-    Select a playback file:
-    <input type="file" id="playback" multiple>
-    <input type="button" id = "replay">
-
-    <p id="dlink"></p>
-
+    <div id="regressionHeader"></div>
     <ol>
       <li>insert- Type into insert box, then hit return.</li>
       <li>edit- Double click text, type, then hit return.</li>
@@ -45,6 +35,8 @@
 
     <script type="text/javascript">
       dragDrop = new dragDrop ("container", "showHide", "edit", "Record", "replay");
+      dragDrop.domFunctions = new domFunctions();
+      dragDrop.regression = new regressionTesting("dragDrop");
     </script>
   </body>
 </html>

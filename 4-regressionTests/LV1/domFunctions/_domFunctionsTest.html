@@ -9,13 +9,7 @@
   </head>
 
   <body>
-    <input type="button" id = "Record" value="Record" onclick="domFunctionsTest.regressionTesting.recordToggle(this)">
-    Select a playback file:
-    <input type="file" id="playback">
-    <input type="button" value = "Replay" onclick = "domFunctionsTest.regressionTesting.play()">
-
-    <p id="dlink"></p>
-    Click a button to search for its widgetID
+    <div id="regressionHeader"></div>
     <br><br>
 
     <input type="button" id="outsideButton" value="Get my widgetID" onclick="domFunctionsTest.getId(this)">
@@ -43,4 +37,5 @@
 
 <script type="text/javascript">
   domFunctionsTest = new domFunctionsTest();
+  domFunctionsTest.regressionTesting = new regressionTesting("domFunctionsTest");
 </script>

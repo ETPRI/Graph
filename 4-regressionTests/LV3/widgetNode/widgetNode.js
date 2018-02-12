@@ -17,7 +17,7 @@ input: label
 
 class widgetNode {
 constructor(label, data) {
-  // data to be dislplayed
+  // data to be displayed
   this.dataNode    = data; // is db identifier, not defined means add
   this.relationsFrom = {}; // place holder for relations ->(n)
   this.relationsTo   = {}; // place holder for relations   (n)->
@@ -43,21 +43,21 @@ constructor(label, data) {
 }
 
 
-buildRelationsEnd() {
+buildRelationsEnd() { // queries for relations which end at this node, then sends the results to endComplete()
   if (!this.dataNode) return;  // new node, so no relations
   this.db.setQuery( `match ()-[r]->(n) where id(n)=${this.dataNode.identity} return r` );
   this.db.runQuery(this,"endComplete");
 }
-endComplete(data) {
+endComplete(data) { // Takes table HTML from this.complete, adds a toggle button and inserts into fromDOM. Then calls buildRelationsStart().
   this.fromDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
     <table>${this.complete(data)}</table>`;
   this.endDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
   this.buildRelationsStart();
 }
-relationEnd(){
+relationEnd(){ // Just updates "relationEnd" element; never seems to be called
   document.getElementById("relationEnd").value   = this.dataNode.identity;
 }
-toggle(button){
+toggle(button){ // Shows or hides the from table
   if (button.value ==="+") {
     button.value = ".";
     button.nextElementSibling.hidden = false;
@@ -68,22 +68,22 @@ toggle(button){
 }
 
 
-buildRelationsStart() {
+buildRelationsStart() { // queries for relations which start at this node, then sends the results to startComplete()
   if (!this.dataNode) return;  // new node, so no relations
   this.db.setQuery( `match (n)-[r]->() where id(n)=${this.dataNode.identity} return r` );
   this.db.runQuery(this,"startComplete");
 }
-startComplete(data) {
+startComplete(data) { // Takes table HTML from this.complete, adds a Start button and inserts into startDOM.
   this.toDOM.innerHTML = `<input idr = "start" type="button" value="Start" onclick="app.widget('relationStart',this)">
     <table>${this.complete(data)}</table>`;
   this.startDOM  = app.domFunctions.getChildByIdr(this.widgetDOM, "start"); // button
 }
-relationStart(){
+relationStart(){ // Turns the start button yellow and writes the node's ID in the "relationStart" element
   this.startDOM.setAttribute('style','background-color: yellow');
   document.getElementById("relationStart").value   = this.dataNode.identity; // remember node that starts relation
 }
 
-complete(data){
+complete(data){ // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
   let html = "<tr> <th>#</th> <th>R#</th> <th>N#</th> <th>Relation type</th> </tr>";
   for(let i=0; i<data.length; i++) {
     let d= data[i].r
@@ -168,7 +168,7 @@ buildDataNode() {   // put in one field label and input row for each field
     row.appendChild(dataField);
     let input = document.createElement('input');
     dataField.appendChild(input);
-    input.outerHTML = `<input db = ${fieldName} idr = "input${fieldCount++}" onChange = "app.widget('changed',this)" value = ${value}>`
+    input.outerHTML = `<input db = ${fieldName} idr = "input${fieldCount++}" onChange = "app.widget('changed',this)" value = "${value}">`
   }
 
   // set the button to be save or added
@@ -177,7 +177,7 @@ buildDataNode() {   // put in one field label and input row for each field
 }
 
 
-saveAdd(widgetElement) {
+saveAdd(widgetElement) { // Saves changes or adds a new node
   // director function
   if (widgetElement.value === "Save") {
     this.save(widgetElement);
@@ -197,7 +197,7 @@ saveAdd(widgetElement) {
 
 
 ////////////////////////////////////////////////////////////////////
-add(widgetElement) { // public - build table header
+add(widgetElement) { // Builds a query to add a new node, then runs it and passes the result to addComplete
   // CREATE (n:person {name:'David Bolt', lives:'Knoxville'}) return n
 
   let tr = this.tableDOM.firstElementChild;
@@ -219,8 +219,8 @@ add(widgetElement) { // public - build table header
 }
 
 
-addComplete(data) {
-  this.data = data[0].n // takes single nodes
+addComplete(data) { // Refreshes the node table and logs that addSave was clicked
+  this.dataNode = data[0].n // takes single nodes
   this.buildDataNode();
   // log
   let obj = {};
@@ -232,7 +232,7 @@ addComplete(data) {
 }
 
 
-changed(input) {
+changed(input) { // Logs changes to fields, and highlights when they are different from saved fields
   if (!this.dataNode) {
     let obj = {};
     obj.id = app.domFunctions.widgetGetId(input);
@@ -261,7 +261,7 @@ changed(input) {
 }
 
 
-save(widgetElement) { // public - build table header
+save(widgetElement) { // Builds query to update a node, runs it and passes the results to saveData()
 /*
   MATCH (n)
   WHERE id(n)= 146
@@ -296,10 +296,11 @@ save(widgetElement) { // public - build table header
     this.db.runQuery(this,"saveData");
   }
 }
-saveData(data) {
+saveData(data) { // Refreshes the node table and logs that addSave was clicked
   // redo from as edit now that data is saved
-  this.data = data[0].n;
-  this.buildData();
+  // alert(JSON.stringify(data));
+  this.dataNode = data[0].n;
+  this.buildDataNode();
   // log
   let obj = {};
   obj.id = this.idWidget;
