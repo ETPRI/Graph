@@ -170,7 +170,7 @@ class regressionTesting {
         this.linkDiv.appendChild(para);
   		}
   		// reset
-  		this.recordText = {};
+  		this.recordText = [];
   		this.recordedStep = 1;
   	}
     else { // If the page was not recording
