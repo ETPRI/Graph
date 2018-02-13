@@ -103,6 +103,7 @@ this.node.address = {
       "field1":   {label: "First"}
       ,"field2":  {label: "Second"}
       ,"field3":  {label: "Third"}
+      ,"_trash":  {label: "Trash"}
     }
   }
 } ////// end method

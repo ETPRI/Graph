@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8">
     <title>ETPRI Data</title>
-    <link href="../../../app.css" type="text/css" rel="stylesheet" />
     <script src="db.js"></script>
     <script src="dbTest.js"></script>
     <script src="../../../regressionTesting.js"></script>
@@ -16,16 +15,9 @@
   <body>
     <div id="regressionHeader"></div>
 
-      Type a Cypher command here: <input id="input" type="text" size="80"  onchange="dbTest.queryChange(this)"><br>
+      Type a Cypher command here: <input id="input" type="text" size="80"  onchange="dbTest.queryChange(this)">
+      <input type ="button" id="run" value = "Run" onclick = "dbTest.startQuery()"><br>
       It should be duplicated here when you hit Run:   <input id="debug" type="text" size="80">
-      <input type ="button" id="run" value = "Run" onclick = "dbTest.startQuery()">
-      <!--
-      <input type="button" id="Record" value="Record" onclick="dbTest.regression.recordToggle(this)">
-      Select a playback file:
-      <input type="file" id="playback">
-      <input type="button" value="Replay" onclick="dbTest.regression.play()">
-      <p id="dlink"></p>
-    -->
 
       <div id="log"></div>
   </body>

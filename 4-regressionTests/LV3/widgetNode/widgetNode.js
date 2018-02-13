@@ -211,7 +211,6 @@ add(widgetElement) { // Builds a query to add a new node, then runs it and passe
     tr=tr.nextElementSibling;
   }
 
-
   const query = create.replace("#data#", data.substr(0,data.length-2) );
 //  this.db = new db();
   this.db.setQuery(query);

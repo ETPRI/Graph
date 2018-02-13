@@ -1,8 +1,6 @@
 class dragDrop {
-  constructor(containerID, buttonID, editID, recordID, replayID) {
+  constructor(containerID, buttonID, editID) {
     var activeNode; // node which is being dragged
-    // this.domFunctions = new domFunctions();
-    // this.regression = new regressionTesting();
 
     // Set up Show/Hide button
     this.showHide = document.getElementById(buttonID);
@@ -15,16 +13,6 @@ class dragDrop {
     edit.setAttribute("onblur", "dragDrop.save()");
     edit.setAttribute("onkeydown", "dragDrop.LookForEnter(event, this)");
     edit.setAttribute("hidden", "true");
-
-    // Set up record button
-    // let record = document.getElementById(recordID);
-    // record.setAttribute("value", "Record");
-    // record.setAttribute("onclick", "dragDrop.regression.recordToggle(this)");
-
-    // Set up replay button
-    // let replay = document.getElementById(replayID);
-    // replay.setAttribute("value", "Replay");
-    // replay.setAttribute("onclick", "dragDrop.regression.play()");
 
     this.container = document.getElementById(containerID);
     this.container.setAttribute("class", "widget");
@@ -49,7 +37,7 @@ class dragDrop {
     this.itemCount = 0; // number of finished items that have been added; also used for top-level idrs
   }
 
-  createInputs(element) {
+  createInputs(element) { // To support nested tags
     if (element.hasChildNodes()) { // If this is not a leaf, don't add an input, but do process its children.
       let children = element.children;
       for (let child of children) {
@@ -82,7 +70,7 @@ class dragDrop {
   drop(evnt) { // drops the dwb node above or below the target. evnt is the drop event and its target is what's being dropped onto
   	evnt.preventDefault();
     let target = evnt.target;
-    while (target.draggable == false) {
+    while (target.draggable == false) { // Also for nested tags
       target = target.parentNode;
     }
 
@@ -106,7 +94,7 @@ class dragDrop {
     }
   }
 
-  insertElement(element) { // Obj is all or part of tagNames. Element is all or part of insertContainer
+  insertElement(element) { // Element is all or part of insertContainer
     let newEl = document.createElement(element.tagName);
     if (element.firstElementChild.tagName == "INPUT") { // If this is a "leaf"
       let input = element.firstElementChild; // Get the input inside it

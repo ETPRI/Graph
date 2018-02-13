@@ -13,14 +13,14 @@
     <br><br>
 
     <input type="button" id="outsideButton" value="Get my widgetID" onclick="domFunctionsTest.getId(this)">
-    Type an IDR here and click "Search". <input id="IDRtext" type="text" onchange="domFunctionsTest.textChange(this)">
-    <input type="button" id="Search" value="Search" onclick="domFunctionsTest.searchIDR(this)">
     <br><br>
 
     topWidget:
     <div id = "topWidget" class = "widget">
       My idr is "First" and my ID is "1" <input type="text" id="1" idr="First" readonly>
       My idr is "Second" and my ID is "2" <input type="text" id="2" idr="Second" readonly>
+      Type an IDR here and click "Search". <input id="IDRtext1" type="text" onchange="domFunctionsTest.textChange(this)">
+      <input type="button" id="Search1" value="Search" onclick="domFunctionsTest.searchIDR(this)">
       <input type="button" id="topButton" idr="topButton" value="Get my widgetID" onclick="domFunctionsTest.getId(this)">
     </div>
     <br>
@@ -28,6 +28,8 @@
     <div id = "bottomWidget" class = "widget">
       My idr is "First" and my ID is "3" <input type="text" id="3" idr="First" readonly>
       My idr is "Last" and my ID is "4" <input type="text" id="4" idr="Last" readonly>
+      Type an IDR here and click "Search". <input id="IDRtext2" type="text" onchange="domFunctionsTest.textChange(this)">
+      <input type="button" id="Search2" value="Search" onclick="domFunctionsTest.searchIDR(this)">
       <input type="button" id="bottomButton" idr="bottomButton" value="Get my widgetID" onclick="domFunctionsTest.getId(this)">
     </div>
 
@@ -37,5 +39,5 @@
 
 <script type="text/javascript">
   domFunctionsTest = new domFunctionsTest();
-  domFunctionsTest.regressionTesting = new regressionTesting("domFunctionsTest");
+  domFunctionsTest.regression = new regressionTesting("domFunctionsTest");
 </script>

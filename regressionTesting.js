@@ -249,7 +249,7 @@ class regressionTesting {
   	}
   	else { // Playback is finished. Check for success, then try to play next file
       regression.recordToggle(document.getElementById("Record"));
-      this.fileRunning = false;
+      regression.fileRunning = false;
       regression.play();
   	}
   } // end next method
