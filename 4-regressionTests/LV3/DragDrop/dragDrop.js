@@ -1,5 +1,5 @@
 class dragDrop {
-  constructor(containerID, buttonID, editID) {
+  constructor(containerID, buttonID) {
     var activeNode; // node which is being dragged
 
     // Set up Show/Hide button
@@ -8,11 +8,13 @@ class dragDrop {
     this.showHide.setAttribute("onclick", "dragDrop.inputToggle(this)");
 
     // Set up edit input
-    let edit = document.getElementById(editID);
+    let edit = document.createElement("input");
     edit.setAttribute("type", "text");
+    edit.setAttribute("id", "edit");
     edit.setAttribute("onblur", "dragDrop.save()");
     edit.setAttribute("onkeydown", "dragDrop.LookForEnter(event, this)");
     edit.setAttribute("hidden", "true");
+    document.body.appendChild(edit);           // move input field to end of body
 
     this.container = document.getElementById(containerID);
     this.container.setAttribute("class", "widget");

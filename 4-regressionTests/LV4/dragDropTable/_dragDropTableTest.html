@@ -15,8 +15,6 @@
   <body>
 		<h2>Draggable</h2>
 
-    <input type="button" id="showHide">
-
   <div id="regressionHeader"></div>
 
     <ol>
@@ -25,8 +23,6 @@
       <li>delete- Click the X button.</li>
       <li>move- Click and drag.</li>
     </ol>
-
-    <input id="edit">
 
     <table>
       <thead>
@@ -40,7 +36,7 @@
     </ul>
 
     <script type="text/javascript">
-      dragDrop = new dragDropTable("template", "container", "showHide", "edit", "Record", "replay");
+      dragDrop = new dragDropTable("template", "container");
       dragDrop.domFunctions = new domFunctions();
       dragDrop.regression = new regressionTesting("dragDrop");
     </script>
