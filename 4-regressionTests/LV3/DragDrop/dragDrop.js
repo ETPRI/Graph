@@ -1,5 +1,7 @@
 class dragDrop {
   constructor(containerID, buttonID) {
+    this.domFunctions = new domFunctions();
+    this.regression = new regressionTesting("dragDrop");
     var activeNode; // node which is being dragged
 
     // Set up Show/Hide button
