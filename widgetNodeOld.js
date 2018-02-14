@@ -43,6 +43,57 @@ constructor(label, data) {
 //  this.buildRelationsEnd(); // runsbuildRelationsStart();
 }
 
+/*
+buildRelationsEnd() { // queries for relations which end at this node, then sends the results to endComplete()
+  if (!this.dataNode) return;  // new node, so no relations
+  this.db.setQuery( `match ()-[r]->(n) where id(n)=${this.dataNode.identity} return r` );
+  this.db.runQuery(this,"endComplete");
+}
+endComplete(data) { // Takes table HTML from this.complete, adds a toggle button and inserts into fromDOM. Then calls buildRelationsStart().
+  this.fromDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
+    <table>${this.complete(data)}</table>`;
+  this.endDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
+  this.buildRelationsStart();
+}
+relationEnd(){ // Just updates "relationEnd" element; never seems to be called
+  document.getElementById("relationEnd").value   = this.dataNode.identity;
+}
+toggle(button){ // Shows or hides the from table
+  if (button.value ==="+") {
+    button.value = ".";
+    button.nextElementSibling.hidden = false;
+  } else {
+    button.value = "+";
+    button.nextElementSibling.hidden = true;
+  }
+}
+
+
+buildRelationsStart() { // queries for relations which start at this node, then sends the results to startComplete()
+  if (!this.dataNode) return;  // new node, so no relations
+  this.db.setQuery( `match (n)-[r]->() where id(n)=${this.dataNode.identity} return r` );
+  this.db.runQuery(this,"startComplete");
+}
+startComplete(data) { // Takes table HTML from this.complete, adds a Start button and inserts into startDOM.
+  this.toDOM.innerHTML = `<input idr = "start" type="button" value="Start" onclick="app.widget('relationStart',this)">
+    <table>${this.complete(data)}</table>`;
+  this.startDOM  = app.domFunctions.getChildByIdr(this.widgetDOM, "start"); // button
+}
+relationStart(){ // Turns the start button yellow and writes the node's ID in the "relationStart" element
+  this.startDOM.setAttribute('style','background-color: yellow');
+  document.getElementById("relationStart").value   = this.dataNode.identity; // remember node that starts relation
+}
+
+complete(data) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
+  let html = "<tr> <th>#</th> <th>R#</th> <th>N#</th> <th>Relation type</th> </tr>";
+  for(let i=0; i<data.length; i++) {
+    let d= data[i].r
+    html += `<tr><td>${i}</td> <td>${d.identity}</td> <td>${d.end}</td> <td>${d.type}</td></tr>`;
+  }
+  return html;
+}
+
+*/
 
 buildWidget() { // public - build table header
   let id="";  // assume add mode
@@ -57,14 +108,13 @@ buildWidget() { // public - build table header
     <table idr = "nodeTable"></table>
   </td>
   <td idr="start"></td>
-  <td>       <table>
+  <td>    <table>
         <thead>
-          <tr id = "template"><th>Column 1</th><th db="input">Column 2</th></tr>
+          <tr id = "template"><th>Column 1</th><th>Column 2</th></tr>
         </thead>
         <tbody id = "container">
         </tbody>
       </table>
-
 </td>
 </tr></tbody></table></div>
 `
@@ -84,10 +134,8 @@ buildWidget() { // public - build table header
   this.tableDOM   = app.domFunctions.getChildByIdr(widget, "nodeTable");
   this.endDOM     = app.domFunctions.getChildByIdr(widget, "end");
   this.startDOM   = app.domFunctions.getChildByIdr(widget, "start");
-
-  dragDrop = new dragDropTable("template", "container");    // new global variable, this needs to go
-  dragDrop.regression = new regressionTesting("dragDrop");  // needs to be moved to dragDropConstrutor, loging needs to be turned of log element is not there
 }
+
 
 
 buildDataNode() {   // put in one field label and input row for each field

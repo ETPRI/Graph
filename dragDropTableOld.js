@@ -1,5 +1,5 @@
 class dragDropTable extends dragDrop {
-  constructor(templateID, containerID) {
+  constructor(templateID, containerID, buttonID, editID, recordID, replayID) {
     let template = document.getElementById(templateID); // the template should be the tr with the ths in it
     let container = document.getElementById(containerID);
 
@@ -23,12 +23,6 @@ class dragDropTable extends dragDrop {
 
     let insertRow = createInsertElement(template); // Create the row to insert
     container.appendChild(insertRow); // append it to container
-    let newCell = document.createElement('TH');
-    let showHide = document.createElement('input');
-    showHide.setAttribute("type", "button");
-    showHide.setAttribute("id", "showHide");
-    template.appendChild(showHide);
-
-    super(containerID, "showHide"); // After that point the original constructor should do the trick
+    super(containerID, buttonID, editID, recordID, replayID); // After that point the original constructor should do the trick
   }
 }

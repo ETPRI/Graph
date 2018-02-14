@@ -1,6 +1,8 @@
 class dragDrop {
-  constructor(containerID, buttonID) {
+  constructor(containerID, buttonID, editID, recordID, replayID) {
     var activeNode; // node which is being dragged
+    // this.domFunctions = new domFunctions();
+    // this.regression = new regressionTesting();
 
     // Set up Show/Hide button
     this.showHide = document.getElementById(buttonID);
@@ -8,13 +10,21 @@ class dragDrop {
     this.showHide.setAttribute("onclick", "dragDrop.inputToggle(this)");
 
     // Set up edit input
-    let edit = document.createElement("input");
+    let edit = document.getElementById(editID);
     edit.setAttribute("type", "text");
-    edit.setAttribute("id", "edit");
     edit.setAttribute("onblur", "dragDrop.save()");
     edit.setAttribute("onkeydown", "dragDrop.LookForEnter(event, this)");
     edit.setAttribute("hidden", "true");
-    document.body.appendChild(edit);           // move input field to end of body
+
+    // Set up record button
+    // let record = document.getElementById(recordID);
+    // record.setAttribute("value", "Record");
+    // record.setAttribute("onclick", "dragDrop.regression.recordToggle(this)");
+
+    // Set up replay button
+    // let replay = document.getElementById(replayID);
+    // replay.setAttribute("value", "Replay");
+    // replay.setAttribute("onclick", "dragDrop.regression.play()");
 
     this.container = document.getElementById(containerID);
     this.container.setAttribute("class", "widget");
@@ -39,7 +49,7 @@ class dragDrop {
     this.itemCount = 0; // number of finished items that have been added; also used for top-level idrs
   }
 
-  createInputs(element) { // To support nested tags
+  createInputs(element) {
     if (element.hasChildNodes()) { // If this is not a leaf, don't add an input, but do process its children.
       let children = element.children;
       for (let child of children) {
@@ -58,7 +68,7 @@ class dragDrop {
   drag(evnt){ // sets value of activeNode
     this.activeNode = evnt.target;
     let obj = {};
-    obj.id = app.domFunctions.widgetGetId(evnt.target);
+    obj.id = this.domFunctions.widgetGetId(evnt.target);
     obj.idr = event.target.getAttribute("idr");
     obj.action = "dragstart";
     this.log(JSON.stringify(obj));
@@ -72,7 +82,7 @@ class dragDrop {
   drop(evnt) { // drops the dwb node above or below the target. evnt is the drop event and its target is what's being dropped onto
   	evnt.preventDefault();
     let target = evnt.target;
-    while (target.draggable == false) { // Also for nested tags
+    while (target.draggable == false) {
       target = target.parentNode;
     }
 
@@ -83,7 +93,7 @@ class dragDrop {
   		target.parentNode.insertBefore(this.activeNode, target); // Insert before target
   	}
     let obj = {};
-    obj.id = app.domFunctions.widgetGetId(evnt.target);
+    obj.id = this.domFunctions.widgetGetId(evnt.target);
     obj.idr = target.getAttribute("idr");
     obj.action = "drop";
     this.log(JSON.stringify(obj));
@@ -96,7 +106,7 @@ class dragDrop {
     }
   }
 
-  insertElement(element) { // Element is all or part of insertContainer
+  insertElement(element) { // Obj is all or part of tagNames. Element is all or part of insertContainer
     let newEl = document.createElement(element.tagName);
     if (element.firstElementChild.tagName == "INPUT") { // If this is a "leaf"
       let input = element.firstElementChild; // Get the input inside it
@@ -141,7 +151,7 @@ class dragDrop {
     newEl.appendChild(button);
 
     // logging
-    obj.id = app.domFunctions.widgetGetId(input);
+    obj.id = this.domFunctions.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.action = "keydown";
     obj.key = "Enter";
@@ -154,7 +164,7 @@ class dragDrop {
   delete(button) {
     // logging
     let obj = {};
-    obj.id = app.domFunctions.widgetGetId(button);
+    obj.id = this.domFunctions.widgetGetId(button);
     obj.idr = button.getAttribute("idr");
     obj.action = "click";
     this.log(JSON.stringify(obj));
@@ -196,7 +206,7 @@ class dragDrop {
 
     // Log
     let obj = {};
-    obj.id = app.domFunctions.widgetGetId(evnt.target);
+    obj.id = this.domFunctions.widgetGetId(evnt.target);
     obj.idr = event.target.getAttribute("idr");
     obj.action = "dblclick";
     this.log(JSON.stringify(obj));
@@ -226,10 +236,10 @@ save(evnt){ // Save changes to a node
 }
 
 log(text) { // Add a message to the eventLog
-    // var ul = document.getElementById("eventLog");
-    // var li = document.createElement("li");
-    // li.appendChild(document.createTextNode(text));
-    // ul.appendChild(li);
+    var ul = document.getElementById("eventLog");
+    var li = document.createElement("li");
+    li.appendChild(document.createTextNode(text));
+    ul.appendChild(li);
   }
 
   inputToggle(button) { // Toggles visibility of the input text box and value of the Show/Hide button.
@@ -258,7 +268,7 @@ log(text) { // Add a message to the eventLog
 
   recordText(input) {
     let obj = {};
-    obj.id = app.domFunctions.widgetGetId(input);
+    obj.id = this.domFunctions.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.value = input.value;
     obj.action = "change";
@@ -268,5 +278,4 @@ log(text) { // Add a message to the eventLog
 
   test() { // This is where I put code I'm testing and want to be able to fire at will. There's a test button on 1-drag.html to fire it.
   }
-
 }

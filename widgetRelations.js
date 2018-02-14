@@ -57,12 +57,27 @@ toggle(button){ // Shows or hides relations
 
 
 complete(data) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
-  let html = "<tr> <th>#</th> <th>R#</th> <th>N#</th> <th>Relation type</th> </tr>";
-  for(let i=0; i<data.length; i++) {
-    let d= data[i].r
-    html += `<tr><td>${i}</td> <td>${d.identity}</td> <td>${d.end}</td> <td>${d.type}</td></tr>`;
+  let html       = "<tr> <th>#</th> <th>R#</th> <th>N#</th> <th>Comment</th> </tr>";
+  let idrRow     = 0;
+  let idrContent = 0;
+  const trDrag   = `<tr ondrop="dragDrop.drop(event)" ondragover="dragDrop.allowDrop(event)" draggable="true" ondragstart="dragDrop.drag(event)">`
+  while (idrRow<data.length) { // add data
+    let d= data[idrRow].r
+
+// <tr ondrop="dragDrop.drop(event)" ondragover="dragDrop.allowDrop(event)" draggable="true" ondragstart="dragDrop.drag(event)">
+//<td ondblclick="dragDrop.edit(event)" idr="content0"></td>
+
+// <td><input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input0"></td>
+// <td><input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input1"></td></tr>
+
+    html += trDrag + `<td>${++idrRow}</td> <td>${d.identity}</td> <td>${d.end}</td>
+                      <td ondblclick="dragDrop.edit(event)" idr="content${idrContent++}">${d.properties.comment}</td></tr>`;
   }
-  return html;
+
+  // add insert row
+  return html + trDrag + `<td>${++idrRow}</td> <td></td> <td></td>
+    <td>
+    <input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input1"></td></tr>`;
 }
 
 
