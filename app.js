@@ -17,7 +17,7 @@ constructor() {
 	this.domFunctions 	= new domFunctions();
 
 	// used by classDB to access neo4j database,
-	this.authToken = neo4j.v1.auth.basic("neo4j", "neo4j");
+	this.authToken = neo4j.v1.auth.basic("neo4j", "paleo3i");
 	this.driver    = neo4j.v1.driver("bolt://localhost", this.authToken, {encrypted:false});
 }
 
@@ -100,10 +100,6 @@ widgetNodeNew(nodeName, data) {
 		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
 
-// This does the same thing as the above method - why have both?
-widgetNode(nodeName, data) {
-		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
-}
 
 // /* refresh widget with new database call */
 widgetSearch(domElement) {

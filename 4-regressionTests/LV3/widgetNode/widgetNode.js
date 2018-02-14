@@ -83,7 +83,7 @@ relationStart(){ // Turns the start button yellow and writes the node's ID in th
   document.getElementById("relationStart").value   = this.dataNode.identity; // remember node that starts relation
 }
 
-complete(data){ // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
+complete(data) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
   let html = "<tr> <th>#</th> <th>R#</th> <th>N#</th> <th>Relation type</th> </tr>";
   for(let i=0; i<data.length; i++) {
     let d= data[i].r

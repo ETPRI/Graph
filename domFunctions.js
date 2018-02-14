@@ -21,11 +21,18 @@ class domFunctions {
   	if (domElement.getAttribute("class") == "widget") {
   		// found start of widget
   		return(domElement.getAttribute("id"));
-  	} else {
+  	}
+    else if (domElement.parentElement){ // if the parent element exists - if we haven't gone all the way up the tree looking for a widget
   		return(this.widgetGetId(domElement.parentElement));
   	}
+    else {
+      alert ("Error: Searched for the widget ID of an element which is not in a widget.");
+      return null;
+    }
 
   	/* need some error processing if the original domElememt passed is not inside a widget,
   	or if there is a widget construction error and the class was not placed there */
+
+    // I took a first shot at it - we'll see how it works. -AMF
   }
 }

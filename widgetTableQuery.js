@@ -91,7 +91,8 @@ buildData() {
   for (let i=0; i<r.length; i++) {
     html += '<tr>'
     for (let fieldName in this.fields) {
-      html += '<td ' + this.getatt(fieldName) +'>'+ r[i][fieldName] +"</td>" ;
+      //  html += '<td ' + this.getatt(fieldName) +'>'+ r[i][fieldName] +"</td>" ;
+      html += `<td ${this.getatt(fieldName)}idr="${fieldName}${i}">${r[i][fieldName]}</td>`;
     }
     html += "</tr>"
   }
@@ -167,5 +168,12 @@ edit(element){
   let n = this.queryData.filter(o => o.id.toString() === id);
 
   app.widgetNodeNew(element.nextElementSibling.innerText, n[0].n);
+
+  let obj={};
+  obj.id=app.domFunctions.widgetGetId(element);
+  obj.idr=element.getAttribute("idr");
+  obj.action="click";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 } ////////////////////////////////////////////////// end class

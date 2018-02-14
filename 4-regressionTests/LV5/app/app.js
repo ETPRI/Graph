@@ -100,6 +100,7 @@ widgetNodeNew(nodeName, data) {
 		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
 }
 
+
 // /* refresh widget with new database call */
 widgetSearch(domElement) {
 	// called from widgetList
