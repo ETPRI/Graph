@@ -37,7 +37,14 @@ buildRelations() { // queries for relations which end at this node, then sends t
 rComplete(data) { // Takes table HTML from this.complete, adds a toggle button and inserts into fromDOM. Then calls buildRelationsStart().
   this.containerDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
     <table>${this.complete(data)}</table>`;
+
+    setTimeout(this.createDragDrop, 1);
 //  this.containerDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
+}
+
+createDragDrop() {
+  app.dragDrop = new dragDropTable("template", "container", "app");    // new global variable, this needs to go // Changed it to belong to this widget
+  app.dragDrop.regression = app.regression;  // needs to be moved to dragDropConstrutor, loging needs to be turned of log element is not there // Shouldn't it just use app's?
 }
 // relationEnd(){ // Just updates "relationEnd" element; never seems to be called
 //   document.getElementById("relationEnd").value   = this.dataNode.identity;
@@ -57,7 +64,7 @@ toggle(button){ // Shows or hides relations
 
 
 complete(data) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
-  let html       = "<tr> <th>#</th> <th>R#</th> <th>N#</th> <th>Comment</th> </tr>";
+  let html       = "<thead><tr id='template'> <th>#</th> <th>R#</th> <th>N#</th> <th editable>Comment</th> </tr></thead><tbody id='container'>";
   let idrRow     = 0;
   let idrContent = 0;
   const trDrag   = `<tr ondrop="dragDrop.drop(event)" ondragover="dragDrop.allowDrop(event)" draggable="true" ondragstart="dragDrop.drag(event)">`
@@ -74,10 +81,11 @@ complete(data) { // Builds html for a table. Each row is a single relation and s
                       <td ondblclick="dragDrop.edit(event)" idr="content${idrContent++}">${d.properties.comment}</td></tr>`;
   }
 
-  // add insert row
-  return html + trDrag + `<td>${++idrRow}</td> <td></td> <td></td>
-    <td>
-    <input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input1"></td></tr>`;
+  // add insert row (no, it can take care of itself if I use dragDropTable)
+  // return html + trDrag + `<td>${++idrRow}</td> <td></td> <td></td>
+  //   <td>
+  //   <input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input1"></td></tr>`;
+  return html + "</tbody>";
 }
 
 

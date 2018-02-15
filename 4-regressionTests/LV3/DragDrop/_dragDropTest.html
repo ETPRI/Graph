@@ -24,19 +24,15 @@
       <li>move- Click and drag.</li>
     </ol>
 
-    <input id="edit">
-
     <ol id = "container">
-      <li></li>
+      <li editable></li>
     </ol>
 
     <ul id=eventLog>
     </ul>
 
     <script type="text/javascript">
-      dragDrop = new dragDrop ("container", "showHide", "edit", "Record", "replay");
-      dragDrop.domFunctions = new domFunctions();
-      dragDrop.regression = new regressionTesting("dragDrop");
+      dragDrop = new dragDrop ("container", "showHide");
     </script>
   </body>
 </html>

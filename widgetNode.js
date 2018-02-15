@@ -40,6 +40,7 @@ constructor(label, data) {
   this.buildWidget();
   this.buildDataNode();
   this.relationStart = new widgetRelations(this.startDOM, this.dataNode.identity, "start");  // not sure this needs to be saved;
+
 //  this.buildRelationsEnd(); // runsbuildRelationsStart();
 }
 
@@ -50,24 +51,31 @@ buildWidget() { // public - build table header
     // we are edit mode
     id = this.dataNode.identity;
   }
-  const html = app.widgetHeader() +`<table><tbody><tr>
-  <td idr="end"></td>
-  <td><b>${this.label}#${id}</b>
-    <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
-    <table idr = "nodeTable"></table>
-  </td>
-  <td idr="start"></td>
-  <td>       <table>
-        <thead>
-          <tr id = "template"><th>Column 1</th><th db="input">Column 2</th></tr>
-        </thead>
-        <tbody id = "container">
-        </tbody>
-      </table>
-
-</td>
+  const html = app.widgetHeader() +`
+  <table>
+    <tbody>
+      <tr>
+        <td idr="end"></td>
+        <td><b>${this.label}#${id}</b>
+          <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
+          <table idr = "nodeTable"></table>
+        </td>
+        <td idr="start"></td>
 </tr></tbody></table></div>
 `
+
+// Took these out of the const string above, but couldn't just comment them out there. It's the td with the dragDrop table.
+// <td>
+//   <table>
+//     <thead>
+//       <tr id = "template"><th>Column 1</th><th db="input">Column 2</th></tr>
+//     </thead>
+//     <tbody id = "container">
+//     </tbody>
+//   </table>
+// </td>
+
+
   /*
   Create new element, append to the widgets div in front of existing widgets
   */
@@ -85,8 +93,8 @@ buildWidget() { // public - build table header
   this.endDOM     = app.domFunctions.getChildByIdr(widget, "end");
   this.startDOM   = app.domFunctions.getChildByIdr(widget, "start");
 
-  dragDrop = new dragDropTable("template", "container");    // new global variable, this needs to go
-  dragDrop.regression = new regressionTesting("dragDrop");  // needs to be moved to dragDropConstrutor, loging needs to be turned of log element is not there
+  // this.dragDrop = new dragDropTable("template", "container");    // new global variable, this needs to go // Changed it to belong to this widget
+  // this.dragDrop.regression = app.regression;  // needs to be moved to dragDropConstrutor, loging needs to be turned of log element is not there // Shouldn't it just use app's?
 }
 
 
