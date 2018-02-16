@@ -38,6 +38,9 @@ class dragDrop {
     this.createInputs(this.insertContainer);
     this.contentCount = 0;
 
+    // I liked this, but I always had trouble getting the focus to go where I wanted it,
+    // and when it also started to be difficult to FIND the first input, I decided to comment it out for now.
+
     // Make this.input the first input field
     // this.input = this.insertContainer;
     // while(this.input.hasChildNodes()) {
@@ -159,6 +162,7 @@ class dragDrop {
     this.log(JSON.stringify(obj));
     this.regression.record(obj);
 
+    return newEl;
     // this.input.focus();
   }
 

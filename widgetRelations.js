@@ -38,13 +38,42 @@ rComplete(data) { // Takes table HTML from this.complete, adds a toggle button a
   this.containerDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
     <table>${this.complete(data)}</table>`;
 
-    setTimeout(this.createDragDrop, 1);
+    setTimeout(this.createDragDrop, 1, this);
 //  this.containerDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
 }
 
-createDragDrop() {
+createDragDrop(widgetRel) {
   app.dragDrop = new dragDropTable("template", "container", "app");    // new global variable, this needs to go // Changed it to belong to this widget
   app.dragDrop.regression = app.regression;  // needs to be moved to dragDropConstrutor, loging needs to be turned of log element is not there // Shouldn't it just use app's?
+  app.dragDrop.addOnEnter = function(evnt, input) {
+    if (evnt.key == "Enter") {
+      const newRow = app.dragDrop.insert(input);
+      widgetRel.addRelation(newRow);
+    }
+  }
+}
+
+addRelation(newRow) {
+  let queryStart = `match (n) where id(n)=${this.nodeID} create (n)-[r:Relation`;
+  const queryEnd = `]->(n) return r`;
+  let attributes = "";
+  const headerRow = document.getElementById("template");
+  const headers = headerRow.children;
+  const data = newRow.children;
+  for (let i = 0; i < headers.length-1; i++) {
+    if (data[i].textContent != "") {
+      attributes += `${headers[i].textContent.toLowerCase()}:${data[i].textContent}, `
+    }
+  }
+
+  if (attributes.length > 2) {
+    attributes = attributes.substr(0, attributes.length-2); // remove the final comma and space
+    queryStart += `{${attributes}}`; // and include the attributes in the query
+  }
+
+  const query = queryStart + queryEnd;
+  alert (query);
+
 }
 // relationEnd(){ // Just updates "relationEnd" element; never seems to be called
 //   document.getElementById("relationEnd").value   = this.dataNode.identity;
