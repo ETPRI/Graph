@@ -30,8 +30,8 @@ constructor(label, data) {
   this.tableDOM    = {};
   this.fromDOM     = {};
   this.toDOM       = {};
-  this.endDOM      = {}; // button
-  this.startDOM    = {}; // button
+  this.endDOM      = {}; // sub widget
+  this.startDOM    = {}; // sub widget
 
   this.queryObject = app.metaData.getNode(label);
   this.fields      = this.queryObject.fields;
@@ -39,57 +39,12 @@ constructor(label, data) {
 
   this.buildWidget();
   this.buildDataNode();
-  this.buildRelationsEnd(); // runsbuildRelationsStart();
-}
-
-
-buildRelationsEnd() { // queries for relations which end at this node, then sends the results to endComplete()
-  if (!this.dataNode) return;  // new node, so no relations
-  this.db.setQuery( `match ()-[r]->(n) where id(n)=${this.dataNode.identity} return r` );
-  this.db.runQuery(this,"endComplete");
-}
-endComplete(data) { // Takes table HTML from this.complete, adds a toggle button and inserts into fromDOM. Then calls buildRelationsStart().
-  this.fromDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
-    <table>${this.complete(data)}</table>`;
-  this.endDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
-  this.buildRelationsStart();
-}
-relationEnd(){ // Just updates "relationEnd" element; never seems to be called
-  document.getElementById("relationEnd").value   = this.dataNode.identity;
-}
-toggle(button){ // Shows or hides the from table
-  if (button.value ==="+") {
-    button.value = ".";
-    button.nextElementSibling.hidden = false;
-  } else {
-    button.value = "+";
-    button.nextElementSibling.hidden = true;
+  // This doesn't work if you're making a new node! this.dataNode doesn't exist in that case. Putting it in an if for now.
+  // I think eventually, I want the relations to appear after the node is added - can't create relations until the node exists.
+  if (this.dataNode) {
+    this.relationStart = app.widgetRelationNew(this.startDOM, this.dataNode.identity, "start");
+    // this.relationStart = new widgetRelations(this.startDOM, this.dataNode.identity, "start");  // not sure this needs to be saved;
   }
-}
-
-
-buildRelationsStart() { // queries for relations which start at this node, then sends the results to startComplete()
-  if (!this.dataNode) return;  // new node, so no relations
-  this.db.setQuery( `match (n)-[r]->() where id(n)=${this.dataNode.identity} return r` );
-  this.db.runQuery(this,"startComplete");
-}
-startComplete(data) { // Takes table HTML from this.complete, adds a Start button and inserts into startDOM.
-  this.toDOM.innerHTML = `<input idr = "start" type="button" value="Start" onclick="app.widget('relationStart',this)">
-    <table>${this.complete(data)}</table>`;
-  this.startDOM  = app.domFunctions.getChildByIdr(this.widgetDOM, "start"); // button
-}
-relationStart(){ // Turns the start button yellow and writes the node's ID in the "relationStart" element
-  this.startDOM.setAttribute('style','background-color: yellow');
-  document.getElementById("relationStart").value   = this.dataNode.identity; // remember node that starts relation
-}
-
-complete(data) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
-  let html = "<tr> <th>#</th> <th>R#</th> <th>N#</th> <th>Relation type</th> </tr>";
-  for(let i=0; i<data.length; i++) {
-    let d= data[i].r
-    html += `<tr><td>${i}</td> <td>${d.identity}</td> <td>${d.end}</td> <td>${d.type}</td></tr>`;
-  }
-  return html;
 }
 
 
@@ -100,12 +55,12 @@ buildWidget() { // public - build table header
     id = this.dataNode.identity;
   }
   const html = app.widgetHeader() +`<table><tbody><tr>
-  <td idr="from"></td>
+  <td idr="end"></td>
   <td><b>${this.label}#${id}</b>
     <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
     <table idr = "nodeTable"></table>
   </td>
-  <td idr="to"></td>
+  <td idr="start"></td>
 </tr></tbody></table></div>
 `
   /*
@@ -122,10 +77,12 @@ buildWidget() { // public - build table header
   this.widgetDOM  = widget;
   this.addSaveDOM = app.domFunctions.getChildByIdr(widget, "addSaveButton");
   this.tableDOM   = app.domFunctions.getChildByIdr(widget, "nodeTable");
-  this.fromDOM    = app.domFunctions.getChildByIdr(widget, "from");
-  this.toDOM      = app.domFunctions.getChildByIdr(widget, "to");
-}
+  this.endDOM     = app.domFunctions.getChildByIdr(widget, "end");
+  this.startDOM   = app.domFunctions.getChildByIdr(widget, "start");
 
+  // dragDrop = new dragDropTable("template", "container");    // new global variable, this needs to go
+  // dragDrop.regression = new regressionTesting("dragDrop");  // needs to be moved to dragDropConstrutor, loging needs to be turned of log element is not there
+}
 
 
 buildDataNode() {   // put in one field label and input row for each field
@@ -301,6 +258,7 @@ saveData(data) { // Refreshes the node table and logs that addSave was clicked
   // alert(JSON.stringify(data));
   this.dataNode = data[0].n;
   this.buildDataNode();
+
   // log
   let obj = {};
   obj.id = this.idWidget;

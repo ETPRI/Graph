@@ -1,42 +1,44 @@
 class dragDrop {
-  constructor(containerID, buttonID, globalVar) {
-    this.evntPrefix = "";
-    if (globalVar) {    // If dragDrop itself isn't the global variable, pass in what IS and it will be added to onclick, onblur, etc. events.
-                        // This is a kludge and only needs to last until I get this working with app.widget.
-      this.evntPrefix = globalVar + ".";
-    }
+  constructor(containerIDR, buttonIDR, id, existing) {
 
-    let activeNode; // node which is being dragged
-    this.domFunctions = new domFunctions();
-    this.regression = new regressionTesting("dragDrop");
+    this.activeNode = {}; // node which is being dragged
+    this.domFunctions 	= new domFunctions();
+    this.id = id;
+    this.domElement = document.getElementById(id);
 
     // Set up Show/Hide button
-    this.showHide = document.getElementById(buttonID);
+    this.showHide = this.domFunctions.getChildByIdr(this.domElement, buttonIDR);
     this.showHide.value = "Hide Input";
-    this.showHide.setAttribute("onclick", `${this.evntPrefix}dragDrop.inputToggle(this)`);
+    this.showHide.setAttribute("onclick", "app.widget('inputToggle', this)");
 
     // Set up edit input
     const edit = document.createElement("input");
     edit.setAttribute("type", "text");
-    edit.setAttribute("onblur", `${this.evntPrefix}dragDrop.save()`);
-    edit.setAttribute("onkeydown", `${this.evntPrefix}dragDrop.LookForEnter(event, this)`);
+    edit.setAttribute("onblur", "app.widget('save', this)");
+    edit.setAttribute("onkeydown", "app.widget('lookForEnter', this, event)");
     edit.setAttribute("hidden", "true");
-    edit.setAttribute("id", "edit");
-    document.body.appendChild(edit);
+    edit.setAttribute("idr", "edit");
+    this.domElement.appendChild(edit);           // move input field to end of DOM element representing the table
 
-    this.container = document.getElementById(containerID);
-    this.container.setAttribute("class", "widget");
+    this.container = this.domFunctions.getChildByIdr(this.domElement, containerIDR);
 
     // This is where we start building the insert line. insertContainer is the outermost template tag (the draggable one) (or the only one, if they're not nested)
     this.insertContainer = this.container.lastElementChild;
-    this.insertContainer.setAttribute("ondrop", `${this.evntPrefix}dragDrop.drop(event)`);
-    this.insertContainer.setAttribute("ondragover", `${this.evntPrefix}dragDrop.allowDrop(event)`);
+    this.insertContainer.setAttribute("ondrop", "app.widget('drop', this, event)");
+    this.insertContainer.setAttribute("ondragover", "app.widget('allowDrop', this, event)");
     this.insertContainer.setAttribute("draggable", "true");
-    this.insertContainer.setAttribute("ondragstart", `${this.evntPrefix}dragDrop.drag(event)`);
+    this.insertContainer.setAttribute("ondragstart", "app.widget('drag', this, event)");
+    this.insertContainer.setAttribute("idr", "insertContainer");
 
     this.inputCount = 0;
     this.createInputs(this.insertContainer);
-    this.contentCount = 0;
+
+    if (existing) { // existing is an optional value recording the number of rows that are already in the table.
+      this.contentCount = existing;
+    }
+    else {
+      this.contentCount = 0;
+    }
 
     // I liked this, but I always had trouble getting the focus to go where I wanted it,
     // and when it also started to be difficult to FIND the first input, I decided to comment it out for now.
@@ -47,10 +49,11 @@ class dragDrop {
     //   this.input = this.input.firstElementChild;
     // }
 
+
     this.itemCount = 0; // number of finished items that have been added; also used for top-level idrs
   }
 
-  createInputs(element) {
+  createInputs(element) { // To support nested tags
     if (element.hasChildNodes()) { // If this is not a leaf, process its children.
       let children = element.children;
       for (let child of children) {
@@ -59,31 +62,32 @@ class dragDrop {
     }
     if (element.hasAttribute("editable")) { // Create inputs for each editable node
       let input = document.createElement("input");
-      input.setAttribute("onchange", `${this.evntPrefix}dragDrop.recordText(this)`);
-      input.setAttribute("onkeydown", `${this.evntPrefix}dragDrop.addOnEnter(event, this)`);
+      input.setAttribute("onchange", "app.widget('recordText', this)");
+      input.setAttribute("onkeydown", "app.widget('addOnEnter', this, event)");
       input.setAttribute("idr", `input${this.inputCount++}`);
       element.insertBefore(input, element.firstChild);
     }
   }
 
-  drag(evnt){ // sets value of activeNode
+  drag(input, evnt){ // sets value of activeNode
     this.activeNode = evnt.target;
     let obj = {};
     obj.id = this.domFunctions.widgetGetId(evnt.target);
     obj.idr = event.target.getAttribute("idr");
     obj.action = "dragstart";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
-  allowDrop(evnt){ // the event doesn't take its default action
+  allowDrop(input, evnt){ // the event doesn't take its default action
   	evnt.preventDefault();
   }
 
-  drop(evnt) { // drops the dwb node above or below the target. evnt is the drop event and its target is what's being dropped onto
+  drop(input, evnt) { // drops the dwb node above or below the target. evnt is the drop event and its target is what's being dropped onto.
   	evnt.preventDefault();
     let target = evnt.target;
-    while (target.draggable == false) {
+    while (target.draggable == false) { // Also for nested tags
       target = target.parentNode;
     }
 
@@ -98,10 +102,11 @@ class dragDrop {
     obj.idr = target.getAttribute("idr");
     obj.action = "drop";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
-  LookForEnter(evnt, input) { // Makes hitting enter do the same thing as blurring (inserting a new node or changing an existing one)
+  lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (inserting a new node or changing an existing one)
     if (evnt.keyCode === 13) {
       input.onblur();
     }
@@ -115,7 +120,7 @@ class dragDrop {
         const input = element.firstElementChild; // Get the input inside it
         const text = input.value;
         newEl.appendChild(document.createTextNode(text)); // Copy text to the new node
-        newEl.setAttribute("ondblclick", `${this.evntPrefix}dragDrop.edit(event)`  ); // make new node editable
+        newEl.setAttribute("ondblclick", "app.widget('edit', this, event)"); // make new node editable
         newEl.setAttribute("idr", `content${this.contentCount++}`);
         input.value = ""; // erase input
       }
@@ -141,9 +146,9 @@ class dragDrop {
     this.activeNode = newEl; // remember item that we are editing
 
     // set all the draggable functions
-    newEl.setAttribute("ondrop"        ,`${this.evntPrefix}dragDrop.drop(event)`     );
-    newEl.setAttribute("ondragover"    ,`${this.evntPrefix}dragDrop.allowDrop(event)`);
-    newEl.setAttribute("ondragstart"   ,`${this.evntPrefix}dragDrop.drag(event)`     );
+    newEl.setAttribute("ondrop"        ,"app.widget('drop', this, event)"     );
+    newEl.setAttribute("ondragover"    ,"app.widget('allowDrop', this, event)");
+    newEl.setAttribute("ondragstart"   ,"app.widget('drag', this, event)"     );
     newEl.draggable  = true;
     newEl.setAttribute("idr", `item${this.itemCount}`);
 
@@ -151,7 +156,7 @@ class dragDrop {
     let text = document.createTextNode("X");
     button.appendChild(text);
     button.setAttribute("idr", `delete${this.itemCount++}`);
-    button.setAttribute("onclick", `${this.evntPrefix}dragDrop.delete(this)`);
+    button.setAttribute("onclick", "app.widget('delete', this)");
     newEl.appendChild(button);
 
     // logging
@@ -160,7 +165,8 @@ class dragDrop {
     obj.action = "keydown";
     obj.key = "Enter";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
 
     return newEl;
     // this.input.focus();
@@ -173,19 +179,20 @@ class dragDrop {
     obj.idr = button.getAttribute("idr");
     obj.action = "click";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
 
     let line = button.parentNode;
     line.parentNode.removeChild(line);
   }
 
-  edit(evnt) { // edit an existing node
+  edit(input, evnt) { // edit an existing node
     this.activeNode = evnt.target;  // remember item that we are editing
     var closeButton;
     var hasClose = false;
 
     // This is a kludge! Fix if possible
-    if (this.activeNode.children.length > 0) { // since only leaves are editable, this should be true ONLY if there's a close button attached
+    if (this.activeNode.children.length > 0) { // since only leaves are editable, this.activeNode has no children other than possibly a close button.
       closeButton = this.activeNode.firstElementChild;
       this.activeNode.removeChild(closeButton); // Temporarily remove the close button so it won't get caught up in textContent.
       closeButton.hidden = true;  // Also, hide it because clicking it while editing doesn't work
@@ -193,7 +200,7 @@ class dragDrop {
     }
 
     // make input element visible
-    var el = document.getElementById("edit");
+    const el = this.domFunctions.getChildByIdr(this.domElement, "edit");
     el.value = evnt.target.textContent;  // init value of input
     el.hidden = false;      // make input visible
 
@@ -215,15 +222,16 @@ class dragDrop {
     obj.idr = event.target.getAttribute("idr");
     obj.action = "dblclick";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
 save(evnt){ // Save changes to a node
-  var el = document.getElementById("edit");  // get input element
+  const el = this.domFunctions.getChildByIdr(this.domElement, "edit");
   el.hidden=true; 		 // hide input element
   let text = document.createTextNode(el.value);
   this.activeNode.insertBefore(text, el); // Add the input text to the selected node
-  document.body.appendChild(el);           // move input field to end of body
+  this.domElement.appendChild(el);           // move input field to end of DOM element representing the table
   if (this.activeNode.children.length > 0) { // since only leaves are editable, this should be true ONLY if there's a close button attached
     let closeButton = this.activeNode.firstElementChild;
     closeButton.hidden = false;
@@ -231,11 +239,13 @@ save(evnt){ // Save changes to a node
 
   // Log
   let obj = {};
-  obj.id = el.id;
+  obj.id = this.domFunctions.widgetGetId(el);
+  obj.idr = el.getAttribute("idr");
   obj.value = el.value;
   obj.action = "blur";
   this.log(JSON.stringify(obj));
-  this.regression.record(obj);
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 
   // this.input.focus(); // return focus to input
 }
@@ -261,13 +271,15 @@ log(text) { // Add a message to the eventLog
 
     // log
     let obj = {};
-    obj.id = button.id;
+    obj.id = this.domFunctions.widgetGetId(button);
+    obj.idr = button.getAttribute("idr");
     obj.action = "click";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
-  addOnEnter(evnt, input) {
+  addOnEnter(input, evnt) {
     if (evnt.key == "Enter") {
       this.insert(input);
     }
@@ -280,9 +292,12 @@ log(text) { // Add a message to the eventLog
     obj.value = input.value;
     obj.action = "change";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
   test() { // This is where I put code I'm testing and want to be able to fire at will. There's a test button on 1-drag.html to fire it.
+    const evnt = new Event("dragstart");
+    this.insertContainer.dispatchEvent(evnt);
   }
 }

@@ -9,13 +9,16 @@ input: node
 
 
 class widgetRelations {
-constructor(containerDOM, nodeID, relationType) {
+constructor(containerDOM, nodeID, relationType, id) {
   // data to be displayed
   this.containerDOM = containerDOM  // place to set innerHTML
   this.nodeID       = nodeID;       // neo4j node id where relationship starts
+  this.id           = id;           // ID of the widget to be created
+
+  this.idrContent   = 0;            // Number of existing relations added to table
 
   // DOM pointers to data that will change, just make place holders
-  this.widgetDOM   = {};
+  // this.widgetDOM   = {};
 
   this.db          = new db() ;
   this.db.setQuery( // set query based on relationType
@@ -34,18 +37,18 @@ constructor(containerDOM, nodeID, relationType) {
 buildRelations() { // queries for relations which end at this node, then sends the results to endComplete()
   this.db.runQuery(this,"rComplete");
 }
-rComplete(data) { // Takes table HTML from this.complete, adds a toggle button and inserts into fromDOM. Then calls buildRelationsStart().
+rComplete(data) {
+  this.containerDOM.setAttribute("id", this.id.toString());
+  this.containerDOM.setAttribute("class", "widget");
   this.containerDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
     <table>${this.complete(data)}</table>`;
-
     setTimeout(this.createDragDrop, 1, this);
 //  this.containerDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
 }
 
 createDragDrop(widgetRel) {
-  app.dragDrop = new dragDropTable("template", "container", "app");    // new global variable, this needs to go // Changed it to belong to this widget
-  app.dragDrop.regression = app.regression;  // needs to be moved to dragDropConstrutor, loging needs to be turned of log element is not there // Shouldn't it just use app's?
-  app.dragDrop.addOnEnter = function(evnt, input) {
+  app.dragDrop = app.dragDropTableNew("template", "container", widgetRel.containerDOM, widgetRel.idrContent);    // new global variable, this needs to go // Changed it to belong to app
+  app.dragDrop.addOnEnter = function(input, evnt) {
     if (evnt.key == "Enter") {
       const newRow = app.dragDrop.insert(input);
       widgetRel.addRelation(newRow);
@@ -73,7 +76,7 @@ addRelation(newRow) {
 
   const query = queryStart + queryEnd;
   alert (query);
-
+  // THIS IS WHERE I LEFT OFF
 }
 // relationEnd(){ // Just updates "relationEnd" element; never seems to be called
 //   document.getElementById("relationEnd").value   = this.dataNode.identity;
@@ -93,12 +96,12 @@ toggle(button){ // Shows or hides relations
 
 
 complete(data) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
-  let html       = "<thead><tr id='template'> <th>#</th> <th>R#</th> <th>N#</th> <th editable>Comment</th> </tr></thead><tbody id='container'>";
+  let html       = "<thead><tr idr='template'> <th>#</th> <th>R#</th> <th>N#</th> <th editable>Comment</th> </tr></thead><tbody idr='container'>";
   let idrRow     = 0;
-  let idrContent = 0;
-  const trDrag   = `<tr ondrop="dragDrop.drop(event)" ondragover="dragDrop.allowDrop(event)" draggable="true" ondragstart="dragDrop.drag(event)">`
+  this.idrContent = 0;
+  const trDrag   = `<tr ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
   while (idrRow<data.length) { // add data
-    let d= data[idrRow].r
+    let d= data[idrRow].r;
 
 // <tr ondrop="dragDrop.drop(event)" ondragover="dragDrop.allowDrop(event)" draggable="true" ondragstart="dragDrop.drag(event)">
 //<td ondblclick="dragDrop.edit(event)" idr="content0"></td>
@@ -107,13 +110,8 @@ complete(data) { // Builds html for a table. Each row is a single relation and s
 // <td><input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input1"></td></tr>
 
     html += trDrag + `<td>${++idrRow}</td> <td>${d.identity}</td> <td>${d.end}</td>
-                      <td ondblclick="dragDrop.edit(event)" idr="content${idrContent++}">${d.properties.comment}</td></tr>`;
+                      <td ondblclick="app.widget('edit', this, event)" idr="content${this.idrContent++}">${d.properties.comment}</td></tr>`;
   }
-
-  // add insert row (no, it can take care of itself if I use dragDropTable)
-  // return html + trDrag + `<td>${++idrRow}</td> <td></td> <td></td>
-  //   <td>
-  //   <input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input1"></td></tr>`;
   return html + "</tbody>";
 }
 

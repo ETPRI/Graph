@@ -1,7 +1,14 @@
 class dragDropTable extends dragDrop {
-  constructor(templateID, containerID, globalVar) {
-    const template = document.getElementById(templateID); // the template should be the tr with the ths in it
-    const container = document.getElementById(containerID);
+  constructor(templateIDR, containerIDR, id, containerDOM, existing) {
+    const template = app.domFunctions.getChildByIdr(containerDOM, templateIDR); // the template should be the tr with the ths in it
+    const container = app.domFunctions.getChildByIdr(containerDOM, containerIDR);
+
+    let table = container;
+    while (table.tagName !== 'TABLE' && table.parentElement) { // Look up for a table until you find one, or you reach the top of the DOM tree
+      table = table.parentElement;
+    }
+    table.setAttribute("class", "widget");
+    table.setAttribute("id", id.toString());
 
     function createInsertElement(templateEl) { // copies a template element, replacing th elements with td elements
       let newEl;
@@ -36,10 +43,10 @@ class dragDropTable extends dragDrop {
     const newCell = document.createElement('TH');
     const showHide = document.createElement('input');
     showHide.setAttribute("type", "button");
-    showHide.setAttribute("id", "showHide");
+    showHide.setAttribute("idr", "showHide");
     newCell.appendChild(showHide);
     template.appendChild(newCell);
 
-    super(containerID, "showHide", globalVar); // After that point the original constructor should do the trick
+    super(containerIDR, "showHide", id, existing); // After that point the original constructor should do the trick
   }
 }

@@ -4,7 +4,6 @@
 
 // app.js holds the globle functions and data for the application
 
-
 class app { ///////////////////////////////////////////////////////////////// start class
 
 constructor() {
@@ -15,11 +14,13 @@ constructor() {
 	this.metaData  			= new metaData();
 	this.db        			= new db();
 	this.domFunctions 	= new domFunctions();
-
+	this.regression 		= new regressionTesting();
+	this.widgets.regressionHeader = this.regression;
 	// used by classDB to access neo4j database,
 	this.authToken = neo4j.v1.auth.basic("neo4j", "paleo3i");
 	this.driver    = neo4j.v1.driver("bolt://localhost", this.authToken, {encrypted:false});
 }
+
 
 relationAddEdit(){
 	this.db.setQuery( `match (s) where id(s)=${document.getElementById('relationStart').value}
@@ -32,39 +33,17 @@ relationCreate(){
 }
 
 
-widget(method, widgetElement) {
+widget(method, widgetElement, ...args) { // SHOULD take all the remaining arguments and store them in an array
 	// app.widget("add",this) on widget to get back to method from html to class
 	const id = this.domFunctions.widgetGetId(widgetElement);
 	if (id) {
-		this.widgets[id][method](widgetElement); //  Call the method, which belongs to the widget containing widgetElement, and pass in widgetElement?
+		this.widgets[id][method](widgetElement, ...args); //  Call the method, which belongs to the widget containing widgetElement, and pass in widgetElement. SHOULD also pass in extra args
 	} else {
      // create instance of widget and remember it
 		 alert("App.widget: Error, method= "+ method);
 	}
 }
 
-
-// menuNodesInit(data){
-// 	let menu = document.getElementById('menuNodes');
-// 	const selectionTemplate = '<option value="#db#">#db#</option>'
-// 	let html = "";  // build dropdown menu selections
-// 	const r = data;  // from the db
-//   for (let i=0; i<r.length; i++) {
-//     html += selectionTemplate.replace(/#db#/g, r[i]["nodeName"]);
-//   }
-// 	menu.innerHTML += html;
-// }
-// returns the first child of the given element that has the given idr. If no child has that idr, returns null.
-// getChildByIdr(element, idr) {
-// 	let children = element.querySelectorAll("*"); // get all the element's children...
-// 	for (let i = 0; i < children.length; i++) { // loop through them...
-// 		//alert("Checking child " + i + " of widget ID " + element.id + "; idr = " + children[i].getAttribute("idr") + "; target: " + idr);
-// 		if (children[i].getAttribute("idr") == idr) {
-// 			return children[i]; // and return the first one whose idr matches...
-// 		}
-// 	}
-// 	return null; // or null if no idr matches
-// }
 
 menuNodesInit(){
 	let menu = document.getElementById('menuNodes');
@@ -79,7 +58,7 @@ menuNodesInit(){
 }
 
 
-menuNodes(control){  // displays widgetTableNodes based on menu selection - nodes, allow search, add/edit
+menuNodes(control) {  // displays widgetTableNodes based on menu selection - nodes, allow search, add/edit
 	const dropDown = document.getElementById('menuNodes');
 	let value = dropDown.options[dropDown.selectedIndex].value;
 	if (value==="") return;  // menu comment
@@ -98,6 +77,16 @@ menuDBstats(dropDown){
 // keys in first column, values in second column
 widgetNodeNew(nodeName, data) {
 		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
+}
+
+widgetRelationNew(containerDOM, nodeID, relationType) {
+	this.widgets[this.idCounter] = new widgetRelations(containerDOM, nodeID, relationType, this.idCounter);
+	return this.widgets[this.idCounter++];
+}
+
+dragDropTableNew(templateID, containerID, containerDOM, existing) {
+	this.widgets[this.idCounter] = new dragDropTable(templateID, containerID, this.idCounter, containerDOM, existing);
+	return this.widgets[this.idCounter++];
 }
 
 
@@ -120,8 +109,8 @@ widgetHeader(tag){
 		`)
 }
 
-/* toggle expand collapse */
-widgetCollapse(domElement) {
+
+widgetCollapse(domElement) {  // toggle expand collapse
 	// called from widgetList
 	let table=domElement.parentElement.lastElementChild;
   // above code is brittle, it assumes position of table relative to button.
@@ -167,66 +156,7 @@ widgetClose(widgetElement) {
 }
 
 
-// widgetGetId(domElement) {
-// 	/* input - domElememt inside a widget
-// 	   return - string id associated with widget
-// 	*/
-// 	// go up the dom until class="widget" is found,
-// 	// grap the id and
-// 	if (domElement.getAttribute("class") == "widget") {
-// 		// found start of widget
-// 		return(domElement.getAttribute("id"));
-// 	} else {
-// 		return(this.widgetGetId(domElement.parentElement));
-// 	}
-
-	/* need some error processing if the original domElememt passed is not inside a widget,
-	or if there is a widget construction error and the class was not placed there */
-//
-
-// AMF: Yes, this is still used, but I moved it while trying to debug part of the code.
-// I should have put it back when I realized its location didn't actually matter. Sorry.
-// The new version is at the top of the class, so it's fine to comment out this duplicate.
-
-/* dwb, I assume this is still used, the merged flagged it, so I'm commenting it out
-getChildByIdr(element, idr) {
-	// returns the first child of the given element that has the given idr. If no child has that idr, returns null.
-	let children = element.querySelectorAll("*"); // get all the element's children...
-	for (let i = 0; i < children.length; i++) { // loop through them...
-		if (children[i].getAttribute("idr") == idr) {
-			return children[i]; // and return the first one whose idr matches...
-		}
-	}
-	return null; // or null if no idr matches
-}
-*/
-
 ////////////////////// get,getLast,replace where all id functions
-idGet(increment) {  // was  get
-	// called once for each id created for widget
-	return (this.idCounter+increment).toString();
-}
-
-// // when is this used?
-// idGetLast() { // was getLast
-// 	return app.widgets[this.idCounter];
-// }
-
-// replace id holder in widget header with unique ids
-// idReplace(html, counter) { // public - was replace
-// 	// called once for each widget created
-// 	//replace #id0# with idCounter, #id1# with idCounter+1 etc, then increment idCounter to next unused id
-// 	let ret = html.replace("#"+counter++ +"#", "" + this.idCounter++);
-//   if (html === ret) {
-// 		// all the replacements have been done - assume no ids are skipped, will break code
-// 		// save widget
-// 		return (ret);
-// 	} else {
-// 		// recursively call until there are no more changes to make
-// 		return( this.idReplace(ret, counter));
-// }}
-
-
 test() {  // used for testing, UI can be hard coded here to reduce amount of clicking to test code
 }
 

@@ -11,14 +11,14 @@ class dbTest {
     let obj = {};
     obj.id = "run";
     obj.action = "click";
-    this.regression.record(obj);
-    this.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
   }
   finishedQuery(data) { // runs when a query finishes. Just records and logs the result.
     let obj = {};
     obj.data = data;
-    this.regression.record(obj);
-    this.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
   }
 
   queryChange(element) {
@@ -26,7 +26,7 @@ class dbTest {
     obj.id = element.id;
     obj.value = element.value;
     obj.action = "change";
-    this.regression.record(obj);
-    this.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
   }
 }

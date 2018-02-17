@@ -1,5 +1,5 @@
 class regressionTesting {
-  constructor(globalVar) {
+  constructor() {
     this.logField = document.getElementById('log'); // DOM element - log field
     this.recording = false; // whether actions are being recorded
     this.recordText = []; // Object storing all recorded actions
@@ -12,9 +12,8 @@ class regressionTesting {
     this.playFiles = 0;
     this.domFunctions = new domFunctions();
     this.regHeader = document.getElementById("regressionHeader");
-    this.globalVar = globalVar; // name of the global variable which contains an instance of regressionTesting
 
-    if (!(this.regHeader == null) && (typeof globalVar !== 'undefined')) {
+    if (!(this.regHeader == null)) {
       this.buildRegressionHeader();
     }
 
@@ -27,11 +26,12 @@ class regressionTesting {
 
   buildRegressionHeader() {
     let regHeader = document.getElementById("regressionHeader");
+    regHeader.setAttribute("class", "widget");
     let record = document.createElement("input");
     record.setAttribute("type", "button");
     record.setAttribute("id", "Record");
     record.setAttribute("value", "Record");
-    record.setAttribute("onclick", `${this.globalVar}.regression.recordToggle(this)`);
+    record.setAttribute("onclick", "app.widget('recordToggle', this)");
     regHeader.appendChild(record);
 
     regHeader.appendChild(document.createTextNode("Select a playback file: "));
@@ -46,21 +46,21 @@ class regressionTesting {
     replay.setAttribute("type", "button");
     replay.setAttribute("id", "replay");
     replay.setAttribute("value", "Play Remaining Steps");
-    replay.setAttribute("onclick", `${this.globalVar}.regression.play(this)`);
+    replay.setAttribute("onclick", "app.widget('play', this)");
     regHeader.appendChild(replay);
 
     let step = document.createElement("input");
     step.setAttribute("type", "button");
     step.setAttribute("id", "stepThrough");
     step.setAttribute("value", "Play Next Step");
-    step.setAttribute("onclick", `${this.globalVar}.regression.play(this)`);
+    step.setAttribute("onclick", "app.widget('play', this)");
     regHeader.appendChild(step);
 
     let delayOn = document.createElement("input");
     delayOn.setAttribute("type", "checkbox");
     delayOn.setAttribute("id", "delayOn");
     delayOn.setAttribute("checked", "true");
-    delayOn.setAttribute("onclick", `${this.globalVar}.regression.delayToggle(this)`);
+    delayOn.setAttribute("onclick", "app.widget('delayToggle', this)");
     regHeader.appendChild(delayOn);
 
     regHeader.appendChild(document.createTextNode("Use delay when replaying"));
@@ -79,7 +79,7 @@ class regressionTesting {
   }
 
   log(message){
-  	if (!this.logField.hidden) {
+  	if (this.logField && !this.logField.hidden) { // If log field exists and is visible
       let line = document.createElement('p');
       let text = document.createTextNode(message);
       line.appendChild(text);

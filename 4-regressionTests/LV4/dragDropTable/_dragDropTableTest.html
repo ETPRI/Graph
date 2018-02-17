@@ -8,6 +8,11 @@
     <script src="../../../regressionTesting.js"></script>
     <script src="../../LV1/domFunctions/domFunctions.js"></script>
     <script src="dragDropTable.js"></script>
+    <script src="../../LV5/app/app.js"></script>
+    <script src="../../../metaData.js"></script>
+    <script src="../../LV2/db/db.js"></script>
+    <script src="../../../Libs/neo4j-web.js"></script>
+
 
     <link href="../../../app.css" type="text/css" rel="stylesheet" />
   </head>
@@ -24,14 +29,14 @@
       <li>move- Click and drag.</li>
     </ol>
 
-    <table>
+    <table id="table">
       <thead>
-        <tr id = "template"><th editable>Column 1</th><th editable>Column 2</th></tr>
+        <tr idr = "template"><th editable>Column 1</th><th editable>Column 2</th></tr>
       </thead>
-      <tbody id = "container">
-        <tr><td>This is a test.</td><td>Can I have data here already?</td></tr>
-        <tr><td>This is a test.</td><td>This is only a test.</td></tr>
-        <tr><td>This is a test.</td><td>You may turn your papers over and start now.</td></tr>
+      <tbody idr = "container">
+        <tr><td idr="content0">This is a test.</td><td idr="content1">Can I have data here already?</td></tr>
+        <tr><td idr="content2">This is a test.</td><td idr="content3">This is only a test.</td></tr>
+        <tr><td idr="content4">This is a test.</td><td idr="content5">You may turn your papers over and start now.</td></tr>
       </tbody>
     </table>
 
@@ -39,7 +44,8 @@
     </ul>
 
     <script type="text/javascript">
-      dragDrop = new dragDropTable("template", "container");
+      app = new app();
+      dragDrop = app.dragDropTableNew("template", "container", document.getElementById("table"), 6);
     </script>
   </body>
 </html>

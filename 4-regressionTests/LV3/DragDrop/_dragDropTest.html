@@ -6,7 +6,12 @@
 
     <script src="dragDrop.js"></script>
     <script src="../../../regressionTesting.js"></script>
-    <script src="../../../domFunctions.js"></script>
+    <script src="../../LV1/domFunctions/domFunctions.js"></script>
+    <script src="../../LV5/app/app.js"></script>
+    <script src="../../../metaData.js"></script>
+    <script src="../../LV2/db/db.js"></script>
+    <script src="../../../Libs/neo4j-web.js"></script>
+
 
     <link href="../../../app.css" type="text/css" rel="stylesheet" />
   </head>
@@ -14,7 +19,8 @@
   <body>
 		<h2>Draggable</h2>
 
-    <input type="button" id="showHide">
+    <input type="Button" value="test" onclick="dragDrop.test()">
+
 
     <div id="regressionHeader"></div>
     <ol>
@@ -24,15 +30,21 @@
       <li>move- Click and drag.</li>
     </ol>
 
-    <ol id = "container">
-      <li editable></li>
-    </ol>
+    <div id="0" class="widget">
+      <input type="button" idr="showHide">
 
-    <ul id=eventLog>
-    </ul>
+      <ol idr = "container">
+        <li editable></li>
+      </ol>
+
+      <ul id=eventLog>
+      </ul>
+    </div>
 
     <script type="text/javascript">
-      dragDrop = new dragDrop ("container", "showHide");
+      app = new app();
+      dragDrop = new dragDrop ("container", "showHide", "0");
+      app.widgets[0] = dragDrop;
     </script>
   </body>
 </html>

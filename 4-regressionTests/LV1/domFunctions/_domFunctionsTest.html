@@ -6,6 +6,12 @@
     <script src="../../../regressionTesting.js"></script>
     <script src="domFunctions.js"></script>
     <script src="domFunctionsTest.js"></script>
+    <script src="../../LV5/app/app.js"></script>
+    <script src="../../../metaData.js"></script>
+    <script src="../../LV2/db/db.js"></script>
+    <script src="../../../Libs/neo4j-web.js"></script>
+
+
   </head>
 
   <body>
@@ -36,6 +42,6 @@
 </html>
 
 <script type="text/javascript">
+  app = new app();
   domFunctionsTest = new domFunctionsTest();
-  domFunctionsTest.regressionTesting = new regressionTesting("domFunctionsTest");
 </script>
