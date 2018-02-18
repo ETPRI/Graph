@@ -225,7 +225,7 @@ class widgetTableNodes {
       // Create a cell for ID and append it
       cell = document.createElement('td');
       row.appendChild(cell);
-      cell.outerHTML = `<td idr = "edit${i}" onClick="app.widget('edit',this)">${r[i]["n"].identity}</td>`;
+      cell.outerHTML = `<td idr = "edit${i}" onClick="app.widget('edit',this)" draggable="true" ondragstart="app.widget('drag', this, event)">${r[i]["n"].identity}</td>`;
 
       // For each display field, create a cell and append it
       for (let j=0; j<this.fieldsDisplayed.length; j++) {
@@ -264,6 +264,15 @@ class widgetTableNodes {
     app.regression.record(obj);
   }
 
+  drag(input, evnt){ // sets value of app.dragID
+    evnt.dataTransfer.setData("text/plain", evnt.target.textContent);
+    let obj = {};
+    obj.id = app.domFunctions.widgetGetId(evnt.target);
+    obj.idr = event.target.getAttribute("idr");
+    obj.action = "dragstart";
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+  }
 
 getatt(fieldName) {
   let ret = this.fields[fieldName].att

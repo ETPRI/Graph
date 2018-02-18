@@ -1,5 +1,5 @@
 class dragDropTable extends dragDrop {
-  constructor(templateIDR, containerIDR, id, containerDOM, existing) {
+  constructor(templateIDR, containerIDR, id, containerDOM, row, content) {
     const template = app.domFunctions.getChildByIdr(containerDOM, templateIDR); // the template should be the tr with the ths in it
     const container = app.domFunctions.getChildByIdr(containerDOM, containerIDR);
 
@@ -47,6 +47,31 @@ class dragDropTable extends dragDrop {
     newCell.appendChild(showHide);
     template.appendChild(newCell);
 
-    super(containerIDR, "showHide", id, existing); // After that point the original constructor should do the trick
+    super(containerIDR, "showHide", id, row, content); // After that point the original constructor should do the trick
+  }
+
+  createDelete(line) {
+    const button = document.createElement("button");
+    const text = document.createTextNode("Delete");
+    button.appendChild(text);
+    button.setAttribute("idr", `delete${this.itemCount++}`);
+    button.setAttribute("onclick", "app.widget('delete', this)");
+    const cell = document.createElement("td");
+    cell.appendChild(button);
+    line.appendChild(cell);
+  }
+
+  delete(button) {
+    // logging
+    let obj = {};
+    obj.id = this.domFunctions.widgetGetId(button);
+    obj.idr = button.getAttribute("idr");
+    obj.action = "click";
+    this.log(JSON.stringify(obj));
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+
+    let line = button.parentNode.parentNode;
+    line.parentNode.removeChild(line);
   }
 }

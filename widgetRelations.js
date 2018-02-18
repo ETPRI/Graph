@@ -14,8 +14,10 @@ constructor(containerDOM, nodeID, relationType, id) {
   this.containerDOM = containerDOM  // place to set innerHTML
   this.nodeID       = nodeID;       // neo4j node id where relationship starts
   this.id           = id;           // ID of the widget to be created
+  this.relationType = relationType;
 
-  this.idrContent   = 0;            // Number of existing relations added to table
+  this.idrContent   = 0;            // Number of existing editable cells added to table
+  this.idrRow       = 0;            // Number of existing rows added to the table
 
   // DOM pointers to data that will change, just make place holders
   // this.widgetDOM   = {};
@@ -37,50 +39,123 @@ constructor(containerDOM, nodeID, relationType, id) {
 buildRelations() { // queries for relations which end at this node, then sends the results to endComplete()
   this.db.runQuery(this,"rComplete");
 }
+
 rComplete(data) {
   this.containerDOM.setAttribute("id", this.id.toString());
   this.containerDOM.setAttribute("class", "widget");
-  this.containerDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
+  this.containerDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)"><input idr = "SaveSync" type="Button" value="Save and Sync" onclick="app.widget('saveSync', this)">
     <table>${this.complete(data)}</table>`;
     setTimeout(this.createDragDrop, 1, this);
 //  this.containerDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
 }
 
 createDragDrop(widgetRel) {
-  app.dragDrop = app.dragDropTableNew("template", "container", widgetRel.containerDOM, widgetRel.idrContent);    // new global variable, this needs to go // Changed it to belong to app
-  app.dragDrop.addOnEnter = function(input, evnt) {
-    if (evnt.key == "Enter") {
-      const newRow = app.dragDrop.insert(input);
-      widgetRel.addRelation(newRow);
+  const dragDrop = app.dragDropTableNew("template", "container", widgetRel.containerDOM, widgetRel.idrRow, widgetRel.idrContent);
+}
+
+saveSync(button) {
+  const widgetID = app.domFunctions.widgetGetId(button);
+  const widget = document.getElementById(widgetID);
+  const container = app.domFunctions.getChildByIdr(widget, "container");
+  const rows = Array.from(container.children);
+  this.processNext(null, rows);
+}
+
+processNext(data, rows) {
+  if (rows.length >0) {
+    const row = rows.pop();
+    if (row.classList.contains("deletedData")) {
+      this.deleteNode(row, rows);
     }
+    else if (row.classList.contains("newData")) {
+      this.addNode(row, rows);
+    }
+    else if (row.classList.contains("changedData")) {
+      this.changeNode(row, rows);
+    }
+    else { // If the row doesn't need any processing, just move on
+      this.processNext(null, rows);
+    }
+  }
+  else { // when all rows are processed
+    // Once the DB has updated, refresh the widget
+    this.db.setQuery( // set query based on relationType
+      (r => {switch (r) {
+      case "start": return `match (n)-[r]->()  where id(n)=${this.nodeID} return r`; break;
+      case "end":   return `match  ()-[r]->(n) where id(n)=${this.nodeID} return r`; break;
+      case "peer":  return "";  break;// not finished
+      default: alert("error"); // better error handling
+    }}) (this.relationType)
+    );
+
+    this.buildRelations();
   }
 }
 
-addRelation(newRow) {
-  let queryStart = `match (n) where id(n)=${this.nodeID} create (n)-[r:Relation`;
-  const queryEnd = `]->(n) return r`;
-  let attributes = "";
-  const headerRow = document.getElementById("template");
+deleteNode(row, rows) {
+  const cells = row.children;
+  const idCell = cells[1];
+  const id = idCell.textContent;
+  this.db.setQuery(`match ()-[r]-() where ID(r) = ${id} delete r`);
+  this.db.runQuery(this, "processNext", rows);
+}
+
+addNode(row, rows) {
+  const widgetID = app.domFunctions.widgetGetId(row);
+  const widget = document.getElementById(widgetID);
+  const headerRow = app.domFunctions.getChildByIdr(widget, "template");
   const headers = headerRow.children;
-  const data = newRow.children;
-  for (let i = 0; i < headers.length-1; i++) {
-    if (data[i].textContent != "") {
-      attributes += `${headers[i].textContent.toLowerCase()}:${data[i].textContent}, `
+
+  const cells = row.children;
+  const relIDcell = cells[1];
+  const relID = relIDcell.textContent;
+  const nodeIDcell = cells[2];
+  let otherNodeID;
+  if (nodeIDcell.textContent != "") {
+    otherNodeID = nodeIDcell.textContent;
+  }
+  else {
+    otherNodeID = this.nodeID;
+  }
+
+  // The exact query will depend on whether this widget is for incoming, outgoing or directionless relations. Incoming and outgoing are easy, and I can write them now.
+  // Cypher doesn't actually use directionless relations, so I need to ask Uncle Dvaid how he plans to model them before writing code to deal with them.
+  const queryStart =     (r => {switch (r) {
+      case "start": return `match (a), (b) where ID(a) = ${this.nodeID} and id(b) = ${otherNodeID} create (a)-[r:Relation`; break;
+      case "end":   return `match (a), (b) where ID(a) = ${otherNodeID} and id(b) = ${this.nodeID} create (a)-[r:Relation`; break;
+      case "peer":  return "";  break;// not finished
+      default: alert("error"); // better error handling
+    }}) (this.relationType);
+
+  const queryEnd = `]->(b) return r`;
+  let attributes = "";
+
+  for (let i = 3; i < headers.length-1; i++) {
+    if (cells[i].textContent != "") {
+      attributes += `${headers[i].textContent.toLowerCase()}:'${cells[i].textContent}', `
     }
   }
 
   if (attributes.length > 2) {
     attributes = attributes.substr(0, attributes.length-2); // remove the final comma and space
-    queryStart += `{${attributes}}`; // and include the attributes in the query
   }
 
-  const query = queryStart + queryEnd;
-  alert (query);
-  // THIS IS WHERE I LEFT OFF
+  const query = queryStart + ` {${attributes}}` + queryEnd;
+
+  this.db.setQuery(query);
+  this.db.runQuery(this, "processNext", rows);
 }
-// relationEnd(){ // Just updates "relationEnd" element; never seems to be called
-//   document.getElementById("relationEnd").value   = this.dataNode.identity;
-// }
+
+changeNode (row, rows) {
+  // Apparently can't change the start or end node of a relationship. May have to delete and remake instead.
+  // May as well do that every time, at least for now - it's easier than checking whether the nodeID has changed.
+  // I'll change the row from changed to new, put it BACK in the array, and delete the relationship from the DB.
+  // Then when it gets processed by processNext the second time, the relationship will get added.
+  row.classList.remove("changedData");
+  row.classList.add("newData");
+  rows.push(row);
+  this.deleteNode(row, rows);
+}
 
 //////////////////////////////////////////////////// below not reviewed
 
@@ -96,21 +171,21 @@ toggle(button){ // Shows or hides relations
 
 
 complete(data) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
-  let html       = "<thead><tr idr='template'> <th>#</th> <th>R#</th> <th>N#</th> <th editable>Comment</th> </tr></thead><tbody idr='container'>";
-  let idrRow     = 0;
+  let html       = `<thead><tr idr='template'> <th>#</th> <th>R#</th> <th ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">N#</th> <th editable>Comment</th> </tr></thead><tbody idr='container'>`;
+  this.idrRow     = 0;
   this.idrContent = 0;
-  const trDrag   = `<tr ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
-  while (idrRow<data.length) { // add data
-    let d= data[idrRow].r;
+  while (this.idrRow<data.length) { // add data
+    let d= data[this.idrRow].r;
 
 // <tr ondrop="dragDrop.drop(event)" ondragover="dragDrop.allowDrop(event)" draggable="true" ondragstart="dragDrop.drag(event)">
 //<td ondblclick="dragDrop.edit(event)" idr="content0"></td>
 
 // <td><input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input0"></td>
 // <td><input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input1"></td></tr>
+    const trDrag   = `<tr idr="item${this.idrRow}" ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
 
-    html += trDrag + `<td>${++idrRow}</td> <td>${d.identity}</td> <td>${d.end}</td>
-                      <td ondblclick="app.widget('edit', this, event)" idr="content${this.idrContent++}">${d.properties.comment}</td></tr>`;
+    html += trDrag + `<td>${this.idrRow + 1}</td> <td>${d.identity}</td> <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${d.end}</td>
+                      <td ondblclick="app.widget('edit', this, event)" idr="content${this.idrContent++}">${d.properties.comment}</td><td><button idr="delete${this.idrRow++}" onclick="app.widget('markForDeletion', this)">Delete</button></td></tr>`;
   }
   return html + "</tbody>";
 }

@@ -1,7 +1,7 @@
 class dragDrop {
-  constructor(containerIDR, buttonIDR, id, existing) {
+  constructor(containerIDR, buttonIDR, id, row, content) {
 
-    this.activeNode = {}; // node which is being dragged
+    this.activeNode = null; // node which is being dragged
     this.domFunctions 	= new domFunctions();
     this.id = id;
     this.domElement = document.getElementById(id);
@@ -30,15 +30,24 @@ class dragDrop {
     this.insertContainer.setAttribute("ondragstart", "app.widget('drag', this, event)");
     this.insertContainer.setAttribute("idr", "insertContainer");
 
-    this.inputCount = 0;
+    if (row) {
+      this.itemCount = row; // Number of finished rows which have been added
+    }
+    else {
+      this.itemCount = 0;
+    }
+
     this.createInputs(this.insertContainer);
 
-    if (existing) { // existing is an optional value recording the number of rows that are already in the table.
-      this.contentCount = existing;
+    if (content) { // existing is an optional value recording the number of rows that are already in the table.
+      this.contentCount = content;
     }
     else {
       this.contentCount = 0;
     }
+
+    this.inputCount = 0; // number of input fields in the input element
+
 
     // I liked this, but I always had trouble getting the focus to go where I wanted it,
     // and when it also started to be difficult to FIND the first input, I decided to comment it out for now.
@@ -48,9 +57,6 @@ class dragDrop {
     // while(this.input.hasChildNodes()) {
     //   this.input = this.input.firstElementChild;
     // }
-
-
-    this.itemCount = 0; // number of finished items that have been added; also used for top-level idrs
   }
 
   createInputs(element) { // To support nested tags
@@ -90,13 +96,16 @@ class dragDrop {
     while (target.draggable == false) { // Also for nested tags
       target = target.parentNode;
     }
+    if (this.activeNode) { // If activeNode exists
+    	if (this.activeNode.offsetTop < target.offsetTop) {  // drag down
+    		target.parentNode.insertBefore(this.activeNode, target.nextSibling); // Insert after target
+    	}
+      else { // drag up
+    		target.parentNode.insertBefore(this.activeNode, target); // Insert before target
+    	}
+    }
 
-  	if (this.activeNode.offsetTop < target.offsetTop) {  // drag down
-  		target.parentNode.insertBefore(this.activeNode, target.nextSibling); // Insert after target
-  	}
-    else { // drag up
-  		target.parentNode.insertBefore(this.activeNode, target); // Insert before target
-  	}
+    this.activeNode = null;
     const obj = {};
     obj.id = this.domFunctions.widgetGetId(evnt.target);
     obj.idr = target.getAttribute("idr");
@@ -104,6 +113,16 @@ class dragDrop {
     this.log(JSON.stringify(obj));
     app.regression.log(JSON.stringify(obj));
     app.regression.record(obj);
+  }
+
+  dropData(input, evnt) { // If data is dragged to a cell with ondrop = dropData...
+    const row = input.parentElement;
+    const idr = row.getAttribute("idr");
+    if (idr != "template" && idr != "insertContainer") { // verify that the cell is not in the template or insert rows...
+      const data = evnt.dataTransfer.getData("text/plain"); // then put the data in the cell.
+      input.textContent = data;
+      row.classList.add("changedData");
+    }
   }
 
   lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (inserting a new node or changing an existing one)
@@ -143,7 +162,7 @@ class dragDrop {
 
     // Insert the new element before the input
     this.container.insertBefore(newEl, this.insertContainer);
-    this.activeNode = newEl; // remember item that we are editing
+    // this.activeNode = newEl; // remember item that we are editing
 
     // set all the draggable functions
     newEl.setAttribute("ondrop"        ,"app.widget('drop', this, event)"     );
@@ -151,13 +170,9 @@ class dragDrop {
     newEl.setAttribute("ondragstart"   ,"app.widget('drag', this, event)"     );
     newEl.draggable  = true;
     newEl.setAttribute("idr", `item${this.itemCount}`);
+    newEl.setAttribute("class", "newData");
 
-    let button = document.createElement("button");
-    let text = document.createTextNode("X");
-    button.appendChild(text);
-    button.setAttribute("idr", `delete${this.itemCount++}`);
-    button.setAttribute("onclick", "app.widget('delete', this)");
-    newEl.appendChild(button);
+    this.createDelete(newEl);
 
     // logging
     obj.id = this.domFunctions.widgetGetId(input);
@@ -172,6 +187,15 @@ class dragDrop {
     // this.input.focus();
   }
 
+  createDelete(line) {
+    const button = document.createElement("button");
+    const text = document.createTextNode("Delete");
+    button.appendChild(text);
+    button.setAttribute("idr", `delete${this.itemCount++}`);
+    button.setAttribute("onclick", "app.widget('delete', this)");
+    line.appendChild(button);
+  }
+
   delete(button) {
     // logging
     let obj = {};
@@ -184,6 +208,27 @@ class dragDrop {
 
     let line = button.parentNode;
     line.parentNode.removeChild(line);
+  }
+
+  markForDeletion(button) {
+    // logging
+    let obj = {};
+    obj.id = this.domFunctions.widgetGetId(button);
+    obj.idr = button.getAttribute("idr");
+    obj.action = "click";
+    this.log(JSON.stringify(obj));
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+
+    let line = button.parentNode.parentNode;
+    if (line.classList.contains("deletedData")) {
+      line.classList.remove("deletedData");
+      button.textContent = "Delete";
+    }
+    else {
+      line.classList.add("deletedData");
+      button.textContent = "Restore";
+    }
   }
 
   edit(input, evnt) { // edit an existing node
@@ -236,6 +281,11 @@ save(evnt){ // Save changes to a node
     let closeButton = this.activeNode.firstElementChild;
     closeButton.hidden = false;
   }
+  while (this.activeNode.draggable == false) { // Go up to the top-level element - the draggable one
+    this.activeNode = this.activeNode.parentNode;
+  }
+  this.activeNode.classList.add("changedData");
+  this.activeNode = null;
 
   // Log
   let obj = {};

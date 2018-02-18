@@ -18,6 +18,7 @@ constructor () {
 
 	this.session      = {};
 	this.data         = [];
+	this.args = [];
 }
 
 
@@ -27,12 +28,24 @@ setQuery(query) {
 
 
 ////////////////////////////////////////////////////////////////////
-runQuery (object, objectMethod) { // call widget, with widgetMethod when query is done
+runQuery (object, objectMethod, ...args) { // call widget, with widgetMethod when query is done
 	// bring data from db into memory structure
-	this.object       = object;
-	this.objectMethod = objectMethod;
+	if (object) {
+		this.object       = object;
+	}
+	else {
+		this.object				=	null;
+	}
+
+	if (objectMethod) {
+		this.objectMethod = objectMethod;
+	}
+	else {
+		this.objectMethod = null;
+	}
 	this.session      = app.driver.session();
 	this.data = [];
+	this.args = args;
 
 	// build data structure
 	document.getElementById('debug').value = this.query;
@@ -60,7 +73,9 @@ onCompleted(metadata){
 //  debugger;
 	this.session.close();
 	// let widget have the data
-	this.object[this.objectMethod](this.data);
+	if (this.object) { // Should just be ignored if no object and method are passed in
+		this.object[this.objectMethod](this.data, ...this.args);
+	}
 }
 
 

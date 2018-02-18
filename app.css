@@ -21,6 +21,10 @@ td {
 }
 
 .changedData {background-color: yellow}
+
+.newData {background-color: limegreen}
+
+.deletedData {background-color: palevioletred}
 /* // not being used
 [draggable=true] {
     cursor: move;

@@ -84,8 +84,8 @@ widgetRelationNew(containerDOM, nodeID, relationType) {
 	return this.widgets[this.idCounter++];
 }
 
-dragDropTableNew(templateID, containerID, containerDOM, existing) {
-	this.widgets[this.idCounter] = new dragDropTable(templateID, containerID, this.idCounter, containerDOM, existing);
+dragDropTableNew(templateID, containerID, containerDOM, row, content) {
+	this.widgets[this.idCounter] = new dragDropTable(templateID, containerID, this.idCounter, containerDOM, row, content);
 	return this.widgets[this.idCounter++];
 }
 
