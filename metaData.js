@@ -46,7 +46,7 @@ initNodeData() { // move to DB in the future
 ///////////////////////////////////// ETPRI
 this.node.people = {
    nodeLabel: "people"
-  ,orderBy: "n.nameLast"   // need to rewight this with ["nameLast",""]
+  ,orderBy: "n.nameLast, n.nameFirst, n.name, n.email"
   ,fieldsDisplayed: ["name","nameLast", "nameFirst", "email"]
   ,fields: {
    "name":       {label: "Name" , att: `onclick="app.widget('relationAdd',this)"` }
@@ -61,7 +61,7 @@ this.node.people = {
 
 this.node.organization = {
    nodeLabel: "organization"
-  ,orderBy: "n.name"
+  ,orderBy: "n.name, n.web"
   ,fieldsDisplayed: ["name", "web"]
   ,fields: {"name":       {label: "Name" }
     ,"web":      {label: "Web"}
@@ -72,7 +72,7 @@ this.node.organization = {
 
 this.node.topic = {
    nodeLabel: "topic"
-  ,orderBy: "n.name"
+  ,orderBy: "n.name, n.comment"
   ,fieldsDisplayed: ["name", "comment"]
   ,fields: {"name":       {label: "Name" }
     ,"comment":    {label: "Comment"}

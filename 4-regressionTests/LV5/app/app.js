@@ -73,22 +73,6 @@ menuDBstats(dropDown){
 	this.widgets[this.idCounter] = new widgetTableQuery(value, dropDown.id);
 }
 
-// brings up add/edit widget form table for one node
-// keys in first column, values in second column
-widgetNodeNew(nodeName, data) {
-		this.widgets[this.idCounter] = new widgetNode(nodeName, data);
-}
-
-widgetRelationNew(containerDOM, nodeID, relationType) {
-	this.widgets[this.idCounter] = new widgetRelations(containerDOM, nodeID, relationType, this.idCounter);
-	return this.widgets[this.idCounter++];
-}
-
-dragDropTableNew(templateID, containerID, containerDOM, row, content) {
-	this.widgets[this.idCounter] = new dragDropTable(templateID, containerID, this.idCounter, containerDOM, row, content);
-	return this.widgets[this.idCounter++];
-}
-
 
 // /* refresh widget with new database call */
 widgetSearch(domElement) {

@@ -28,8 +28,8 @@ constructor(label, data) {
   this.widgetDOM   = {};
   this.addSaveDOM  = {};
   this.tableDOM    = {};
-  this.fromDOM     = {};
-  this.toDOM       = {};
+  this.fromDOM     = {}; // Is this ever used?
+  this.toDOM       = {}; // Is this ever used?
   this.endDOM      = {}; // sub widget
   this.startDOM    = {}; // sub widget
 
@@ -39,14 +39,18 @@ constructor(label, data) {
 
   this.buildWidget();
   this.buildDataNode();
-  // This doesn't work if you're making a new node! this.dataNode doesn't exist in that case. Putting it in an if for now.
-  // I think eventually, I want the relations to appear after the node is added - can't create relations until the node exists.
+
+  // Create relation tables for existing nodes, but not new ones - the code wouldn't run without this.dataNode,
+  // and you shouldn't be able to add relations to a node that doesn't exist anyway.
   if (this.dataNode) {
-    this.relationStart = app.widgetRelationNew(this.startDOM, this.dataNode.identity, "start");
-    // this.relationStart = new widgetRelations(this.startDOM, this.dataNode.identity, "start");  // not sure this needs to be saved;
+  	this.buildRelations();
   }
 }
 
+buildRelations() {
+  app.widgets[app.idCounter] = new widgetRelations(this.startDOM, this.dataNode.identity, "start", app.idCounter++);
+  app.widgets[app.idCounter] = new widgetRelations(this.endDOM, this.dataNode.identity, "end", app.idCounter++);
+}
 
 buildWidget() { // public - build table header
   let id="";  // assume add mode
@@ -177,8 +181,9 @@ add(widgetElement) { // Builds a query to add a new node, then runs it and passe
 
 
 addComplete(data) { // Refreshes the node table and logs that addSave was clicked
-  this.dataNode = data[0].n // takes single nodes
+  this.dataNode = data[0].n; // takes single nodes
   this.buildDataNode();
+  this.buildRelations();
   // log
   let obj = {};
   obj.id = this.idWidget;

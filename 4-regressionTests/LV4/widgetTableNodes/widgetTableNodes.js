@@ -293,7 +293,7 @@ edit(element){
     let data = this.queryData;
     let n = data.filter(o => o.n.identity.toString() === id);
 
-    app.widgetNodeNew(this.queryObject.nodeLabel,n[0].n);
+    app.widgets[app.idCounter] = new widgetNode(this.queryObject.nodeLabel, n[0].n)
 
     // log
     let obj = {};
@@ -307,7 +307,7 @@ edit(element){
 
   // open add widget
   addNode(element){
-    app.widgetNodeNew(this.queryObject.nodeLabel);
+    app.widgets[app.idCounter] = new widgetNode(this.queryObject.nodeLabel)
 
     // log
     let obj = {};

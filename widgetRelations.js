@@ -49,8 +49,9 @@ rComplete(data) {
 //  this.containerDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
 }
 
+
 createDragDrop(widgetRel) {
-  const dragDrop = app.dragDropTableNew("template", "container", widgetRel.containerDOM, widgetRel.idrRow, widgetRel.idrContent);
+	app.widgets[app.idCounter] = new dragDropTable("template", "container", app.idCounter++, widgetRel.containerDOM, widgetRel.idrRow, widgetRel.idrContent);
 }
 
 saveSync(button) {
@@ -121,8 +122,8 @@ addNode(row, rows) {
   // The exact query will depend on whether this widget is for incoming, outgoing or directionless relations. Incoming and outgoing are easy, and I can write them now.
   // Cypher doesn't actually use directionless relations, so I need to ask Uncle Dvaid how he plans to model them before writing code to deal with them.
   const queryStart =     (r => {switch (r) {
-      case "start": return `match (a), (b) where ID(a) = ${this.nodeID} and id(b) = ${otherNodeID} create (a)-[r:Relation`; break;
-      case "end":   return `match (a), (b) where ID(a) = ${otherNodeID} and id(b) = ${this.nodeID} create (a)-[r:Relation`; break;
+      case "start": return `match (a), (b) where ID(a) = ${this.nodeID} and id(b) = ${otherNodeID} create (a)-[r:Link`; break;
+      case "end":   return `match (a), (b) where ID(a) = ${otherNodeID} and id(b) = ${this.nodeID} create (a)-[r:Link`; break;
       case "peer":  return "";  break;// not finished
       default: alert("error"); // better error handling
     }}) (this.relationType);
@@ -162,10 +163,18 @@ changeNode (row, rows) {
 toggle(button){ // Shows or hides relations
   if (button.value ==="+") {
     button.value = ".";
-    button.nextElementSibling.hidden = false;
+    let sibling = button.nextElementSibling;
+    while (sibling) {
+      sibling.hidden = false;
+      sibling = sibling.nextElementSibling;
+    }
   } else {
     button.value = "+";
-    button.nextElementSibling.hidden = true;
+    let sibling = button.nextElementSibling;
+    while (sibling) {
+      sibling.hidden = true;
+      sibling = sibling.nextElementSibling;
+    }
   }
 }
 
@@ -176,20 +185,31 @@ complete(data) { // Builds html for a table. Each row is a single relation and s
   this.idrContent = 0;
   while (this.idrRow<data.length) { // add data
     let d= data[this.idrRow].r;
+    let nodeID;
 
-// <tr ondrop="dragDrop.drop(event)" ondragover="dragDrop.allowDrop(event)" draggable="true" ondragstart="dragDrop.drag(event)">
-//<td ondblclick="dragDrop.edit(event)" idr="content0"></td>
+    switch (this.relationType) {
+      case "start":
+        nodeID = d.end;
+        break;
+      case "end":
+        nodeID = d.start;
+        break;
+      case "peer":
+        break; // not finished
+      default:
+        alert ("Error");
+    }
 
-// <td><input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input0"></td>
-// <td><input onchange="dragDrop.recordText(this)" onkeydown="dragDrop.addOnEnter(event, this)" idr="input1"></td></tr>
     const trDrag   = `<tr idr="item${this.idrRow}" ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
 
-    html += trDrag + `<td>${this.idrRow + 1}</td> <td>${d.identity}</td> <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${d.end}</td>
+    html += trDrag + `<td>${this.idrRow + 1}</td> <td>${d.identity}</td> <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${nodeID}</td>
                       <td ondblclick="app.widget('edit', this, event)" idr="content${this.idrContent++}">${d.properties.comment}</td><td><button idr="delete${this.idrRow++}" onclick="app.widget('markForDeletion', this)">Delete</button></td></tr>`;
   }
   return html + "</tbody>";
 }
 
+
+//NOTE: I'm pretty sure everything below this line is never used in this class. It seems to be copied from widgetNode.
 
 saveAdd(widgetElement) { // Saves changes or adds a new node
   // director function
