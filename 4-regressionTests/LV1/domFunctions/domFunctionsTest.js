@@ -1,6 +1,5 @@
 class domFunctionsTest {
   constructor() {
-    this.domFunctions = new domFunctions();
     this.idrText = document.getElementById("IDRtext");
     this.top = document.getElementById("topWidget");
     this.bottom = document.getElementById("bottomWidget");
@@ -17,13 +16,13 @@ class domFunctionsTest {
     let fields = [];
     let idr = this.idrText.value;
 
-    let textBox = this.domFunctions.getChildByIdr(this.top, idr);
+    let textBox = app.domFunctions.getChildByIdr(this.top, idr);
     if (textBox) {
       fields.push(textBox.id);
     }
     else fields.push(null);
 
-    textBox = this.domFunctions.getChildByIdr(this.bottom, idr);
+    textBox = app.domFunctions.getChildByIdr(this.bottom, idr);
     if (textBox) {
       fields.push(textBox.id);
     }
@@ -37,7 +36,7 @@ class domFunctionsTest {
     app.regression.record(obj);
   }
   getId(element) { // runs when the user searches for a button's widgetID by clicking it. Writes the IDR in the text box and logs it as "data".
-    let id = this.domFunctions.widgetGetId(element);
+    let id = app.domFunctions.widgetGetId(element);
 
     let obj = {};
     obj.id = element.id;
