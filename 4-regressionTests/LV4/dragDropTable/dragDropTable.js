@@ -1,5 +1,5 @@
 class dragDropTable extends dragDrop {
-  constructor(templateIDR, containerIDR, id, containerDOM, row, content) {
+  constructor(templateIDR, containerIDR, containerDOM, row, content) {
     const template = app.domFunctions.getChildByIdr(containerDOM, templateIDR); // the template should be the tr with the ths in it
     const container = app.domFunctions.getChildByIdr(containerDOM, containerIDR);
 
@@ -8,7 +8,7 @@ class dragDropTable extends dragDrop {
       table = table.parentElement;
     }
     table.setAttribute("class", "widget");
-    table.setAttribute("id", id.toString());
+    table.setAttribute("id", app.idCounter);
 
     function createInsertElement(templateEl) { // copies a template element, replacing th elements with td elements
       let newEl;
@@ -47,7 +47,7 @@ class dragDropTable extends dragDrop {
     newCell.appendChild(showHide);
     template.appendChild(newCell);
 
-    super(containerIDR, "showHide", id, row, content); // After that point the original constructor should do the trick
+    super(containerIDR, "showHide", row, content); // After that point the original constructor should do the trick
   }
 
   createDelete(line) {

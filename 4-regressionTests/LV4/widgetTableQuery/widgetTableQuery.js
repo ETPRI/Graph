@@ -167,7 +167,7 @@ edit(element){
   let id = element.innerHTML;
   let n = this.queryData.filter(o => o.id.toString() === id);
 
-  app.widgets[app.idCounter] = new widgetNode(element.nextElementSibling.innerText, n[0].n)
+  new widgetNode(element.nextElementSibling.innerText, n[0].n)
 
 
   let obj={};

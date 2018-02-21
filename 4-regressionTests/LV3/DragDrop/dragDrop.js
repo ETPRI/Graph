@@ -1,10 +1,12 @@
 class dragDrop {
-  constructor(containerIDR, buttonIDR, id, row, content) {
+  constructor(containerIDR, buttonIDR, row, content) {
 
     this.activeNode = null; // node which is being dragged
     this.domFunctions 	= new domFunctions();
-    this.id = id;
-    this.domElement = document.getElementById(id);
+    this.id = app.idCounter;
+    this.domElement = document.getElementById(this.id);
+
+    app.widgets[app.idCounter++] = this;
 
     // Set up Show/Hide button
     this.showHide = this.domFunctions.getChildByIdr(this.domElement, buttonIDR);
@@ -12,13 +14,13 @@ class dragDrop {
     this.showHide.setAttribute("onclick", "app.widget('inputToggle', this)");
 
     // Set up edit input
-    const edit = document.createElement("input");
-    edit.setAttribute("type", "text");
-    edit.setAttribute("onblur", "app.widget('save', this)");
-    edit.setAttribute("onkeydown", "app.widget('lookForEnter', this, event)");
-    edit.setAttribute("hidden", "true");
-    edit.setAttribute("idr", "edit");
-    this.domElement.appendChild(edit);           // move input field to end of DOM element representing the table
+    this.editDOM = document.createElement("input");
+    this.editDOM.setAttribute("type", "text");
+    this.editDOM.setAttribute("onblur", "app.widget('save', this)");
+    this.editDOM.setAttribute("onkeydown", "app.widget('lookForEnter', this, event)");
+    this.editDOM.setAttribute("hidden", "true");
+    this.editDOM.setAttribute("idr", "edit");
+    this.domElement.appendChild(this.editDOM);           // move input field to end of DOM element representing the table
 
     this.container = this.domFunctions.getChildByIdr(this.domElement, containerIDR);
 
@@ -113,16 +115,6 @@ class dragDrop {
     this.log(JSON.stringify(obj));
     app.regression.log(JSON.stringify(obj));
     app.regression.record(obj);
-  }
-
-  dropData(input, evnt) { // If data is dragged to a cell with ondrop = dropData...
-    const row = input.parentElement;
-    const idr = row.getAttribute("idr");
-    if (idr != "template" && idr != "insertContainer") { // verify that the cell is not in the template or insert rows...
-      const data = evnt.dataTransfer.getData("text/plain"); // then put the data in the cell.
-      input.textContent = data;
-      row.classList.add("changedData");
-    }
   }
 
   lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (inserting a new node or changing an existing one)
@@ -281,10 +273,6 @@ save(evnt){ // Save changes to a node
     let closeButton = this.activeNode.firstElementChild;
     closeButton.hidden = false;
   }
-  while (this.activeNode.draggable == false) { // Go up to the top-level element - the draggable one
-    this.activeNode = this.activeNode.parentNode;
-  }
-  this.activeNode.classList.add("changedData");
   this.activeNode = null;
 
   // Log

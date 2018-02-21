@@ -83,9 +83,10 @@ this.node.topic = {
 
 this.node.address = {
   nodeLabel: "address"
-  ,orderBy: "n.state, n.postalCode, n.city, n.street1, n.street2"
-  ,fieldsDisplayed: ["street1", "street2", "city", "state", "postalCode"]
+  ,orderBy: "n.name, n.state, n.postalCode, n.city, n.street1, n.street2"
+  ,fieldsDisplayed: ["name", "street1", "street2", "city", "state", "postalCode"]
   ,fields: {"street1":     {label: "Street"}
+  ,"name":       {label: "Name"}
   ,"street2":    {label: ""  }
   ,"city":       {label: "City"  }
   ,"state":      {label: "State"  }

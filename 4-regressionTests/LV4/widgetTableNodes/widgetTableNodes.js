@@ -231,6 +231,10 @@ class widgetTableNodes {
       for (let j=0; j<this.fieldsDisplayed.length; j++) {
         cell = document.createElement('td');
         let fieldName = this.fieldsDisplayed[j];
+        if (this.fieldsDisplayed[j] == 'name') { // Make the name cell draggable
+          cell.setAttribute("draggable", "true");
+          cell.setAttribute("ondragstart", "app.widget('drag', this, event)");
+        }
         text = document.createTextNode(r[i]["n"].properties[fieldName]);
         cell.appendChild(text);
         row.appendChild(cell);
@@ -264,8 +268,24 @@ class widgetTableNodes {
     app.regression.record(obj);
   }
 
-  drag(input, evnt){ // sets value of app.dragID
-    evnt.dataTransfer.setData("text/plain", evnt.target.textContent);
+  drag(input, evnt){ // stores information about a node in the drag event. input is the thing being dragged.
+    const nodeRow = input.parentElement;
+    const nameColumn = this.fieldsDisplayed.indexOf('name') + 2; // The first two cells in the table aren't included in fieldsDisplayed
+    let name = "";
+    if (nameColumn > 1) { // If that call to indexOf didn't return -1 (-1 would mean there isn't actually a name field in this table)
+      const nameCell = nodeRow.children[nameColumn];
+      name = nameCell.textContent;
+    }
+    const IDcell = nodeRow.children[1]; // The ID will always be the second cell in the table, after the number
+    const ID = IDcell.textContent;
+    const type = this.queryObject.nodeLabel;
+
+    const data = {};
+    data.name = name;
+    data.type = type;
+    data.nodeID = ID;
+
+    evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
     let obj = {};
     obj.id = app.domFunctions.widgetGetId(evnt.target);
     obj.idr = event.target.getAttribute("idr");
@@ -293,7 +313,7 @@ edit(element){
     let data = this.queryData;
     let n = data.filter(o => o.n.identity.toString() === id);
 
-    app.widgets[app.idCounter] = new widgetNode(this.queryObject.nodeLabel, n[0].n)
+    new widgetNode(this.queryObject.nodeLabel, n[0].n)
 
     // log
     let obj = {};
@@ -307,7 +327,7 @@ edit(element){
 
   // open add widget
   addNode(element){
-    app.widgets[app.idCounter] = new widgetNode(this.queryObject.nodeLabel)
+    new widgetNode(this.queryObject.nodeLabel)
 
     // log
     let obj = {};

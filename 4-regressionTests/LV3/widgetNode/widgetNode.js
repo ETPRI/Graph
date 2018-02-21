@@ -23,6 +23,7 @@ constructor(label, data) {
   this.relationsTo   = {}; // place holder for relations   (n)->
   this.label       = label;
   this.idWidget    = app.idGet(0);
+  app.widgets[app.idCounter] = this; // Add to app.widgets
 
   // DOM pointers to data that will change, just make place holders
   this.widgetDOM   = {};
@@ -48,8 +49,8 @@ constructor(label, data) {
 }
 
 buildRelations() {
-  app.widgets[app.idCounter] = new widgetRelations(this.startDOM, this.dataNode.identity, "start", app.idCounter++);
-  app.widgets[app.idCounter] = new widgetRelations(this.endDOM, this.dataNode.identity, "end", app.idCounter++);
+  new widgetRelations(this.startDOM, this.dataNode.identity, "start", app.idCounter);
+  new widgetRelations(this.endDOM, this.dataNode.identity, "end", app.idCounter);
 }
 
 buildWidget() { // public - build table header
