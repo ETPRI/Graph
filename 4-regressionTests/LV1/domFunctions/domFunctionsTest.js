@@ -13,25 +13,22 @@ class domFunctionsTest {
     app.regression.record(obj);
   }
   searchIDR(button) { // runs when the user clicks the Search button. Logs the fields it finds as "data".
-    let fields = [];
-    let idr = this.idrText.value;
-
-    let textBox = app.domFunctions.getChildByIdr(this.top, idr);
+    var box;
+    let idr = button.previousElementSibling.value;
+    let widget = app.domFunctions.widgetGetId(button);
+    let widgetDOM = document.getElementById(widget);
+    let textBox = app.domFunctions.getChildByIdr(widgetDOM, idr);
     if (textBox) {
-      fields.push(textBox.id);
+      box = textBox.id;
     }
-    else fields.push(null);
-
-    textBox = app.domFunctions.getChildByIdr(this.bottom, idr);
-    if (textBox) {
-      fields.push(textBox.id);
+    else {
+      box = null;
     }
-    else fields.push(null);
 
     let obj = {};
     obj.id = button.id;
     obj.action = "click";
-    obj.data = fields;
+    obj.data = box;
     app.regression.log(JSON.stringify(obj));
     app.regression.record(obj);
   }
