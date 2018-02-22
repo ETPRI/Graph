@@ -73,10 +73,16 @@ createDragDrop(widgetRel) {
     }
   } // end dragdrop.changeComment function
 
-  dragDrop.dropData = function(input, evnt) { // If data is dragged to a cell with ondrop = dropData...
-    const row = input.parentElement;
-    const idr = row.getAttribute("idr");
-    if (idr != "template" && idr != "insertContainer") { // verify that the cell is not in the template or insert rows...
+  dragDrop.dropData = function(input, evnt) { // If data is dragged to a cell with ondrop = dropData
+    let row = input.parentElement;
+    let idr = row.getAttribute("idr");
+
+    if (idr == "insertContainer") { // If a node is dragged to the insert row, create a new row and add the data to that.
+      row = this.insert();
+      idr = row.getAttribute("idr");
+    }
+
+    if (idr != "template") { // Verify that the cell is not in the template row...
       const data = JSON.parse(evnt.dataTransfer.getData("text/plain")); // then parse the data and add it to each cell
       const nodeIDcell = row.children[2];
       nodeIDcell.textContent = data.nodeID;
@@ -264,6 +270,7 @@ complete(data) { // Builds html for a table. Each row is a single relation and s
     let nodeID;
     let name = node.properties.name;
     let type = node.labels[0];
+    let comment = "";
 
     switch (this.relationType) {
       case "start":
@@ -289,7 +296,11 @@ complete(data) { // Builds html for a table. Each row is a single relation and s
         name = "";
         type = "";
       }
-      this.existingRelations[rel.identity] = {'comment':rel.properties.comment, 'nodeID':nodeID, 'name':name, 'type':type};
+
+      if ("comment" in rel.properties) { // It's now possible to have a blank comment, so allow for that
+        comment = rel.properties.comment;
+      }
+      this.existingRelations[rel.identity] = {'comment':comment, 'nodeID':nodeID, 'name':name, 'type':type};
 
       const trDrag   = `<tr idr="item${this.idrRow}" ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
 
@@ -297,7 +308,7 @@ complete(data) { // Builds html for a table. Each row is a single relation and s
                         <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${nodeID}</td>
                         <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${name}</td>
                         <td>${type}</td>
-                        <td ondblclick="app.widget('edit', this, event)" idr="content${this.idrContent++}">${rel.properties.comment}</td>
+                        <td ondblclick="app.widget('edit', this, event)" idr="content${this.idrContent++}">${comment}</td>
                         <td><button idr="delete${this.idrRow++}" onclick="app.widget('markForDeletion', this)">Delete</button></td></tr>`;
     }
   }

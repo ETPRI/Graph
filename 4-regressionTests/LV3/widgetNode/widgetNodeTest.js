@@ -24,12 +24,11 @@ class widgetNodeTest{
   }
 
   editFirst(data) { // opens the node passed into it for editing
-    var newNode;
     if (data) {
-      app.widgetNodeNew("Test", data[0].n);
+      new widgetNode("Test", data[0].n);
     }
     else {
-      app.widgetNodeNew("Test");
+      new widgetNode("Test");
     }
 
     // log
@@ -37,7 +36,7 @@ class widgetNodeTest{
     obj.id = "edit";
     obj.action = "click";
     obj.data = JSON.parse(JSON.stringify(data)); // easy way to make a deep copy
-    for (var i = 0; i< obj.data.length; i++) { // remove the IDs from the log - they're not particularly useful, and can cause problems because they rarely match
+    for (let i = 0; i< obj.data.length; i++) { // remove the IDs from the log - they're not particularly useful, and can cause problems because they rarely match
       delete obj.data[i].n.identity;
     }
     app.regression.log(JSON.stringify(obj));
@@ -62,7 +61,7 @@ class widgetNodeTest{
   }
 
   create(button) { // creates a new widgetNode table with no data
-    app.widgetNodeNew("Test");
+    new widgetNode("Test");
 
     // log
     let obj = {};

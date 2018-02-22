@@ -1,1 +1,0 @@
-[{"id":"container","idr":"delete6","action":"click"},{"id":"container","idr":"delete7","action":"click"},{"id":"container","idr":"delete8","action":"click"}]

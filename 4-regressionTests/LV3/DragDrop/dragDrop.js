@@ -39,6 +39,7 @@ class dragDrop {
       this.itemCount = 0;
     }
 
+    this.inputCount = 0; // number of input fields in the input element
     this.createInputs(this.insertContainer);
 
     if (content) { // existing is an optional value recording the number of rows that are already in the table.
@@ -48,7 +49,6 @@ class dragDrop {
       this.contentCount = 0;
     }
 
-    this.inputCount = 0; // number of input fields in the input element
 
 
     // I liked this, but I always had trouble getting the focus to go where I wanted it,
@@ -147,8 +147,18 @@ class dragDrop {
   }
 
   insert(input) { // Insert a new node
-    let obj = {};
-    obj.value = input.value;
+    if (input) {
+      // Log first so input hasn't been deleted yet. Log only if insert was triggered by an input - if it's triggered by something else, the other thing will log it.
+      let obj = {};
+      obj.value = input.value;
+      obj.id = this.domFunctions.widgetGetId(input);
+      obj.idr = input.getAttribute("idr");
+      obj.action = "keydown";
+      obj.key = "Enter";
+      this.log(JSON.stringify(obj));
+      app.regression.log(JSON.stringify(obj));
+      app.regression.record(obj);
+    }
 
     const newEl = this.insertElement(this.insertContainer); // Should create an appropriately nested element with data in leaves
 
@@ -165,15 +175,6 @@ class dragDrop {
     newEl.setAttribute("class", "newData");
 
     this.createDelete(newEl);
-
-    // logging
-    obj.id = this.domFunctions.widgetGetId(input);
-    obj.idr = input.getAttribute("idr");
-    obj.action = "keydown";
-    obj.key = "Enter";
-    this.log(JSON.stringify(obj));
-    app.regression.log(JSON.stringify(obj));
-    app.regression.record(obj);
 
     return newEl;
     // this.input.focus();
