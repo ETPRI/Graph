@@ -2,14 +2,17 @@ class domFunctions {
   constructor() {}
 
   getChildByIdr(element, idr) {
-  	let children = element.querySelectorAll("*"); // get all the element's children...
-  	for (let i = 0; i < children.length; i++) { // loop through them...
-  		//alert("Checking child " + i + " of widget ID " + element.id + "; idr = " + children[i].getAttribute("idr") + "; target: " + idr);
-  		if (children[i].getAttribute("idr") == idr) {
-  			return children[i]; // and return the first one whose idr matches...
-  		}
-  	}
-  	return null; // or null if no idr matches
+    let children = Array.from(element.children); // Get the element's children
+    while (children.length > 0) {
+      let child = children.pop(); // For each child...
+      if (child.getAttribute("idr") == idr) {
+        return child; // If the idr matches, return the element...
+      }
+      else if (!child.classList.contains("widget") && child.children.length > 0) { // If the child is not a widget itself, and it has children...
+        children.push(...child.children); // add its children to the children array
+      }
+    }
+  	return null; // return null if no idr matches
   }
 
   widgetGetId(domElement) {
