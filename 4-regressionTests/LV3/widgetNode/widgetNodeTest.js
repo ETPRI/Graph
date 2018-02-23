@@ -25,7 +25,7 @@ class widgetNodeTest{
 
   editFirst(data) { // opens the node passed into it for editing
     if (data) {
-      new widgetNode("Test", data[0].n);
+      new widgetNode("Test", data[0].n.identity);
     }
     else {
       new widgetNode("Test");

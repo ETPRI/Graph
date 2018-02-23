@@ -163,12 +163,8 @@ this.queryObjects.trash = {
 } /// end method
 
 edit(element){
-// this.queryData[0].id.toString() === id
   let id = element.innerHTML;
-  let n = this.queryData.filter(o => o.id.toString() === id);
-
-  new widgetNode(element.nextElementSibling.innerText, n[0].n)
-
+  new widgetNode(element.nextElementSibling.innerText, id);
 
   let obj={};
   obj.id=app.domFunctions.widgetGetId(element);

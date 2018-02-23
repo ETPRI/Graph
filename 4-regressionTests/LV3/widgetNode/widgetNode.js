@@ -16,17 +16,11 @@ input: label
 
 
 class widgetNode {
-constructor(label, data) {
-  // data to be displayed
-  this.dataNode    = data; // is db identifier, not defined means add
-  this.relationsFrom = {}; // place holder for relations ->(n)
-  this.relationsTo   = {}; // place holder for relations   (n)->
-  this.label       = label;
-  this.idWidget    = app.idGet(0);
-  app.widgets[app.idCounter] = this; // Add to app.widgets
-
+constructor(label, id) {
   // DOM pointers to data that will change, just make place holders
   this.widgetDOM   = {};
+  this.relationsFrom = {}; // place holder for relations ->(n)
+  this.relationsTo   = {}; // place holder for relations   (n)->
   this.addSaveDOM  = {};
   this.tableDOM    = {};
   this.fromDOM     = {}; // Is this ever used?
@@ -34,17 +28,34 @@ constructor(label, data) {
   this.endDOM      = {}; // sub widget
   this.startDOM    = {}; // sub widget
 
+  this.label       = label;
   this.queryObject = app.metaData.getNode(label);
   this.fields      = this.queryObject.fields;
-  this.db          = new db() ; // placeholder for add
+
+  this.idWidget = app.idGet(0);
+  app.widgets[app.idCounter] = this; // Add to app.widgets
+
+  this.db          = new db();
+
+  // Get data for the given node ID, if it exists
+  if (id) {
+    this.db.setQuery(`match (n) where ID(n) = ${id} return n`);
+    this.db.runQuery(this, 'finishConstructor');
+  } else {
+     this.finishConstructor();
+   }
+}
+
+finishConstructor(data) {
+  if (data) { // If data were passed in, add them to the table
+    this.dataNode = data[0].n;
+  }
 
   this.buildWidget();
   this.buildDataNode();
 
-  // Create relation tables for existing nodes, but not new ones - the code wouldn't run without this.dataNode,
-  // and you shouldn't be able to add relations to a node that doesn't exist anyway.
-  if (this.dataNode) {
-  	this.buildRelations();
+  if (data) { // I hate to do this twice, but I have to create dataNode before I can call buildWidget or buildDataNode, and I have to call buildWidget before buiildRelations.
+    this.buildRelations();
   }
 }
 
@@ -61,7 +72,7 @@ buildWidget() { // public - build table header
   }
   const html = app.widgetHeader() +`<table><tbody><tr>
   <td idr="end"></td>
-  <td><b>${this.label}#${id}</b>
+  <td><b idr="nodeLabel">${this.label}#${id}</b>
     <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
     <table idr = "nodeTable"></table>
   </td>
@@ -84,9 +95,6 @@ buildWidget() { // public - build table header
   this.tableDOM   = app.domFunctions.getChildByIdr(widget, "nodeTable");
   this.endDOM     = app.domFunctions.getChildByIdr(widget, "end");
   this.startDOM   = app.domFunctions.getChildByIdr(widget, "start");
-
-  // dragDrop = new dragDropTable("template", "container");    // new global variable, this needs to go
-  // dragDrop.regression = new regressionTesting("dragDrop");  // needs to be moved to dragDropConstrutor, loging needs to be turned of log element is not there
 }
 
 
@@ -124,6 +132,7 @@ buildDataNode() {   // put in one field label and input row for each field
     if (this.dataNode) {
       let d=this.dataNode.properties;
       value = d[fieldName];
+      value = value.replace(/"/g, "&quot;");
     }
 
     let dataField = document.createElement('td');
@@ -169,7 +178,7 @@ add(widgetElement) { // Builds a query to add a new node, then runs it and passe
   while (tr) {
     let inp = tr.lastElementChild.firstElementChild;
 
-    data += inp.getAttribute("db") +":'" + inp.value +"', ";
+    data += inp.getAttribute("db") +':"' + app.stringEscape(inp.value) +'", ';
     tr=tr.nextElementSibling;
   }
 
@@ -183,6 +192,10 @@ add(widgetElement) { // Builds a query to add a new node, then runs it and passe
 
 addComplete(data) { // Refreshes the node table and logs that addSave was clicked
   this.dataNode = data[0].n; // takes single nodes
+  const id = this.dataNode.identity;
+  const nodeLabel = app.domFunctions.getChildByIdr(this.widgetDOM, "nodeLabel");
+  nodeLabel.textContent=`${this.label}#${id}`;
+
   this.buildDataNode();
   this.buildRelations();
   // log
@@ -245,7 +258,7 @@ save(widgetElement) { // Builds query to update a node, runs it and passes the r
       if (this.fields[fieldName].type === "number") {
         d2 = inp.value;  // number
       } else {
-        d2 = '"' + inp.value + '"';  // assume string
+        d2 = '"' + app.stringEscape(inp.value) + '"';  // assume string
       }
       data += d1.replace('#value#',d2)
     }

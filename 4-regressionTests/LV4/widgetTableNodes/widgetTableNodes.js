@@ -308,12 +308,8 @@ relationAdd(element) {
 
 
 edit(element){
-  //  this.data.filter(o => o.n.identity===23)
     let id = element.innerHTML;
-    let data = this.queryData;
-    let n = data.filter(o => o.n.identity.toString() === id);
-
-    new widgetNode(this.queryObject.nodeLabel, n[0].n)
+    new widgetNode(this.queryObject.nodeLabel, id);
 
     // log
     let obj = {};

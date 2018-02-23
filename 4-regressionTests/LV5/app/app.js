@@ -139,6 +139,11 @@ widgetClose(widgetElement) {
 	this.regression.record(obj);
 }
 
+stringEscape(text) {
+	let string = JSON.stringify(text);
+	string = string.substring(1, string.length-1);
+	return string;
+}
 
 ////////////////////// get,getLast,replace where all id functions
 test() {  // used for testing, UI can be hard coded here to reduce amount of clicking to test code

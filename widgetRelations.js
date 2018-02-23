@@ -19,6 +19,7 @@ constructor(containerDOM, nodeID, relationType, id) {
 
   this.idrContent   = 0;            // Number of existing editable cells added to table
   this.idrRow       = 0;            // Number of existing rows added to the table
+  this.order = [];                  // Order of relations set by the current user
 
   app.widgets[app.idCounter++] = this;
 
@@ -26,28 +27,38 @@ constructor(containerDOM, nodeID, relationType, id) {
   // this.widgetDOM   = {};
 
   this.db          = new db() ;
+  this.getOrder();
+}
+
+getOrder() { // run query to find this user's order for this node, if any
+  const idCell = document.getElementById("userNodeId");
+  if (idCell) {
+    const userID = idCell.value;
+    this.db.setQuery(`match (a)-[r:Order {direction:"${this.relationType}"}]->(n) where id(a)=${userID} and id(n) = ${this.nodeID} return r`);
+    this.db.runQuery(this, 'refresh');
+  }
+  else {
+    this.refresh([]); // If no user ID was found, just pass along an empty array
+  }
+}
+
+refresh(data) { // Refresh the widget
   this.db.setQuery( // set query based on relationType
     (r => {switch (r) {
-    case "start": return `match (n)-[r]->(a)  where id(n)=${this.nodeID} return r, a`; break;
-    case "end":   return `match  (a)-[r]->(n) where id(n)=${this.nodeID} return r, a`; break;
+    case "start": return `match (n)-[r:Link]->(a)  where id(n)=${this.nodeID} return r, a`; break;
+    case "end":   return `match  (a)-[r:Link]->(n) where id(n)=${this.nodeID} return r, a`; break;
     case "peer":  return "";  break;// not finished
     default: alert("error"); // better error handling
-  }}) (relationType)
+  }}) (this.relationType)
   );
-
-  this.buildRelations(); // runsbuildRelationsStart();
+  this.db.runQuery(this,"rComplete", data);
 }
 
-
-buildRelations() { // queries for relations which end at this node, then sends the results to endComplete()
-  this.db.runQuery(this,"rComplete");
-}
-
-rComplete(data) {
+rComplete(nodes, order) {
   this.containerDOM.setAttribute("id", this.id.toString());
   this.containerDOM.setAttribute("class", "widget");
   this.containerDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)"><input idr = "SaveSync" type="Button" value="Save and Sync" onclick="app.widget('saveSync', this)">
-    <table>${this.complete(data)}</table>`;
+    <table>${this.complete(nodes, order)}</table>`;
     setTimeout(this.createDragDrop, 1, this);
 //  this.containerDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
 }
@@ -77,85 +88,108 @@ createDragDrop(widgetRel) {
     let row = input.parentElement;
     let idr = row.getAttribute("idr");
 
-    if (idr == "insertContainer") { // If a node is dragged to the insert row, create a new row and add the data to that.
-      row = this.insert();
-      idr = row.getAttribute("idr");
+    const dataText = evnt.dataTransfer.getData("text/plain");
+    if (dataText=="") { // If there's no data, then dropData shouldn't be used. drop should.
+      this.drop(input, evnt);
     }
+    else {
+      if (idr == "insertContainer") { // If a node is dragged to the insert row, create a new row and add the data to that.
+        row = this.insert();
+        idr = row.getAttribute("idr");
+      }
 
-    if (idr != "template") { // Verify that the cell is not in the template row...
-      const data = JSON.parse(evnt.dataTransfer.getData("text/plain")); // then parse the data and add it to each cell
-      const nodeIDcell = row.children[2];
-      nodeIDcell.textContent = data.nodeID;
-      const nameCell = row.children[3];
-      nameCell.textContent = data.name;
-      const typeCell = row.children[4];
-      typeCell.textContent = data.type;
+      if (idr != "template") { // Verify that the cell is not in the template row...
+        const data = JSON.parse(dataText); // then parse the data and add it to each cell
+        const nodeIDcell = row.children[2];
+        nodeIDcell.textContent = data.nodeID;
+        const nameCell = row.children[3];
+        nameCell.textContent = data.name;
+        const typeCell = row.children[4];
+        typeCell.textContent = data.type;
 
-      // add changedData class if necessary
-      const IDcell = row.children[1];
-      const ID = IDcell.textContent;
-      if (ID in this.existingRelations) {
-        if (nodeIDcell.textContent != this.existingRelations[ID].nodeID) {
-          nodeIDcell.classList.add("changedData");
-        } else {
-          nodeIDcell.classList.remove("changedData");
-        }
+        // add changedData class if necessary
+        const IDcell = row.children[1];
+        const ID = IDcell.textContent;
+        if (ID in this.existingRelations) {
+          if (nodeIDcell.textContent != this.existingRelations[ID].nodeID) {
+            nodeIDcell.classList.add("changedData");
+          } else {
+            nodeIDcell.classList.remove("changedData");
+          }
 
-        if (nameCell.textContent != this.existingRelations[ID].name) {
-          nameCell.classList.add("changedData");
-        } else {
-          nameCell.classList.remove("changedData");
-        }
+          if (nameCell.textContent != this.existingRelations[ID].name) {
+            nameCell.classList.add("changedData");
+          } else {
+            nameCell.classList.remove("changedData");
+          }
 
-        if (typeCell.textContent != this.existingRelations[ID].type) {
-          typeCell.classList.add("changedData");
-        } else {
-          typeCell.classList.remove("changedData");
-        }
-      } // end if (relation ID appears in existing relations)
-    } // end if (cell is not in template or insert rows)
+          if (typeCell.textContent != this.existingRelations[ID].type) {
+            typeCell.classList.add("changedData");
+          } else {
+            typeCell.classList.remove("changedData");
+          }
+        } // end if (relation ID appears in existing relations)
+      } // end if (cell is not in template row)
+    } // end else (there was data; dragDrop and not drop was the appropriate function)
   } // end dragDrop.dropData function
 }
 
 saveSync(button) {
   const widgetID = app.domFunctions.widgetGetId(button);
-  const widget = document.getElementById(widgetID);
-  const container = app.domFunctions.getChildByIdr(widget, "container");
+  const relWidget = document.getElementById(widgetID); // Returns the relations widget
+  const tableWidget = relWidget.getElementsByClassName("widget")[0]; // The only subwidget inside the relations widget should be the table
+  const container = app.domFunctions.getChildByIdr(tableWidget, "container");
   const rows = Array.from(container.children);
   this.processNext(null, rows);
 }
 
 processNext(data, rows) {
+  // The only processing function that returns data is addNode, which returns ID(r). Check for existence of data[0] to distinguish from an empty array, which deletion returns
+  // If processNext gets data, it is the ID from an addNode call. Extract the ID and add it to the order array.
+  if (data && data[0]) {
+    // example of data from addNode: [{"ID(r)":{"low":3,"high":0}}]
+    const id = data[0]["ID(r)"].low;
+    this.order.push(id.toString());
+  }
+
   if (rows.length >0) {
     const row = rows.pop();
-    if (row.classList.contains("deletedData")) {
+    if (row.classList.contains("deletedData")) { // If the relation has been marked for deletion, delete it. No need to add to order array.
       this.deleteNode(row, rows);
     }
-    else if (row.classList.contains("newData")) {
+    else if (row.classList.contains("newData")) { // If the relation is new, add it. Can't add to order array yet - that will be done once a relation ID is assigned.
       this.addNode(row, rows);
     }
-    else if (row.children[2].classList.contains("changedData")) { // If the node ID has been changed
+    else if (row.children[2].classList.contains("changedData")) { // If the node ID has been changed, replace the relation. ID will be added to array after the new relation ID is assigned.
       this.replaceNode(row, rows);
     }
-    else if (row.children[5].classList.contains("changedData")) { // If the comment has been changed
+    else if (row.children[5].classList.contains("changedData")) { // If the comment has been changed, modify the relation. Go ahead and add ID now - it won't change.
+      const cells = row.children;
+      const idCell = cells[1];
+      const id = idCell.textContent;
+      this.order.push(id);
       this.modifyNode(row, rows);
     }
-    else { // If the row doesn't need any processing, just move on
+    else { // If the row doesn't need any processing, just add its ID to order and move on
+      const cells = row.children;
+      const idCell = cells[1];
+      const id = idCell.textContent;
+      if (id) { // Don't push ID if it doesn't exist (that will happen when the insert row is processed)
+        this.order.push(id);
+      }
       this.processNext(null, rows);
     }
   }
   else { // when all rows are processed
-    // Once the DB has updated, refresh the widget
-    this.db.setQuery( // set query based on relationType
-      (r => {switch (r) {
-      case "start": return `match (n)-[r]->(a)  where id(n)=${this.nodeID} return r, a`; break;
-      case "end":   return `match  (a)-[r]->(n) where id(n)=${this.nodeID} return r, a`; break;
-      case "peer":  return "";  break;// not finished
-      default: alert("error"); // better error handling
-    }}) (this.relationType)
-    );
+    this.order.reverse();
 
-    this.buildRelations();
+    const userID = document.getElementById("userNodeId").value;
+    this.db.setQuery(`match (a), (n) where id(a)=${userID} and id(n) = ${this.nodeID}
+                      merge (a)-[r:Order {direction:"${this.relationType}"}]->(n)
+                      set r.order=${JSON.stringify(this.order)}`);
+    // Once the DB has updated, refresh the widget
+    this.db.runQuery(this, "getOrder");
+    this.order = []; // reset order
   }
 }
 
@@ -164,6 +198,26 @@ deleteNode(row, rows) {
   const idCell = cells[1];
   const id = idCell.textContent;
   this.db.setQuery(`match ()-[r]-() where ID(r) = ${id} delete r`);
+  this.db.runQuery(this, "processNext", rows);
+}
+
+replaceNode (row, rows) {
+  // Apparently can't change the start or end node of a relationship. Have to delete and remake instead.
+  // I'll change the row from changed to new, put it BACK in the array, and delete the relationship from the DB.
+  // Then when it gets processed by processNext the second time, the relationship will get added.
+  row.classList.remove("changedData");
+  row.classList.add("newData");
+  rows.push(row);
+  this.deleteNode(row, rows);
+}
+
+modifyNode (row, rows) {
+  const cells = row.children;
+  const idCell = cells[1];
+  const id = idCell.textContent;
+  const commentCell = cells[5];
+  const comment = commentCell.textContent;
+  this.db.setQuery(`match ()-[r]-() where ID(r) = ${id} set r.comment = "${app.stringEscape(comment)}"`);
   this.db.runQuery(this, "processNext", rows);
 }
 
@@ -198,11 +252,13 @@ addNode(row, rows) {
       default: alert("error"); // better error handling
     }}) (this.relationType);
 
-  const queryEnd = `]->(b) return r`;
+  const queryEnd = `]->(b) return ID(r)`;
 
   for (let i = 5; i < headers.length-1; i++) {
-    if (cells[i].textContent != "") {
-      attributes += `${headers[i].textContent.toLowerCase()}:'${cells[i].textContent}', `
+    const text = cells[i].textContent;
+    if (text != "") {
+      attributes += `${headers[i].textContent.toLowerCase()}:"${app.stringEscape(text)}", `
+      alert(attributes);
     }
   }
 
@@ -216,25 +272,6 @@ addNode(row, rows) {
   this.db.runQuery(this, "processNext", rows);
 }
 
-replaceNode (row, rows) {
-  // Apparently can't change the start or end node of a relationship. Have to delete and remake instead.
-  // I'll change the row from changed to new, put it BACK in the array, and delete the relationship from the DB.
-  // Then when it gets processed by processNext the second time, the relationship will get added.
-  row.classList.remove("changedData");
-  row.classList.add("newData");
-  rows.push(row);
-  this.deleteNode(row, rows);
-}
-
-modifyNode (row, rows) {
-  const cells = row.children;
-  const idCell = cells[1];
-  const id = idCell.textContent;
-  const commentCell = cells[5];
-  const comment = commentCell.textContent;
-  this.db.setQuery(`match ()-[r]-() where ID(r) = ${id} set r.comment = '${comment}'`);
-  this.db.runQuery(this, "processNext", rows);
-}
 
 //////////////////////////////////////////////////// below not reviewed
 
@@ -257,62 +294,86 @@ toggle(button){ // Shows or hides relations
 }
 
 
-complete(data) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
+complete(nodes, order) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
+  let ordering = [];
+  if (order[0]) {
+    ordering = order[0].r.properties.order;
+  }
+
   let html       = `<thead><tr idr='template'> <th>#</th> <th>R#</th> <th ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">N#</th>
                     <th ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">Name</th>
                     <th>Type</th><th editable>Comment</th> </tr></thead><tbody idr='container'>`;
   this.idrRow     = 0;
   this.idrContent = 0;
   this.existingRelations = {};
-  while (this.idrRow<data.length) { // add data
-    const rel= data[this.idrRow].r;
-    const node = data[this.idrRow].a;
-    let nodeID;
-    let name = node.properties.name;
-    let type = node.labels[0];
-    let comment = "";
 
-    switch (this.relationType) {
-      case "start":
-        nodeID = rel.end.low;
-        break;
-      case "end":
-        nodeID = rel.start.low;
-        break;
-      case "peer":
-        break; // not finished
-      default:
-        alert ("Error");
+  for (let i = 0; i < ordering.length; i++) {
+    // Find the item in nodes which matches, if any
+    const relation = nodes.filter(node => node.r.identity == ordering[i]);
+    if (relation[0]) { // If that relation still exists, add it to the table and delete it from the list of relations
+      html = this.addLine(relation[0], html);
+      // Remove from array
+      const index = nodes.indexOf(relation[0]);
+      delete nodes[index];
     }
+  }
 
-    // If this node is a placeholder going the wrong way, just move along.
-    if ("direction" in rel.properties && rel.properties.direction !== this.relationType) {
-      this.idrRow++;
-    }
-    // If it's a placeholder going the right way or a real relation, add it to the table...
-    else {
-      if ("direction" in rel.properties) { // but if it's a placeholder, don't show the node ID, name or type.
-        nodeID = "";
-        name = "";
-        type = "";
-      }
-
-      if ("comment" in rel.properties) { // It's now possible to have a blank comment, so allow for that
-        comment = rel.properties.comment;
-      }
-      this.existingRelations[rel.identity] = {'comment':comment, 'nodeID':nodeID, 'name':name, 'type':type};
-
-      const trDrag   = `<tr idr="item${this.idrRow}" ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
-
-      html += trDrag + `<td>${this.idrRow + 1}</td> <td>${rel.identity}</td>
-                        <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${nodeID}</td>
-                        <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${name}</td>
-                        <td>${type}</td>
-                        <td ondblclick="app.widget('edit', this, event)" idr="content${this.idrContent++}">${comment}</td>
-                        <td><button idr="delete${this.idrRow++}" onclick="app.widget('markForDeletion', this)">Delete</button></td></tr>`;
+  for (let i = 0; i < nodes.length; i++) { // add unordered data
+    if (nodes[i] !== undefined) { // Some entries will be undefined because they were added as ordered data and deleted. Skip them.
+      html = this.addLine(nodes[i], html);
     }
   }
   return html + "</tbody>";
+}
+
+addLine(relation, html) {
+  const rel = relation.r;
+  const node = relation.a;
+  let nodeID;
+  let name = node.properties.name;
+  let type = node.labels[0];
+  let comment = "";
+
+  switch (this.relationType) {
+    case "start":
+      nodeID = rel.end.low;
+      break;
+    case "end":
+      nodeID = rel.start.low;
+      break;
+    case "peer":
+      break; // not finished
+    default:
+      alert ("Error");
+  }
+
+  // If this node is a placeholder going the wrong way, just move along.
+  if ("direction" in rel.properties && rel.properties.direction !== this.relationType) {
+    this.idrRow++;
+  }
+  // If it's a placeholder going the right way or a real relation, add it to the table...
+  else {
+    if ("direction" in rel.properties) { // but if it's a placeholder, don't show the node ID, name or type.
+      nodeID = "";
+      name = "";
+      type = "";
+    }
+
+    if ("comment" in rel.properties) { // It's now possible to have a blank comment, so allow for that
+      comment = rel.properties.comment;
+    }
+    this.existingRelations[rel.identity] = {'comment':comment, 'nodeID':nodeID, 'name':name, 'type':type};
+
+    const trDrag   = `<tr idr="item${this.idrRow}" ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
+
+    html += trDrag + `<td>${this.idrRow + 1}</td> <td>${rel.identity}</td>
+                      <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${nodeID}</td>
+                      <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${name}</td>
+                      <td>${type}</td>
+                      <td ondblclick="app.widget('edit', this, event)" idr="content${this.idrContent++}">${comment}</td>
+                      <td><button idr="delete${this.idrRow++}" onclick="app.widget('markForDeletion', this)">Delete</button></td></tr>`;
+  }
+  return html;
 }
 
 
@@ -325,15 +386,6 @@ saveAdd(widgetElement) { // Saves changes or adds a new node
   } else {
     this.add(widgetElement);
   }
-
-  // // log
-  // let obj = {};
-  // obj.id = app.domFunctions.widgetGetId(widgetElement);
-  // obj.idr = widgetElement.getAttribute("idr");
-  // obj.value = widgetElement.value;
-  // obj.action = "click";
-  // app.log(JSON.stringify(obj));
-  // app.record(obj);
 }
 
 
