@@ -16,7 +16,7 @@ input: label
 
 
 class widgetNode {
-constructor(label, id) {
+constructor(label, id, obj) {
   // DOM pointers to data that will change, just make place holders
   this.widgetDOM   = {};
   this.relationsFrom = {}; // place holder for relations ->(n)
@@ -37,7 +37,9 @@ constructor(label, id) {
 
   this.db          = new db();
 
-  // Get data for the given node ID, if it exists
+  this.obj = obj;
+
+  // If we're editing, then the ID for the node was passed in, and so was an in-progress object for logging the result of opening the node
   if (id) {
     this.db.setQuery(`match (n) where ID(n) = ${id} return n`);
     this.db.runQuery(this, 'finishConstructor');
@@ -49,6 +51,8 @@ constructor(label, id) {
 finishConstructor(data) {
   if (data) { // If data were passed in, add them to the table
     this.dataNode = data[0].n;
+    this.obj.data = JSON.parse(JSON.stringify(data));
+    app.stripIDs(this.obj.data);
   }
 
   this.buildWidget();
@@ -60,8 +64,18 @@ finishConstructor(data) {
 }
 
 buildRelations() {
-  new widgetRelations(this.startDOM, this.dataNode.identity, "start", app.idCounter);
-  new widgetRelations(this.endDOM, this.dataNode.identity, "end", app.idCounter);
+  new widgetRelations(this.startDOM, this.dataNode.identity, "start", app.idCounter, this);
+  new widgetRelations(this.endDOM, this.dataNode.identity, "end", app.idCounter, this);
+}
+
+relationFinished(type, nodes, orderedNodes) {
+  this.obj[`nodes_${type}`] = nodes;
+  app.stripIDs(this.obj[`nodes_${type}`]);
+  this.obj[`order_${type}`] = orderedNodes;
+  if (this.obj.nodes_start && this.obj.nodes_end) { // If both relations are done
+    app.regression.log(JSON.stringify(this.obj));
+    app.regression.record(this.obj);
+  }
 }
 
 buildWidget() { // public - build table header
@@ -196,15 +210,15 @@ addComplete(data) { // Refreshes the node table and logs that addSave was clicke
   const nodeLabel = app.domFunctions.getChildByIdr(this.widgetDOM, "nodeLabel");
   nodeLabel.textContent=`${this.label}#${id}`;
 
+  this.obj = {};
+  this.obj.id = this.idWidget;
+  this.obj.idr = "addSaveButton";
+  this.obj.action = "click";
+  this.obj.data = JSON.parse(JSON.stringify(data));
+  app.stripIDs(this.obj.data);
+
   this.buildDataNode();
   this.buildRelations();
-  // log
-  let obj = {};
-  obj.id = this.idWidget;
-  obj.idr = "addSaveButton";
-  obj.action = "click";
-  app.regression.log(JSON.stringify(obj));
-  app.regression.record(obj);
 }
 
 
@@ -283,6 +297,8 @@ saveData(data) { // Refreshes the node table and logs that addSave was clicked
   obj.id = this.idWidget;
   obj.idr = "addSaveButton";
   obj.action = "click";
+  obj.data = JSON.parse(JSON.stringify(data));
+  app.stripIDs(obj.data);
   app.regression.log(JSON.stringify(obj));
   app.regression.record(obj);
 }

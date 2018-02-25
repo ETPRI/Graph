@@ -48,7 +48,10 @@ runQuery (object, objectMethod, ...args) { // call widget, with widgetMethod whe
 	this.args = args;
 
 	// build data structure
-	document.getElementById('debug').value = this.query;
+	const debug = document.getElementById('debug');
+	if (debug) {
+		debug.value = this.query;
+	}
 
 	this.session.run(this.query, {}).subscribe(this);
 	// added onNext,onCompleted, onError - methods for neo4j to call

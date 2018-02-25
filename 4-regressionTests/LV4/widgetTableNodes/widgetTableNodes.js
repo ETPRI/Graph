@@ -309,15 +309,13 @@ relationAdd(element) {
 
 edit(element){
     let id = element.innerHTML;
-    new widgetNode(this.queryObject.nodeLabel, id);
 
-    // log
     let obj = {};
     obj.id = app.domFunctions.widgetGetId(element);
     obj.idr = element.getAttribute("idr");
     obj.action = "click";
-    app.regression.log(JSON.stringify(obj));
-    app.regression.record(obj);
+
+    new widgetNode(this.queryObject.nodeLabel, id, obj);
   }
 
 

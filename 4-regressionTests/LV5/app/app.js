@@ -15,7 +15,9 @@ constructor() {
 	this.db        			= new db();
 	this.domFunctions 	= new domFunctions();
 	this.regression 		= new regressionTesting();
+	this.login 					= new widgetLogin();
 	this.widgets.regressionHeader = this.regression;
+	this.widgets.loginDiv = this.login;
 	// used by classDB to access neo4j database,
 	this.authToken = neo4j.v1.auth.basic("neo4j", "paleo3i");
 	this.driver    = neo4j.v1.driver("bolt://localhost", this.authToken, {encrypted:false});
@@ -144,6 +146,24 @@ stringEscape(text) {
 	string = string.substring(1, string.length-1);
 	return string;
 }
+
+stripIDs (data) { // Assume that the data is the result of a query. Each row may include a node or relation whose IDs, start and end attributes need to be stripped.
+	for (let i = 0; i < data.length; i++) { // for every row returned, which may include whole nodes or relations with any name
+		for (let fieldName in data[i]) { // for every item in that row, which may BE a whole node or relation
+			if ((data[i][fieldName] instanceof Object) && ('identity' in data[i][fieldName])) { // If that item is an object with an identity, delete it
+				delete data[i][fieldName].identity;
+			}
+			if ((data[i][fieldName] instanceof Object) && ('start' in data[i][fieldName])) { // If that item has a "start", which is another node's identity, delete it
+				delete data[i][fieldName].start;
+			}
+			if ((data[i][fieldName] instanceof Object) && ('end' in data[i][fieldName])) { // If that item has an "end", which is another node's identity, delete it
+				delete data[i][fieldName].end;
+			}
+		}
+	} // end for (every row)
+}
+
+
 
 ////////////////////// get,getLast,replace where all id functions
 test() {  // used for testing, UI can be hard coded here to reduce amount of clicking to test code

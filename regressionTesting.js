@@ -103,11 +103,16 @@ class regressionTesting {
   	}
   } // end logToggle method
 
-  // Logs when any text field is changed in a widgetTableNodes object.
+  // Can log when any text field is changed. Called by text fields that don't already have an onchange or onblur event
   logText(textBox) {
   	let obj = {};
-  	obj.id = this.domFunctions.widgetGetId(textBox);
-  	obj.idr = textBox.getAttribute("idr");
+    if (textBox.id) { // If the text box is outside any widget and has its own ID, record its ID.
+      obj.id = textBox.id;
+    }
+    else {
+  	  obj.id = this.domFunctions.widgetGetId(textBox); // If it has no ID, it should be inside a widget. Record its parent's ID and its IDR.
+      obj.idr = textBox.getAttribute("idr");
+    }
   	obj.value = textBox.value;
   	obj.action = "blur";
   	this.log(JSON.stringify(obj));
@@ -132,7 +137,7 @@ class regressionTesting {
   	}
   	if (this.playing) {
       if (this.delayOn.checked) {
-        setTimeout(this.next, this.delayMS.value, this); // slow down the replay and see if that fixes the widgetNode bug
+        setTimeout(this.next, this.delayMS.value, this); // wait for the specified number of milliseconds
       }
       else {
         this.next(this);

@@ -9,13 +9,14 @@ input: node
 
 
 class widgetRelations {
-constructor(containerDOM, nodeID, relationType, id, obj) {
+constructor(containerDOM, nodeID, relationType, id, parent, parentData) {
   // data to be displayed
   this.containerDOM = containerDOM  // place to set innerHTML
   this.nodeID       = nodeID;       // neo4j node id where relationship starts
   this.id           = id;           // ID of the widget to be created
   this.relationType = relationType;
   this.existingRelations = {};
+  this.caller = parent;
 
   this.idrContent   = 0;            // Number of existing editable cells added to table
   this.idrRow       = 0;            // Number of existing rows added to the table
@@ -27,21 +28,21 @@ constructor(containerDOM, nodeID, relationType, id, obj) {
   // this.widgetDOM   = {};
 
   this.db          = new db() ;
-  this.getOrder(null, obj);
+  this.getOrder();
 }
 
-getOrder(data, obj) { // run query to find this user's order for this node, if any
+getOrder() { // run query to find this user's order for this node, if any
   const userID = app.login.userID;
   if (userID) { // If the user ID is not null
     this.db.setQuery(`match (a)-[r:Order {direction:"${this.relationType}"}]->(n) where id(a)=${userID} and id(n) = ${this.nodeID} return r`);
-    this.db.runQuery(this, 'refresh', obj);
+    this.db.runQuery(this, 'refresh');
   }
   else {
-    this.refresh([], obj); // If no user ID was found, just pass along an empty array
+    this.refresh([]); // If no user ID was found, just pass along an empty array
   }
 }
 
-refresh(data, obj) { // Refresh the widget
+refresh(order) { // Refresh the widget
   this.db.setQuery( // set query based on relationType
     (r => {switch (r) {
     case "start": return `match (n)-[r:Link]->(a)  where id(n)=${this.nodeID} return r, a`; break;
@@ -50,20 +51,14 @@ refresh(data, obj) { // Refresh the widget
     default: alert("error"); // better error handling
   }}) (this.relationType)
   );
-  this.db.runQuery(this,"rComplete", data, obj);
+  this.db.runQuery(this,"rComplete", order);
 }
 
-rComplete(nodes, order, obj) {
-  let logNodes = JSON.parse(JSON.stringify(nodes));
-  app.stripIDs(logNodes);
-  if (obj) {
-    obj[`relations_${this.relationType}`] = logNodes;
-  }
-
+rComplete(nodes, order) {
   this.containerDOM.setAttribute("id", this.id.toString());
   this.containerDOM.setAttribute("class", "widget");
   this.containerDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)"><input idr = "SaveSync" type="Button" value="Save and Sync" onclick="app.widget('saveSync', this)">
-    <table>${this.complete(nodes, order, obj)}</table>`;
+    <table>${this.complete(nodes, order)}</table>`;
     setTimeout(this.createDragDrop, 1, this);
 //  this.containerDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
 }
@@ -145,6 +140,7 @@ saveSync(button) {
   const tableWidget = relWidget.getElementsByClassName("widget")[0]; // The only subwidget inside the relations widget should be the table
   const container = app.domFunctions.getChildByIdr(tableWidget, "container");
   const rows = Array.from(container.children);
+  this.caller = this;
   this.processNext(null, rows);
 }
 
@@ -304,7 +300,7 @@ toggle(button){ // Shows or hides relations
 
   // log
   let obj = {};
-  obj.id = app.widgetGetId(button);
+  obj.id = app.domFunctions.widgetGetId(button);
   obj.idr = button.getAttribute("idr");
   obj.action = "click";
   app.regression.log(JSON.stringify(obj));
@@ -312,7 +308,8 @@ toggle(button){ // Shows or hides relations
 }
 
 
-complete(nodes, order, obj) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
+complete(nodes, order) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
+  const logNodes = JSON.parse(JSON.stringify(nodes)); // Need a copy that WON'T have stuff deleted, in order to log it later
   let ordering = [];
   let orderedNodes = [];
   if (order[0]) {
@@ -337,27 +334,18 @@ complete(nodes, order, obj) { // Builds html for a table. Each row is a single r
     }
   }
 
-  // When this is done, all the ordered nodes are added to the table AND to the array of ordered nodes.
-  if (obj) { // If a regression object is being built
-    obj[`order_${this.relationType}`] = orderedNodes;
-    if (obj.order_start && obj.order_end) { // If a node was being opened and now both relations are done
-      const recordObj = {}; // The different relations queries won't necessarily finish in the same order. This recreates the object so the fields are always added and displayed in the same order.
-      recordObj.id = obj.id;
-      recordObj.idr = obj.idr;
-      recordObj.action = obj.action;
-      recordObj.data = obj.data;
-      recordObj.relations_start = obj.relations_start;
-      recordObj.order_start = obj.order_start;
-      recordObj.relations_end = obj.relations_end;
-      recordObj.order_end = obj.order_end;
-      app.regression.record(recordObj);
-      app.regression.log(JSON.stringify(recordObj));
-    }
-
-    if (obj.idr == "SaveSync") { // If we aren't building a whole node but only refreshing one relations widget
-      app.regression.record(obj);
-      app.regression.log(JSON.stringify(obj));
-    }
+  if (this.caller == this) { // If the call to query the database came from the object itself, through saveSync, go ahead and log
+    const obj = {};
+    obj.id = this.id;
+    obj.idr = "SaveSync";
+    obj.action = "click";
+    obj.nodes = logNodes;
+    obj.order = orderedNodes;
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+  }
+  else { // If the call came from somewhere else, call "somewhere else"'s relationFinished function. Send the type of this one, the data from the relations search and the order array
+    this.caller.relationFinished(this.relationType, logNodes, orderedNodes);
   }
 
   for (let i = 0; i < nodes.length; i++) { // add unordered data

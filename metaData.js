@@ -96,16 +96,30 @@ this.node.address = {
   ,"_trash":     {label: "Trash"  }
   }}
 
-  this.node.Test = {
-    nodeLabel: "Test"
-    ,orderBy: "n.field1, n.field2, n.field3"
-    ,fieldsDisplayed: ["field1", "field2", "field3"]
-    ,fields: {
-      "field1":   {label: "First"}
-      ,"field2":  {label: "Second"}
-      ,"field3":  {label: "Third"}
-    }
+this.node.Test = {
+  nodeLabel: "Test"
+  ,orderBy: "n.field1, n.field2, n.field3"
+  ,fieldsDisplayed: ["field1", "field2", "field3"]
+  ,fields: {
+    "name":     {label: "Name"}
+    ,"field1":  {label: "First"}
+    ,"field2":  {label: "Second"}
+    ,"field3":  {label: "Third"}
   }
+}
+
+this.node.Test2 = {
+  nodeLabel: "Test2"
+  ,orderBy: "n.field1, n.field2, n.field3"
+  ,fieldsDisplayed: ["field1", "field2", "field3"]
+  ,fields: {
+    "name":     {label: "Name"}
+    ,"field1":  {label: "First"}
+    ,"field2":  {label: "Second"}
+    ,"field3":  {label: "Third"}
+  }
+}
+
 } ////// end method
 
 } ////////////////////////////////////////////////////// end class
