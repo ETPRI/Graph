@@ -12,6 +12,7 @@ class regressionTesting {
     this.playFiles = 0;
     this.domFunctions = new domFunctions();
     this.regHeader = document.getElementById("regressionHeader");
+    this.dragData = {};
 
     if (!(this.regHeader == null)) {
       this.buildRegressionHeader();
@@ -131,11 +132,11 @@ class regressionTesting {
   } // end logSearchChange method
 
   record(message) {
-  	if (this.recording) {
-  		// this.recordText[this.recordedStep++] = message;
+  	if (this.recording) { // If actions are being recorded, add the new message to the recording
       this.recordText.push(message);
   	}
-  	if (this.playing) {
+
+  	if (this.playing) { // If a recording is being replayed, play the next step, after optionally waiting a specified time
       if (this.delayOn.checked) {
         setTimeout(this.next, this.delayMS.value, this); // wait for the specified number of milliseconds
       }
@@ -143,6 +144,14 @@ class regressionTesting {
         this.next(this);
       }
   	}
+
+    if (this.stepThrough) { // If a recording is being stepped through, check whether the next step includes an action. If not, go ahead and play it
+      if (this.playbackObj.length > this.instruction) { // If the next step exists...
+        if (!('action' in this.playbackObj[this.instruction])) { // and doesn't include an action...
+          this.next(this); // then play it rather than waiting for the user to click "next".
+        }
+      }
+    }
   } // end record method
 
   // toggle record on and off
@@ -277,6 +286,16 @@ class regressionTesting {
         if (instructionObj.action == "keydown" && 'key' in instructionObj) { // keydown events have a "key" value that determines WHICH key was pressed
           evnt.key = instructionObj.key;
         }
+        if (instructionObj.action == "dragstart" || instructionObj.action == "drop") { // I'm going to TRY to make a mock dataTransfer object.
+          evnt.dataTransfer = {};
+          evnt.dataTransfer.data = {};
+          evnt.dataTransfer.setData = function(type, data) {
+            app.regression.dragData[type] = data;
+          }
+          evnt.dataTransfer.getData = function(type) {
+            return app.regression.dragData[type];
+          }
+        }
         element.dispatchEvent(evnt);
       } // end if (the instruction contains an action)
     } // end if (the instruction has an id)
@@ -285,12 +304,16 @@ class regressionTesting {
   clearAll(app) {
   	if (confirm("This will clear ALL DATA from the database and remove ALL WIDGETS from the webpage. Are you sure you want to do this?")) {
   		for (var id in app.widgets) {
-  			// Remove widget objects
-  			delete app.widgets[id];
+        if (id != "loginDiv" && id != "regHeader") {
+    			// Remove widget objects
+    			delete app.widgets[id];
 
-  			// delete  html2 from page
-  			const widget = document.getElementById(id);
-  			widget.parentElement.removeChild(widget);
+    			// delete  html2 from page
+    			const widget = document.getElementById(id);
+          if (widget) {
+    			  widget.parentElement.removeChild(widget);
+          }
+        }
   		}
   		// Remove nodes and relationships
   		let command = "MATCH (n) DETACH DELETE n";

@@ -86,7 +86,7 @@ widgetSearch(domElement) {
 
 widgetHeader(tag){
 	if (!tag) {
-		var tag = "div";
+		tag = "div";
 	}
 	return(`
 <${tag} id="${this.idCounter++}" class="widget"><hr>

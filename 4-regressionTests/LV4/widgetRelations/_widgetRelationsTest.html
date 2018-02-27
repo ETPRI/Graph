@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>ETPRI Data</title>
+    <title>widgetRelations test</title>
     <link href="../../../app.css" type="text/css" rel="stylesheet" />
     <script src="../../../Libs/neo4j-web.js"></script>
     <script src="../../LV5/app/app.js"></script>
@@ -18,6 +18,9 @@
     <script src="../../LV3/widgetNode/widgetNode.js"></script>
   </head>
   <body>
+    <p>Instructions: To run tests, select all tests, then run them in order. This page does NOT interact with the database in any way and may be run at any time. However, it does clear all Test and Test2 nodes, then create more nodes and relations between them. Later tests rely on changes made to the database by earlier changes, so tests need to be run in order. Also, this page uses the app.widgets array, so tests need to be run all at once on the same page (without refreshing or opening new widgets) to ensure that the widget IDs of the recording and the replay match.</p>
+    <p>Number of tests written for this page so far: 5</p>
+
     <div id="loginDiv"></div>
     <hr>
     <div id="regressionHeader"></div>

@@ -2,7 +2,7 @@
 
 <html>
   <head>
-		<title>Drag and Drop List</title>
+		<title>DragDropTable test</title>
 
     <script src="../../LV3/DragDrop/dragDrop.js"></script>
     <script src="../../../regressionTesting.js"></script>
@@ -12,6 +12,7 @@
     <script src="../../../metaData.js"></script>
     <script src="../../LV2/db/db.js"></script>
     <script src="../../../Libs/neo4j-web.js"></script>
+    <script src="../../../widgetLogin.js"></script>
 
 
     <link href="../../../app.css" type="text/css" rel="stylesheet" />
@@ -19,7 +20,10 @@
 
   <body>
 		<h2>Draggable</h2>
+    <p>Instructions: To run tests, select all tests, then run them in order. This page does NOT interact with the database in any way and may be run at any time. However, later tests depend on changes to the table made by earlier tests, so they need to be run in order.</p>
+    <p>Number of tests written for this page so far: 4</p>
 
+  <div id="loginDiv"></div>
   <div id="regressionHeader"></div>
 
     <ol>

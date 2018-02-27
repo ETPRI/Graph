@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>ETPRI Data</title>
+    <title>DB test</title>
     <link href="../../../app.css" type="text/css" rel="stylesheet" />
     <script src="db.js"></script>
     <script src="dbTest.js"></script>
@@ -15,6 +15,8 @@
   </head>
 
   <body>
+    <p>Instructions: To run tests, select all tests and run them in order. This page does NOT require any particular DB configuration, so tests may be run at any time. However, it does delete all Test nodes, then create new Test nodes and relations between them. Later tests may fail if run without earlier tests, depending on the state of the database - they rely on specific nodes existing. The only safe way to run later tests is to run the earlier ones first.</p>
+    <p>Number of tests written for this page so far: 6</p>
     <div id="regressionHeader"></div>
 
       Type a Cypher command here: <input id="input" type="text" size="80"  onchange="dbTest.queryChange(this)"><br>

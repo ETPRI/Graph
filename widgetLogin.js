@@ -2,6 +2,7 @@ class widgetLogin {
   constructor() {
     this.db = new db();
     this.userID = null;
+    this.userName = null;
     this.loginDiv = document.getElementById("loginDiv");
     if (!(this.loginDiv == null)) {
       this.buildLoginWidget();
@@ -32,7 +33,7 @@ class widgetLogin {
 
   login() {
   	const name = this.nameInput.value;
-  	this.db.setQuery(`match (n) where n._trash=''  and n.name="${name}" return n`);
+  	this.db.setQuery(`match (n) where (n._trash='' or not exists(n._trash)) and n.name="${name}" return n`);
   	this.db.runQuery(this, 'loginComplete');
   }
 
@@ -43,6 +44,7 @@ class widgetLogin {
   	else if (data.length == 1) {
   		this.userID = data[0].n.identity;
   		const name = data[0].n.properties.name;
+      this.userName = name;
   		this.info.textContent = `Logged in as ${name}`;
   	}
   	else {

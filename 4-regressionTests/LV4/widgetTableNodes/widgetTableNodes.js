@@ -234,6 +234,7 @@ class widgetTableNodes {
         if (this.fieldsDisplayed[j] == 'name') { // Make the name cell draggable
           cell.setAttribute("draggable", "true");
           cell.setAttribute("ondragstart", "app.widget('drag', this, event)");
+          cell.setAttribute("idr", `name${i}`);
         }
         text = document.createTextNode(r[i]["n"].properties[fieldName]);
         cell.appendChild(text);
@@ -309,13 +310,15 @@ relationAdd(element) {
 
 edit(element){
     let id = element.innerHTML;
+    new widgetNode(this.queryObject.nodeLabel, id);
 
+    // log
     let obj = {};
     obj.id = app.domFunctions.widgetGetId(element);
     obj.idr = element.getAttribute("idr");
     obj.action = "click";
-
-    new widgetNode(this.queryObject.nodeLabel, id, obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
 

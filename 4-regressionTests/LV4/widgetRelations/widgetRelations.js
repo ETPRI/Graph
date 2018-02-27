@@ -9,14 +9,15 @@ input: node
 
 
 class widgetRelations {
-constructor(containerDOM, nodeID, relationType, id, parent, parentData) {
+constructor(containerDOM, nodeID, relationType, id, object, objectMethod) {
   // data to be displayed
   this.containerDOM = containerDOM  // place to set innerHTML
   this.nodeID       = nodeID;       // neo4j node id where relationship starts
   this.id           = id;           // ID of the widget to be created
   this.relationType = relationType;
   this.existingRelations = {};
-  this.caller = parent;
+  this.object = object;
+  this.objectMethod = objectMethod;
 
   this.idrContent   = 0;            // Number of existing editable cells added to table
   this.idrRow       = 0;            // Number of existing rows added to the table
@@ -45,8 +46,8 @@ getOrder() { // run query to find this user's order for this node, if any
 refresh(order) { // Refresh the widget
   this.db.setQuery( // set query based on relationType
     (r => {switch (r) {
-    case "start": return `match (n)-[r:Link]->(a)  where id(n)=${this.nodeID} return r, a`; break;
-    case "end":   return `match  (a)-[r:Link]->(n) where id(n)=${this.nodeID} return r, a`; break;
+    case "start": return `match (n)-[r:Link]->(a)  where id(n)=${this.nodeID} return r, a order by r.comment, a.name, a.labels[0]`; break;
+    case "end":   return `match  (a)-[r:Link]->(n) where id(n)=${this.nodeID} return r, a order by r.comment, a.name, a.labels[0]`; break;
     case "peer":  return "";  break;// not finished
     default: alert("error"); // better error handling
   }}) (this.relationType)
@@ -110,7 +111,7 @@ createDragDrop(widgetRel) {
         // add changedData class if necessary
         const IDcell = row.children[1];
         const ID = IDcell.textContent;
-        if (ID in this.existingRelations) {
+        if (ID in this.existingRelations) { // If this node was already in the database, check whether the node that was just added differs from the recorded one. Mark the cell as changed or not accordingly
           if (nodeIDcell.textContent != this.existingRelations[ID].nodeID) {
             nodeIDcell.classList.add("changedData");
           } else {
@@ -129,6 +130,14 @@ createDragDrop(widgetRel) {
             typeCell.classList.remove("changedData");
           }
         } // end if (relation ID appears in existing relations)
+
+        //log
+        const obj = {};
+        obj.id = app.domFunctions.widgetGetId(input);
+        obj.idr = input.getAttribute("idr");
+        obj.action = "drop";
+        app.regression.log(JSON.stringify(obj));
+        app.regression.record(obj);
       } // end if (cell is not in template row)
     } // end else (there was data; dragDrop and not drop was the appropriate function)
   } // end dragDrop.dropData function
@@ -140,7 +149,13 @@ saveSync(button) {
   const tableWidget = relWidget.getElementsByClassName("widget")[0]; // The only subwidget inside the relations widget should be the table
   const container = app.domFunctions.getChildByIdr(tableWidget, "container");
   const rows = Array.from(container.children);
-  this.caller = this;
+
+  const obj = {};
+  obj.id = app.domFunctions.widgetGetId(button);
+  obj.idr = button.getAttribute("idr");
+  obj.action = "click";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
   this.processNext(null, rows);
 }
 
@@ -184,19 +199,18 @@ processNext(data, rows) {
   else { // when all rows are processed
     this.order.reverse();
 
-  // If the user ID is shown, try to create or update the order relation
-  const userID = app.login.userID;
-  if (userID) {
+    // If the user ID is known, try to create or update the order relation, then refresh the widget by calling this.getOrder().
+    const userID = app.login.userID;
+    if (userID) {
     this.db.setQuery(`match (a), (n) where id(a)=${userID} and id(n) = ${this.nodeID}
                       merge (a)-[r:Order {direction:"${this.relationType}"}]->(n)
                       set r.order=${JSON.stringify(this.order)}`);
-  }
-  // Once the DB has updated, refresh the widget
-  const obj = {};
-  obj.id = this.id;
-  obj.idr = "SaveSync";
-  this.db.runQuery(this, "getOrder", obj);
-  this.order = []; // reset order
+    this.db.runQuery(this, "getOrder");
+    }
+    else {
+      this.getOrder(); // If the user ID isn't known, don't bother trying to make an order relation. Just go on to getOrder and refresh the widget.
+    }
+    this.order = []; // Finally, reset this.order.
   }
 }
 
@@ -310,8 +324,9 @@ toggle(button){ // Shows or hides relations
 
 complete(nodes, order) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
   const logNodes = JSON.parse(JSON.stringify(nodes)); // Need a copy that WON'T have stuff deleted, in order to log it later
-  let ordering = [];
-  let orderedNodes = [];
+  app.stripIDs(logNodes); // May as well go ahead and remove the IDs now
+  let ordering = []; // Stores the ordered IDs, as stored in the table
+  let orderedNodes = []; // Stores ordered DATA, which is reproducible and human-readable, for testing
   if (order[0]) {
     ordering = order[0].r.properties.order;
   }
@@ -334,19 +349,33 @@ complete(nodes, order) { // Builds html for a table. Each row is a single relati
     }
   }
 
-  if (this.caller == this) { // If the call to query the database came from the object itself, through saveSync, go ahead and log
-    const obj = {};
-    obj.id = this.id;
-    obj.idr = "SaveSync";
-    obj.action = "click";
-    obj.nodes = logNodes;
-    obj.order = orderedNodes;
-    app.regression.log(JSON.stringify(obj));
-    app.regression.record(obj);
+  // logging
+  const obj = {};
+  obj.nodes = logNodes;
+  obj.order = orderedNodes;
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
+
+  if (this.object && this.objectMethod) {
+    this.object[this.objectMethod]();
+    this.object = null;
+    this.objectMethod = null;
   }
-  else { // If the call came from somewhere else, call "somewhere else"'s relationFinished function. Send the type of this one, the data from the relations search and the order array
-    this.caller.relationFinished(this.relationType, logNodes, orderedNodes);
-  }
+
+  // if (this.caller == this) { // If the call to query the database came from the object itself, through saveSync, go ahead and log
+  //   const obj = {};
+  //   obj.id = this.id;
+  //   obj.idr = "SaveSync";
+  //   obj.action = "click";
+  //   obj.nodes = logNodes;
+  //   app.stripIDs(obj.nodes);
+  //   obj.order = orderedNodes;
+  //   app.regression.log(JSON.stringify(obj));
+  //   app.regression.record(obj);
+  // }
+  // else { // If the call came from somewhere else, call "somewhere else"'s relationFinished function. Send the type of this one, the data from the relations search and the order array
+  //   this.caller.relationFinished(this.relationType, logNodes, orderedNodes);
+  // }
 
   for (let i = 0; i < nodes.length; i++) { // add unordered data
     if (nodes[i] !== undefined) { // Some entries will be undefined because they were added as ordered data and deleted. Skip them.
@@ -397,8 +426,8 @@ addLine(relation, html, orderedNodes) {
     const trDrag   = `<tr idr="item${this.idrRow}" ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
 
     html += trDrag + `<td>${this.idrRow + 1}</td> <td>${rel.identity}</td>
-                      <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${nodeID}</td>
-                      <td ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${name}</td>
+                      <td idr="content${this.idrContent++}" ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${nodeID}</td>
+                      <td idr="content${this.idrContent++}" ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${name}</td>
                       <td>${type}</td>
                       <td ondblclick="app.widget('edit', this, event)" idr="content${this.idrContent++}">${comment}</td>
                       <td><button idr="delete${this.idrRow++}" onclick="app.widget('markForDeletion', this)">Delete</button></td></tr>`;

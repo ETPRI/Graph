@@ -30,7 +30,6 @@ class dragDrop {
     this.insertContainer.setAttribute("ondragover", "app.widget('allowDrop', this, event)");
     this.insertContainer.setAttribute("draggable", "true");
     this.insertContainer.setAttribute("ondragstart", "app.widget('drag', this, event)");
-    this.insertContainer.setAttribute("idr", "insertContainer");
 
     if (row) {
       this.itemCount = row; // Number of finished rows which have been added
@@ -40,7 +39,9 @@ class dragDrop {
     }
 
     this.inputCount = 0; // number of input fields in the input element
+    this.otherCount = 0; // number of non-input fields
     this.createInputs(this.insertContainer);
+    this.insertContainer.setAttribute("idr", "insertContainer");
 
     if (content) { // existing is an optional value recording the number of rows that are already in the table.
       this.contentCount = content;
@@ -74,6 +75,9 @@ class dragDrop {
       input.setAttribute("onkeydown", "app.widget('addOnEnter', this, event)");
       input.setAttribute("idr", `input${this.inputCount++}`);
       element.insertBefore(input, element.firstChild);
+    }
+    else {
+      element.setAttribute("idr", `inputOther${this.otherCount++}`);
     }
   }
 
@@ -132,17 +136,17 @@ class dragDrop {
         const text = input.value;
         newEl.appendChild(document.createTextNode(text)); // Copy text to the new node
         newEl.setAttribute("ondblclick", "app.widget('edit', this, event)"); // make new node editable
-        newEl.setAttribute("idr", `content${this.contentCount++}`);
         input.value = ""; // erase input
       }
       const children = element.children;
       for (let i=0; i<children.length; i++) {
-        const childEl = this.insertElement(children[i]);
-        if (childEl.tagName !== "INPUT") { // Don't duplicate the input itself
+        if (children[i].tagName !== "INPUT") { // Don't duplicate the input itself
+          const childEl = this.insertElement(children[i]);
           newEl.appendChild(childEl);
         }
       }
-    } // end if (element has children). No else - a node with no input and no child elements doesn't need processing.
+    } // end if (element has children). No else - a node with no input and no child elements doesn't need special processing.
+    newEl.setAttribute("idr", `content${this.contentCount++}`); // Set the idr of the new node
     return newEl;
   }
 
@@ -173,6 +177,8 @@ class dragDrop {
     newEl.draggable  = true;
     newEl.setAttribute("idr", `item${this.itemCount}`);
     newEl.setAttribute("class", "newData");
+
+    this.contentCount--; // The outer, draggable element was originally given an idr of content{this.contentCount++}, but it doesn't keep that idr. Decrement contentCount so that idr can be used again. 
 
     this.createDelete(newEl);
 

@@ -16,7 +16,7 @@ input: label
 
 
 class widgetNode {
-constructor(label, id, obj) {
+constructor(label, id) {
   // DOM pointers to data that will change, just make place holders
   this.widgetDOM   = {};
   this.relationsFrom = {}; // place holder for relations ->(n)
@@ -37,8 +37,6 @@ constructor(label, id, obj) {
 
   this.db          = new db();
 
-  this.obj = obj;
-
   // If we're editing, then the ID for the node was passed in, and so was an in-progress object for logging the result of opening the node
   if (id) {
     this.db.setQuery(`match (n) where ID(n) = ${id} return n`);
@@ -51,31 +49,28 @@ constructor(label, id, obj) {
 finishConstructor(data) {
   if (data) { // If data were passed in, add them to the table
     this.dataNode = data[0].n;
-    this.obj.data = JSON.parse(JSON.stringify(data));
-    app.stripIDs(this.obj.data);
+
+    const obj = {};
+    obj.data = JSON.parse(JSON.stringify(data));
+    app.stripIDs(obj.data);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
   this.buildWidget();
   this.buildDataNode();
 
   if (data) { // I hate to do this twice, but I have to create dataNode before I can call buildWidget or buildDataNode, and I have to call buildWidget before buiildRelations.
-    this.buildRelations();
+    this.buildStart();
   }
 }
 
-buildRelations() {
-  new widgetRelations(this.startDOM, this.dataNode.identity, "start", app.idCounter, this);
-  new widgetRelations(this.endDOM, this.dataNode.identity, "end", app.idCounter, this);
+buildStart() {
+  new widgetRelations(this.startDOM, this.dataNode.identity, "start", app.idCounter, this, 'buildEnd');
 }
 
-relationFinished(type, nodes, orderedNodes) {
-  this.obj[`nodes_${type}`] = nodes;
-  app.stripIDs(this.obj[`nodes_${type}`]);
-  this.obj[`order_${type}`] = orderedNodes;
-  if (this.obj.nodes_start && this.obj.nodes_end) { // If both relations are done
-    app.regression.log(JSON.stringify(this.obj));
-    app.regression.record(this.obj);
-  }
+buildEnd() {
+  new widgetRelations(this.endDOM, this.dataNode.identity, "end", app.idCounter);
 }
 
 buildWidget() { // public - build table header
@@ -210,15 +205,17 @@ addComplete(data) { // Refreshes the node table and logs that addSave was clicke
   const nodeLabel = app.domFunctions.getChildByIdr(this.widgetDOM, "nodeLabel");
   nodeLabel.textContent=`${this.label}#${id}`;
 
-  this.obj = {};
-  this.obj.id = this.idWidget;
-  this.obj.idr = "addSaveButton";
-  this.obj.action = "click";
-  this.obj.data = JSON.parse(JSON.stringify(data));
-  app.stripIDs(this.obj.data);
+  const obj = {};
+  obj.id = this.idWidget;
+  obj.idr = "addSaveButton";
+  obj.action = "click";
+  obj.data = JSON.parse(JSON.stringify(data));
+  app.stripIDs(obj.data);
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 
   this.buildDataNode();
-  this.buildRelations();
+  this.buildStart();
 }
 
 

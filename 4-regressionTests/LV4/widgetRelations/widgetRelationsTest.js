@@ -4,7 +4,6 @@ class widgetRelationsTest {
     this.widgets = document.getElementById("widgets");
     this.db = new db();
     this.refreshTable();
-    this.obj = {};
   }
 
   clearAll(button) { // Clears all "Test" nodes for a well-defined starting place
@@ -32,7 +31,7 @@ class widgetRelationsTest {
   }
 
   refreshTable(button) {
-    this.db.setQuery("match (n:Test) return n union match(n:Test2) return n");
+    this.db.setQuery("match (n:Test) return n order by n.name, n.field1, n.field2, n.field3 union match(n:Test2) return n order by n.name, n.field1, n.field2, n.field3");
     this.db.runQuery(this, 'refreshComplete', button);
   }
 
@@ -93,25 +92,25 @@ class widgetRelationsTest {
   }
 
   newRelation(button) {
-    const newDiv = document.createElement('div');
-
-    this.widgets.appendChild(newDiv);
     const nodeRow = button.parentElement.parentElement;
-
     const IDcell = nodeRow.children[0];
     const ID = IDcell.textContent;
 
-    let obj = {};
-    this.obj.id = "testNodes";
-    this.obj.idr = button.getAttribute("idr");
-    this.obj.action = "click";
-    new widgetRelations(newDiv, ID, button.value, app.idCounter, this);
-  }
+    const label = document.createTextNode(`Editing ${button.value} relations for node #${ID}; opened while logged in as ${app.login.userName}`);
+    const newDiv = document.createElement('div');
 
-  relationFinished(type, nodes, orderedNodes) {
-    this.obj.nodes = nodes;
-    this.obj.order = orderedNodes;
-    app.regression.log(JSON.stringify(this.obj));
-    app.regression.record(this.obj);
+    this.widgets.appendChild(label);
+    this.widgets.appendChild(newDiv);
+
+    // Start logging
+    const obj = {};
+    obj.id = "testNodes";
+    obj.idr = button.getAttribute("idr");
+    obj.action = "click";
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+
+    // Actually make the widget
+    new widgetRelations(newDiv, ID, button.value, app.idCounter);
   }
 }

@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>ETPRI Data</title>
+    <title>widgetNode test</title>
     <link href="../../../app.css" type="text/css" rel="stylesheet" />
 
     <script src="widgetNode.js"></script>
@@ -15,13 +15,15 @@
     <script src="../../../metaData.js"></script>
     <script src="../dragDrop/dragDrop.js"></script>
     <script src="../../LV4/dragDropTable/dragDropTable.js"></script>
-    <script src="../../../widgetRelations.js"></script>
+    <script src="../../LV4/widgetRelations/widgetRelations.js"></script>
+    <script src="../../../widgetLogin.js"></script>
   </head>
 
   <body>
-    <!--
-      Testing - a copy of all the record stuff should appear HERE
-    -->
+    <p>Instructions: To run tests, select all tests, then run them in order. This page does NOT require any particular DB configuration and may be run at any time. However, it deletes all Test nodes and creates new Test nodes and relations between them. Later tests rely on nodes created by earlier tests to exist, so may fail unless they are run immediately after the earlier tests. Also, this page uses the app.widgets array, so tests need to be run all at once on the same page (without refreshing or opening new widgets) to ensure that the widget IDs in the recording and the replay match.</p>
+    <p>Number of tests written for this page so far: 3</p>
+
+    <div id="loginDiv"></div>
     <div id="regressionHeader"></div>
 
     <input type="button" id="clear" value="Clear test nodes" onclick="widgetNodeTest.clearAll(this)">
