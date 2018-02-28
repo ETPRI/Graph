@@ -39,7 +39,12 @@ constructor(label, id) {
 
   // If we're editing, then the ID for the node was passed in, and so was an in-progress object for logging the result of opening the node
   if (id) {
-    this.db.setQuery(`match (n) where ID(n) = ${id} return n`);
+    if (app.login.userID) {
+      this.db.setQuery(`match (n) where ID(n)=${id} optional match (a) where ID(a)=${app.login.userID} optional match (a)-[:Trash]->()-[r:Trash]->(n) return n, r.reason as reason`)
+    }
+    else {
+      this.db.setQuery(`match (n) where ID(n) = ${id} return n`);
+    }
     this.db.runQuery(this, 'finishConstructor');
   } else {
      this.finishConstructor();
@@ -60,7 +65,20 @@ finishConstructor(data) {
   this.buildWidget();
   this.buildDataNode();
 
-  if (data) { // I hate to do this twice, but I have to create dataNode before I can call buildWidget or buildDataNode, and I have to call buildWidget before buiildRelations.
+  if (data) { // I hate to do this twice, but I have to create dataNode before I can call buildWidget or buildDataNode, and I have to call buildWidget before changing and using DOM elements.
+    if (data[0].reason) { // If a reason for trashing was returned (meaning that the node was already trashed by this user)...
+      this.dataNode.trash=true;
+      this.dataNode.reason = data[0].reason;                                                // Record in the dataNode that it was trashed already...
+      const trashCheck = app.domFunctions.getChildByIdr(this.widgetDOM, "trashCheck");
+      trashCheck.checked=true;
+
+      const reason = app.domFunctions.getChildByIdr(this.widgetDOM, 'trashReason');
+      const reasonText = app.domFunctions.getChildByIdr(this.widgetDOM, 'reasonText');      // Show the reason prompt and textbox...
+      reason.removeAttribute("hidden");
+      reasonText.removeAttribute("hidden");
+      reason.setAttribute("value", data[0].reason);                                    // And prefill that textbox with the reason.
+    }
+
     this.buildStart();
   }
 }
@@ -116,40 +134,67 @@ buildDataNode() {   // put in one field label and input row for each field
     this.tableDOM.removeChild(this.tableDOM.firstChild);
   }
 
-  for (var fieldName in this.fields) {
-/* old david code
-    let value="";   // assume add
-    if (this.dataNode) {
-      // this is an edit,
-      value = this.dataNode.properties[fieldName];
-    }
-    //    <input db="name" idr="input0" onchange="app.widget('changed',this)" value="">
-    html +=  `<tr><th>${this.fields[fieldName].label}</th><td><input db="${fieldName}"
-    idr="input${fieldCount++}" onChange="app.widget('changed',this)" value="${value}"</td></tr>`
-*/
+  for (let fieldName in this.fields) {
     // Create a table row
-    let row = document.createElement('tr');
+    const row = document.createElement('tr');
     this.tableDOM.appendChild(row);
 
     // Create the first cell, a th cell containing the label as text
-    let header = document.createElement('th');
+    const header = document.createElement('th');
     row.appendChild(header);
-    let labelText = document.createTextNode(this.fields[fieldName].label);
+    const labelText = document.createTextNode(this.fields[fieldName].label);
     header.appendChild(labelText);
 
     // Create the second cell, a td cell containing an input which has an idr, an onChange event, and a value which may be an empty string
     if (this.dataNode) {
-      let d=this.dataNode.properties;
+      const d=this.dataNode.properties;
       value = d[fieldName];
       value = value.replace(/"/g, "&quot;");
     }
 
-    let dataField = document.createElement('td');
+    const dataField = document.createElement('td');
     row.appendChild(dataField);
-    let input = document.createElement('input');
+    const input = document.createElement('input');
     dataField.appendChild(input);
-    input.outerHTML = `<input db = ${fieldName} idr = "input${fieldCount++}" onChange = "app.widget('changed',this)" value = "${value}">`
+    input.outerHTML = `<input type = "text" db = ${fieldName} idr = "input${fieldCount++}" onChange = "app.widget('changed',this)" value = "${value}">`
   }
+
+  // Create div for the "trash" checkbox and reason
+  const trashRow = document.createElement('tr');
+  const trash = document.createElement('td');
+  trashRow.appendChild(trash);
+  const trashInput = document.createElement('td');
+  trashRow.appendChild(trashInput);
+
+  const trashTextSection = document.createElement('b');
+  const trashText = document.createTextNode("Trash Node");
+  trashTextSection.appendChild(trashText);
+  trash.appendChild(trashTextSection);
+
+  const checkbox = document.createElement('input');
+  checkbox.setAttribute("type", "checkbox");
+  checkbox.setAttribute("onclick", "app.widget('toggleReason', this)");
+  checkbox.setAttribute("idr", "trashCheck");
+  trash.appendChild(checkbox);
+
+  const reasonTextSection = document.createElement('b');
+  const reasonText = document.createTextNode("Reason: ");
+  reasonTextSection.appendChild(reasonText);
+  reasonTextSection.setAttribute("idr", "reasonText");
+  reasonTextSection.setAttribute("hidden", true);
+  trash.appendChild(reasonTextSection);
+
+  const reason = document.createElement("input");
+  reason.setAttribute("hidden", true);
+  reason.setAttribute("onblur", "app.regression.logText(this)");
+  reason.setAttribute("idr", "trashReason");
+  trashInput.appendChild(reason);
+
+  if (!app.login.userID) { // If no user is logged in
+    trashRow.setAttribute("hidden", "true");
+  }
+  this.tableDOM.appendChild(trashRow);
+  app.loginOnly.push(trashRow);
 
   // set the button to be save or added
   if (this.dataNode) {this.addSaveDOM.value = "Save";
@@ -160,21 +205,43 @@ buildDataNode() {   // put in one field label and input row for each field
 saveAdd(widgetElement) { // Saves changes or adds a new node
   // director function
   if (widgetElement.value === "Save") {
-    this.save(widgetElement);
+    const checkbox = app.domFunctions.getChildByIdr(this.widgetDOM, "trashCheck");
+    if (this.dataNode.trash === true && checkbox.checked === false && app.login.userID) { // If the node was trashed and now shouldn't be
+      this.untrashNode(widgetElement);
+    }
+    else if (!(this.dataNode.trash === true) && checkbox.checked === true && app.login.userID) { // If the node was not trashed and now should be
+      this.trashNode(widgetElement);
+    }
+    else {
+      this.save(widgetElement);
+    }
   } else {
     this.add(widgetElement);
   }
-
-  // // log
-  // let obj = {};
-  // obj.id = app.domFunctions.widgetGetId(widgetElement);
-  // obj.idr = widgetElement.getAttribute("idr");
-  // obj.value = widgetElement.value;
-  // obj.action = "click";
-  // app.log(JSON.stringify(obj));
-  // app.record(obj);
 }
 
+trashNode(widgetElement) {
+  this.dataNode.trash = true;
+  const user = app.login.userID;
+  const node = this.dataNode.identity;
+  const reason = app.domFunctions.getChildByIdr(this.widgetDOM, 'trashReason').value;
+  const query = `match (user), (node) where ID(user)=${user} and ID(node)=${node}  merge (user)-[tRel1:Trash]->(tNode:TrashList) merge (tNode)-[tRel2:Trash {reason:"${reason}"}]->(node)`
+  this.db.setQuery(query);
+  this.db.runQuery(this, "trashUntrash", widgetElement);
+}
+
+untrashNode(widgetElement) {
+  this.dataNode.trash = false;
+  const user = app.login.userID;
+  const node = this.dataNode.identity;
+  const query = `match (user)-[:Trash]->()-[rel:Trash]->(node) where ID(user)=${user} and ID(node)=${node} delete rel`;
+  this.db.setQuery(query);
+  this.db.runQuery(this, "trashUntrash", widgetElement);
+}
+
+trashUntrash(data, widgetElement) {
+  this.save(widgetElement, data);
+}
 
 ////////////////////////////////////////////////////////////////////
 add(widgetElement) { // Builds a query to add a new node, then runs it and passes the result to addComplete
@@ -187,7 +254,9 @@ add(widgetElement) { // Builds a query to add a new node, then runs it and passe
   while (tr) {
     let inp = tr.lastElementChild.firstElementChild;
 
-    data += inp.getAttribute("db") +':"' + app.stringEscape(inp.value) +'", ';
+    if (inp && inp.getAttribute("db")) { // Only process input rows with a db value - not the trash div; that's done separately
+      data += inp.getAttribute("db") +':"' + app.stringEscape(inp.value) +'", ';
+    }
     tr=tr.nextElementSibling;
   }
 
@@ -248,14 +317,13 @@ changed(input) { // Logs changes to fields, and highlights when they are differe
 }
 
 
-save(widgetElement) { // Builds query to update a node, runs it and passes the results to saveData()
+save(widgetElement, trashUntrash) { // Builds query to update a node, runs it and passes the results to saveData()
 /*
   MATCH (n)
   WHERE id(n)= 146
   SET n.born = 2003  // loop changed
   RETURN n
 */
-
   let tr = this.tableDOM.firstElementChild;
 
   let data="";
@@ -277,7 +345,16 @@ save(widgetElement) { // Builds query to update a node, runs it and passes the r
   }
 
   if (data==="") {
+    if (trashUntrash) { // If the node was trashed or untrashed, but no other changes need to be made, don't bother to run an empty query or refresh the widget, but do log the fact that addSave was clicked.
+      let obj = {};
+      obj.id = this.idWidget;
+      obj.idr = "addSaveButton";
+      obj.action = "click";
+      app.regression.log(JSON.stringify(obj));
+      app.regression.record(obj);
+    } else { // If the node was NOT trashed or untrashed AND there were no changes to fields, just alert that there were no changes. No need to log in this case.
     alert("no changes to save")
+    }
   } else {
     this.db.setQuery( `match (n) where id(n)=${this.dataNode.identity} set ${data.substr(0,data.length-2)} return n` );
     this.db.runQuery(this,"saveData");
@@ -298,6 +375,21 @@ saveData(data) { // Refreshes the node table and logs that addSave was clicked
   app.stripIDs(obj.data);
   app.regression.log(JSON.stringify(obj));
   app.regression.record(obj);
+}
+
+toggleReason(checkBox) {
+  const trashRow = checkBox.parentElement.parentElement;
+  const reason = app.domFunctions.getChildByIdr(trashRow, 'trashReason');
+  const reasonText = app.domFunctions.getChildByIdr(trashRow, 'reasonText');
+
+  if (checkBox.checked) {
+    reason.removeAttribute("hidden");
+    reasonText.removeAttribute("hidden");
+  }
+  else {
+    reason.setAttribute("hidden", true);
+    reasonText.setAttribute("hidden", true);
+  }
 }
 
 } ///////////////////// endclass

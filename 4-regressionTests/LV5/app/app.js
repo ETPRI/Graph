@@ -16,6 +16,7 @@ constructor() {
 	this.domFunctions 	= new domFunctions();
 	this.regression 		= new regressionTesting();
 	this.login 					= new widgetLogin();
+	this.loginOnly			= [];
 	this.widgets.regressionHeader = this.regression;
 	this.widgets.loginDiv = this.login;
 	// used by classDB to access neo4j database,

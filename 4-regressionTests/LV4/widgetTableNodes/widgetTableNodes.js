@@ -39,7 +39,10 @@ class widgetTableNodes {
 
   buildQuery() { // public - called when search criteria change
     // init cypherQuery data
-    let match    = "(n:" +this.queryObject.nodeLabel+ ")";
+    let match    = `(n:${this.queryObject.nodeLabel})`;
+    if (app.login.userID) {
+      match += `,(a)`;
+    }
     let where    = this.buildWhere();
     let orderBy  = this.queryObject.orderBy;
     let limit    = app.domFunctions.getChildByIdr(this.widget, "limit").value;
@@ -61,7 +64,10 @@ class widgetTableNodes {
     */  // <tr><th><input>  must go up 2 levels to get to tr
     const th  = app.domFunctions.getChildByIdr(this.widget, "header").firstElementChild.children; // get collection of th
 
-    let where = "n._trash = '' and ";
+    let where = "";
+    if (app.login.userID) {
+      where = `ID(a)=${app.login.userID} and not (a)-[:Trash]->()-[:Trash]->(n) and `;
+    }
     // iterate siblings of input
 
     for(let i=2; i<th.length; i++) {

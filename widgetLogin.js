@@ -41,12 +41,25 @@ class widgetLogin {
   	if (data.length == 0) {
   		alert ("No such node found");
   	}
-  	else if (data.length == 1) {
+  	else if (data.length == 1) { // Can actually log in
   		this.userID = data[0].n.identity;
   		const name = data[0].n.properties.name;
       this.userName = name;
   		this.info.textContent = `Logged in as ${name}`;
-  	}
+
+      for (let i in app.loginOnly) {
+        app.loginOnly[i].removeAttribute("hidden");
+      }
+
+      const dropDown = document.getElementById("metaData");
+      let option = document.createElement('option');
+
+      option.setAttribute("idr", "myTrash");
+      option.setAttribute("value", "myTrash");
+      option.appendChild(document.createTextNode("My Trashed Nodes"));
+      dropDown.appendChild(option);
+
+  	} // end elseif (can log in)
   	else {
   		alert ("Multiple such nodes found");
   	}

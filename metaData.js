@@ -36,7 +36,6 @@ this.relation.link = {
      nodeLabel: "link"
     ,fields: {
     	"comment":   {label: "Comment"}
-     ,"_trash":     {label: "Trash"  }
     }}
 
 }  /////// end method
@@ -56,7 +55,6 @@ this.node.people = {
   ,"state":      {label: "State"     }
   ,"comment":    {label: "Comment"   }
   ,"newField":   {label: "newField"  }
-  ,"_trash":     {label: "Trash"     }
   }}
 
 this.node.organization = {
@@ -67,7 +65,6 @@ this.node.organization = {
     ,"web":      {label: "Web"}
     ,"comment":  {label: "Comment"  }
     ,"newField": {label: "newField"  }
-    ,"_trash":   {label: "Trash"}
   }}
 
 this.node.topic = {
@@ -77,7 +74,6 @@ this.node.topic = {
   ,fields: {"name":       {label: "Name" }
     ,"comment":    {label: "Comment"}
     ,"newField":   {label: "newField"  }
-    ,"_trash": {label: "Trash"}
   }}
 
 
@@ -85,15 +81,14 @@ this.node.address = {
   nodeLabel: "address"
   ,orderBy: "n.name, n.state, n.postalCode, n.city, n.street1, n.street2"
   ,fieldsDisplayed: ["name", "street1", "street2", "city", "state", "postalCode"]
-  ,fields: {"street1":     {label: "Street"}
-  ,"name":       {label: "Name"}
+  ,fields: {"name":       {label: "Name"}
+  ,"street1":    {label: "Street"}
   ,"street2":    {label: ""  }
   ,"city":       {label: "City"  }
   ,"state":      {label: "State"  }
   ,"postalCode": {label: "Zip"  }
   ,"country":    {label: "Country"  }
   ,"comment":    {label: "Comment"  }
-  ,"_trash":     {label: "Trash"  }
   }}
 
 this.node.Test = {

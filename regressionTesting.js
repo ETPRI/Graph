@@ -288,7 +288,7 @@ class regressionTesting {
         }
         if (instructionObj.action == "dragstart" || instructionObj.action == "drop") { // I'm going to TRY to make a mock dataTransfer object.
           evnt.dataTransfer = {};
-          evnt.dataTransfer.data = {};
+          // evnt.dataTransfer.data = {};
           evnt.dataTransfer.setData = function(type, data) {
             app.regression.dragData[type] = data;
           }

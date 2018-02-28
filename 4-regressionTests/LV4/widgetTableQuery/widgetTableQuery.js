@@ -161,15 +161,24 @@ this.queryObjects.keysRelation = {
    }}
 
 
-this.queryObjects.trash = {
-   nameTable: "trash"
-   ,query: "match (n) where not n._trash = '' return id(n) as id, labels(n) as labels, n._trash as trash, n"
+this.queryObjects.myTrash = {
+   nameTable: "myTrash"
+   ,query: `match (user)-[:Trash]->()-[rel:Trash]->(node) where ID(user)=${app.login.userID} return id(node) as id, node.name as name, labels(node) as labels, rel.reason as reason, node`
    ,fields: {
        "id":     {label: "ID",   att: `onclick="app.widget('edit',this)"`}
+     ,"name":   {label:"Name"}
    	 ,"labels": {label: "Labels"}
-   	 ,"trash":  {label: "Trash"   }
+   	 ,"reason":  {label: "Reason"}
     }}
 
+this.queryObjects.allTrash = {
+   nameTable: "allTrash"
+   ,query: `match ()-[rel:Trash]->(node) where not node:TrashList with node, count(rel) as times return ID(node) as id, node.name as name, times`
+   ,fields: {
+       "id":     {label: "ID",   att: `onclick="app.widget('showReasons',this)"`}
+     ,"name":   {label:"Name"}
+   	 ,"times": {label: "Times trashed"}
+    }}
 } /// end method
 
 edit(element){
@@ -182,5 +191,34 @@ edit(element){
   obj.action="click";
   app.regression.log(JSON.stringify(obj));
   app.regression.record(obj);
+}
+
+showReasons(element) {
+  let id = element.innerHTML;
+  let query = `match (user)-[:Trash]->()-[rel:Trash]->(node) where ID(node) = ${id} return user.name as userName, ID(user) as userID, rel.reason as reason, node.name as nodeName, ID(node) as nodeID`;
+  this.db.setQuery(query);
+  this.db.runQuery(this, "buildReasons");
+}
+
+buildReasons(data) {
+  if (data) { // assuming some trash relations were found
+    let html = app.widgetHeader();
+    html += `<table><thead>
+    <tr><th colspan=3>${data[0].nodeName} (node#${data[0].nodeID})</th></tr>
+    <tr><th>UserID</th><th>User Name</th><th>Reason for trashing</th></tr></thead><tbody>`
+
+    for (let i=0; i<data.length; i++) {
+      html += `<tr><td>${data[i].userID}</td><td>${data[i].userName}</td><td>${data[i].reason}</td></tr>`
+    }
+
+    html+='</tbody></table></div>';
+
+    // add
+    let parent = document.getElementById('widgets');
+    let child = parent.firstElementChild;
+    let newWidget = document.createElement('div'); // create placeholder div
+    parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
+    newWidget.outerHTML = html; // replace placeholder with the div that was just written
+  }
 }
 } ////////////////////////////////////////////////// end class
