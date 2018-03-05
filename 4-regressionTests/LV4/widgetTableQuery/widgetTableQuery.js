@@ -163,7 +163,7 @@ this.queryObjects.keysRelation = {
 
 this.queryObjects.myTrash = {
    nameTable: "myTrash"
-   ,query: `match (user)-[:Trash]->()-[rel:Trash]->(node) where ID(user)=${app.login.userID} return id(node) as id, node.name as name, labels(node) as labels, rel.reason as reason, node`
+   ,query: `match (user)-[rel:Trash]->(node) where ID(user)=${app.login.userID} return id(node) as id, node.name as name, labels(node) as labels, rel.reason as reason, node`
    ,fields: {
        "id":     {label: "ID",   att: `onclick="app.widget('edit',this)"`}
      ,"name":   {label:"Name"}
@@ -173,7 +173,7 @@ this.queryObjects.myTrash = {
 
 this.queryObjects.allTrash = {
    nameTable: "allTrash"
-   ,query: `match ()-[rel:Trash]->(node) where not node:TrashList with node, count(rel) as times return ID(node) as id, node.name as name, times`
+   ,query: `match ()-[rel:Trash]->(node) return ID(node) as id, node.name as name, count(rel) as times`
    ,fields: {
        "id":     {label: "ID",   att: `onclick="app.widget('showReasons',this)"`}
      ,"name":   {label:"Name"}
@@ -183,7 +183,7 @@ this.queryObjects.allTrash = {
 
 edit(element){
   let id = element.innerHTML;
-  new widgetNode(element.nextElementSibling.innerText, id);
+  new widgetNode(element.nextElementSibling.nextElementSibling.innerText, id);
 
   let obj={};
   obj.id=app.domFunctions.widgetGetId(element);
@@ -195,7 +195,7 @@ edit(element){
 
 showReasons(element) {
   let id = element.innerHTML;
-  let query = `match (user)-[:Trash]->()-[rel:Trash]->(node) where ID(node) = ${id} return user.name as userName, ID(user) as userID, rel.reason as reason, node.name as nodeName, ID(node) as nodeID`;
+  let query = `match (user)-[rel:Trash]->(node) where ID(node) = ${id} return user.name as userName, ID(user) as userID, rel.reason as reason, node.name as nodeName, ID(node) as nodeID`;
   this.db.setQuery(query);
   this.db.runQuery(this, "buildReasons");
 }

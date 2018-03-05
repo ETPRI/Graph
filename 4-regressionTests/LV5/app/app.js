@@ -16,7 +16,6 @@ constructor() {
 	this.domFunctions 	= new domFunctions();
 	this.regression 		= new regressionTesting();
 	this.login 					= new widgetLogin();
-	this.loginOnly			= [];
 	this.widgets.regressionHeader = this.regression;
 	this.widgets.loginDiv = this.login;
 	// used by classDB to access neo4j database,
@@ -127,7 +126,19 @@ widgetClose(widgetElement) {
 	const id = this.domFunctions.widgetGetId(widgetElement);
 
 	// delete javascript instance of widgetTable
-	delete this.widgets[id];
+	let children = [];
+	if (this.widgets[id].containedWidgets) { // Get the IDs of all widgets contained within this one.
+		children = children.concat(this.widgets[id].containedWidgets)
+	}
+	delete this.widgets[id]; // Delete the original widget.
+
+	while (children.length >0) {
+		const child = children.pop(); // Grab a child widget...
+		if (child.containedWidgets) { // Get the IDs of all widgets contained within it...
+			children = children.concat(child.containedWidgets);
+		}
+		delete this.widgets[child]; 	// and delete it.
+	}
 
 	// delete  html2 from page
 	const widget = document.getElementById(id);

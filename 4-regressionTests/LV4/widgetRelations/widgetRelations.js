@@ -9,11 +9,12 @@ input: node
 
 
 class widgetRelations {
-constructor(containerDOM, nodeID, relationType, id, object, objectMethod) {
+constructor(containerDOM, nodeID, viewID, relationType, object, objectMethod) {
   // data to be displayed
   this.containerDOM = containerDOM  // place to set innerHTML
   this.nodeID       = nodeID;       // neo4j node id where relationship starts
-  this.id           = id;           // ID of the widget to be created
+  this.viewID       = viewID;       // Will write code that uses this later
+  this.id           = app.idCounter; // ID of the widget to be created
   this.relationType = relationType;
   this.existingRelations = {};
   this.object = object;
@@ -24,51 +25,49 @@ constructor(containerDOM, nodeID, relationType, id, object, objectMethod) {
   this.order = [];                  // Order of relations set by the current user
 
   app.widgets[app.idCounter++] = this;
+  this.containedWidgets = [];
 
   // DOM pointers to data that will change, just make place holders
   // this.widgetDOM   = {};
 
   this.db          = new db() ;
-  this.getOrder();
+  this.refresh()
 }
 
-getOrder() { // run query to find this user's order for this node, if any
-  const userID = app.login.userID;
-  if (userID) { // If the user ID is not null
-    this.db.setQuery(`match (a)-[r:Order {direction:"${this.relationType}"}]->(n) where id(a)=${userID} and id(n) = ${this.nodeID} return r`);
-    this.db.runQuery(this, 'refresh');
-  }
-  else {
-    this.refresh([]); // If no user ID was found, just pass along an empty array
-  }
+
+refresh() { // Refresh the widget
+  const query = `match (per)-[:Owner]->(view:View {direction:"${this.relationType}"})-[:Subject]->(node)
+                 where ID(per) = ${this.viewID} and ID(node) = ${this.nodeID}
+                 match (view)-[r:Link]->(a) return r, a, view.order as ordering order by r.comment, a.name, a.labels[0]`;
+  this.db.setQuery(query);
+  this.db.runQuery(this,"rComplete");
 }
 
-refresh(order) { // Refresh the widget
-  this.db.setQuery( // set query based on relationType
-    (r => {switch (r) {
-    case "start": return `match (n)-[r:Link]->(a)  where id(n)=${this.nodeID} return r, a order by r.comment, a.name, a.labels[0]`; break;
-    case "end":   return `match  (a)-[r:Link]->(n) where id(n)=${this.nodeID} return r, a order by r.comment, a.name, a.labels[0]`; break;
-    case "peer":  return "";  break;// not finished
-    default: alert("error"); // better error handling
-  }}) (this.relationType)
-  );
-  this.db.runQuery(this,"rComplete", order);
-}
-
-rComplete(nodes, order) {
+rComplete(data) {
   this.containerDOM.setAttribute("id", this.id.toString());
   this.containerDOM.setAttribute("class", "widget");
-  this.containerDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)"><input idr = "SaveSync" type="Button" value="Save and Sync" onclick="app.widget('saveSync', this)">
-    <table>${this.complete(nodes, order)}</table>`;
+
+  let buttonValue = "Sync";
+  if (app.login.userID && app.login.userID == this.viewID) {
+    buttonValue = "Save";
+  }
+  // Create table for existing data
+  this.containerDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
+                                 <input idr = "SaveSync" type="Button" value=${buttonValue} onclick="app.widget('saveSync', this)">
+                                 <table>${this.complete(data)}</table>`;
+
+  if (app.login.userID && app.login.userID == this.viewID) { // Add a dragdrop table if this view belongs to the user who is logged in
     setTimeout(this.createDragDrop, 1, this);
-//  this.containerDOM = app.domFunctions.getChildByIdr(this.widgetDOM, "end"); // button
+  }
 }
 
 
 createDragDrop(widgetRel) {
+  widgetRel.containedWidgets.push(app.idCounter);
 	let dragDrop = new dragDropTable("template", "container", widgetRel.containerDOM, widgetRel.idrRow, widgetRel.idrContent);
   dragDrop.editDOM.setAttribute("onblur", " app.widget('changeComment', this); app.widget('save', this)");
   dragDrop.existingRelations = JSON.parse(JSON.stringify(widgetRel.existingRelations)); // Makes a copy of this.existingRelations
+
   dragDrop.changeComment = function(input) { // input should be the edit object, which is still attached to the row being edited
     const commentCell = input.parentElement;
     const row = commentCell.parentElement;
@@ -90,17 +89,21 @@ createDragDrop(widgetRel) {
     let idr = row.getAttribute("idr");
 
     const dataText = evnt.dataTransfer.getData("text/plain");
-    if (dataText=="") { // If there's no data, then dropData shouldn't be used. drop should.
-      this.drop(input, evnt);
+
+    // If there's no data, we are rearranging rows. Use drop instead of dropData.
+    if (dataText=="") {
+            this.drop(input, evnt);
     }
+
     else {
+      const data = JSON.parse(dataText);
+
       if (idr == "insertContainer") { // If a node is dragged to the insert row, create a new row and add the data to that.
         row = this.insert();
         idr = row.getAttribute("idr");
       }
 
       if (idr != "template") { // Verify that the cell is not in the template row...
-        const data = JSON.parse(dataText); // then parse the data and add it to each cell
         const nodeIDcell = row.children[2];
         nodeIDcell.textContent = data.nodeID;
         const nameCell = row.children[3];
@@ -144,19 +147,27 @@ createDragDrop(widgetRel) {
 }
 
 saveSync(button) {
-  const widgetID = app.domFunctions.widgetGetId(button);
-  const relWidget = document.getElementById(widgetID); // Returns the relations widget
-  const tableWidget = relWidget.getElementsByClassName("widget")[0]; // The only subwidget inside the relations widget should be the table
-  const container = app.domFunctions.getChildByIdr(tableWidget, "container");
-  const rows = Array.from(container.children);
-
+  // Log first to make sure the click is logged BEFORE any data
   const obj = {};
   obj.id = app.domFunctions.widgetGetId(button);
   obj.idr = button.getAttribute("idr");
   obj.action = "click";
   app.regression.log(JSON.stringify(obj));
   app.regression.record(obj);
-  this.processNext(null, rows);
+
+  // If this is the user's view, save all changed data, then refresh. If it's anyone else's, just refresh.
+  if (app.login.userID && app.login.userID == this.viewID) {
+    const widgetID = app.domFunctions.widgetGetId(button);
+    const relWidget = document.getElementById(widgetID); // Returns the relations widget
+    const tableWidget = relWidget.getElementsByClassName("widget")[0]; // The only subwidget inside the relations widget should be the table
+    const container = app.domFunctions.getChildByIdr(tableWidget, "container");
+    const rows = Array.from(container.children);
+
+    this.processNext(null, rows);
+  }
+  else {
+    this.refresh();
+  }
 }
 
 processNext(data, rows) {
@@ -199,17 +210,13 @@ processNext(data, rows) {
   else { // when all rows are processed
     this.order.reverse();
 
-    // If the user ID is known, try to create or update the order relation, then refresh the widget by calling this.getOrder().
-    const userID = app.login.userID;
-    if (userID) {
-    this.db.setQuery(`match (a), (n) where id(a)=${userID} and id(n) = ${this.nodeID}
-                      merge (a)-[r:Order {direction:"${this.relationType}"}]->(n)
-                      set r.order=${JSON.stringify(this.order)}`);
-    this.db.runQuery(this, "getOrder");
-    }
-    else {
-      this.getOrder(); // If the user ID isn't known, don't bother trying to make an order relation. Just go on to getOrder and refresh the widget.
-    }
+    // Update the view's order property
+    const query = `match (user)-[:Owner]->(view:View {direction:"${this.relationType}"})-[:Subject]->(node)
+                   where ID(user) = ${this.viewID} and ID(node) = ${this.nodeID}
+                   set view.order = ${JSON.stringify(this.order)}`;
+    this.db.setQuery(query);
+    this.db.runQuery(this,'refresh');
+
     this.order = []; // Finally, reset this.order.
   }
 }
@@ -218,7 +225,17 @@ deleteNode(row, rows) {
   const cells = row.children;
   const idCell = cells[1];
   const id = idCell.textContent;
-  this.db.setQuery(`match ()-[r]-() where ID(r) = ${id} delete r`);
+  let otherRelType;
+  switch (this.relationType) {
+    case "start": otherRelType = "end"; break;
+    case "end":   otherRelType = "start"; break;
+    case "peer":  otherRelType = "peer"; break;
+  }
+
+  // delete the relation going to the other node in the view of this node, find the user's view of the other node, and delete the relation from that view to this node.
+  this.db.setQuery(`match ()-[r]-(node) where ID(r) = ${id} delete r with node
+                    match (user)-[:Owner]->(view:View {direction:"${otherRelType}"})-[:Subject]->(node) where ID(user) = ${this.viewID}
+                    match (view)-[r2:Link]->(this) where ID(this) = ${this.nodeID} delete r2`);
   this.db.runQuery(this, "processNext", rows);
 }
 
@@ -264,18 +281,7 @@ addNode(row, rows) {
     attributes = `direction:'${this.relationType}', `;
   }
 
-  // The exact query will depend on whether this widget is for incoming, outgoing or directionless relations. Incoming and outgoing are easy, and I can write them now.
-  // Cypher doesn't actually use directionless relations, so I need to ask Uncle Dvaid how he plans to model them before writing code to deal with them.
-  const queryStart =     (r => {switch (r) {
-      case "start": return `match (a), (b) where ID(a) = ${this.nodeID} and id(b) = ${otherNodeID} create (a)-[r:Link`; break;
-      case "end":   return `match (a), (b) where ID(a) = ${otherNodeID} and id(b) = ${this.nodeID} create (a)-[r:Link`; break;
-      case "peer":  return "";  break;// not finished
-      default: alert("error"); // better error handling
-    }}) (this.relationType);
-
-  const queryEnd = `]->(b) return ID(r)`;
-
-  for (let i = 5; i < headers.length-1; i++) {
+  for (let i = 5; i < headers.length-1; i++) { // start at 5 because the first 5 columns describe the node or are auto-generated - they aren't attributes of the relation.
     const text = cells[i].textContent;
     if (text != "") {
       attributes += `${headers[i].textContent.toLowerCase()}:"${app.stringEscape(text)}", `
@@ -286,7 +292,37 @@ addNode(row, rows) {
     attributes = attributes.substr(0, attributes.length-2); // remove the final comma and space
   }
 
-  const query = queryStart + ` {${attributes}}` + queryEnd;
+  let startID;
+  let endID;
+  switch (this.relationType) {
+    case "start":
+      startID = this.nodeID;
+      endID = otherNodeID;
+      break;
+    case "end":
+      startID = otherNodeID;
+      endID = this.nodeID;
+      break;
+    case "peer":
+      break;
+  }
+
+  const query = `match (per), (start), (end)
+               where ID(per) = ${this.viewID} and ID(start) = ${startID} and ID(end)=${endID}
+               merge (per)-[:Owner]->(view:View {direction:"start"})-[:Subject]->(start)
+               merge (view)-[:Link {${attributes}}]->(end)
+               merge (per)-[:Owner]->(view2:View {direction:"end"})-[:Subject]->(end)
+               merge (view2)-[:Link {${attributes}}]->(start)`;
+
+
+  // const queryStart =     (r => {switch (r) {
+  //     case "start": return `match (a), (b) where ID(a) = ${this.nodeID} and id(b) = ${otherNodeID} create (a)-[r:Link`; break;
+  //     case "end":   return `match (a), (b) where ID(a) = ${otherNodeID} and id(b) = ${this.nodeID} create (a)-[r:Link`; break;
+  //     case "peer":  return "";  break;// not finished
+  //     default: alert("error"); // better error handling
+  //   }}) (this.relationType);
+  // const queryEnd = `]->(b) return ID(r)`;
+  // const query = queryStart + ` {${attributes}}` + queryEnd;
 
   this.db.setQuery(query);
   this.db.runQuery(this, "processNext", rows);
@@ -322,13 +358,13 @@ toggle(button){ // Shows or hides relations
 }
 
 
-complete(nodes, order) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
+complete(nodes) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
   const logNodes = JSON.parse(JSON.stringify(nodes)); // Need a copy that WON'T have stuff deleted, in order to log it later
   app.stripIDs(logNodes); // May as well go ahead and remove the IDs now
   let ordering = []; // Stores the ordered IDs, as stored in the table
   let orderedNodes = []; // Stores ordered DATA, which is reproducible and human-readable, for testing
-  if (order[0]) {
-    ordering = order[0].r.properties.order;
+  if (nodes[0] && nodes[0].ordering) { // If at least one node and an ordering were returned...
+    ordering = nodes[0].ordering;
   }
 
   let html       = `<thead><tr idr='template'> <th>#</th> <th>R#</th> <th ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">N#</th>
@@ -362,21 +398,6 @@ complete(nodes, order) { // Builds html for a table. Each row is a single relati
     this.objectMethod = null;
   }
 
-  // if (this.caller == this) { // If the call to query the database came from the object itself, through saveSync, go ahead and log
-  //   const obj = {};
-  //   obj.id = this.id;
-  //   obj.idr = "SaveSync";
-  //   obj.action = "click";
-  //   obj.nodes = logNodes;
-  //   app.stripIDs(obj.nodes);
-  //   obj.order = orderedNodes;
-  //   app.regression.log(JSON.stringify(obj));
-  //   app.regression.record(obj);
-  // }
-  // else { // If the call came from somewhere else, call "somewhere else"'s relationFinished function. Send the type of this one, the data from the relations search and the order array
-  //   this.caller.relationFinished(this.relationType, logNodes, orderedNodes);
-  // }
-
   for (let i = 0; i < nodes.length; i++) { // add unordered data
     if (nodes[i] !== undefined) { // Some entries will be undefined because they were added as ordered data and deleted. Skip them.
       html = this.addLine(nodes[i], html);
@@ -388,24 +409,13 @@ complete(nodes, order) { // Builds html for a table. Each row is a single relati
 addLine(relation, html, orderedNodes) {
   const rel = relation.r;
   const node = relation.a;
-  let nodeID;
+  let nodeID = node.identity;
   let name = node.properties.name;
   let type = node.labels[0];
   let comment = "";
 
-  switch (this.relationType) {
-    case "start":
-      nodeID = rel.end.low;
-      break;
-    case "end":
-      nodeID = rel.start.low;
-      break;
-    case "peer":
-      break; // not finished
-    default:
-      alert ("Error");
-  }
 
+  // NOTE: CLEAN THIS UP! Placeholders aren't directly circular anymore. Need to think about how best to handle them.
   // If this node is a placeholder going the wrong way, just move along.
   if ("direction" in rel.properties && rel.properties.direction !== this.relationType) {
     this.idrRow++;
@@ -423,14 +433,27 @@ addLine(relation, html, orderedNodes) {
     }
     this.existingRelations[rel.identity] = {'comment':comment, 'nodeID':nodeID, 'name':name, 'type':type};
 
-    const trDrag   = `<tr idr="item${this.idrRow}" ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
+    // Default is that this is NOT the logged in user. The row can only be dragged, the cells can't be interacted with at all and the delete button is not needed.
+    let trHTML = `<tr idr="item${this.idrRow}" draggable="true" ondragstart="app.widget('drag', this, event)">`;
+    let deleteHTML = "";
+    let dragDropHTML = "";
+    let editHTML = "";
 
-    html += trDrag + `<td>${this.idrRow + 1}</td> <td>${rel.identity}</td>
-                      <td idr="content${this.idrContent++}" ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${nodeID}</td>
-                      <td idr="content${this.idrContent++}" ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">${name}</td>
+    // If this is the logged-in user's view, they get the full functionality - ability to drag, drop and delete.
+    if (app.login.userID && app.login.userID == this.viewID) {
+      trHTML = `<tr idr="item${this.idrRow}" ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
+      deleteHTML = `<td><button idr="delete${this.idrRow++}" onclick="app.widget('markForDeletion', this)">Delete</button></td>`;
+      dragDropHTML = `ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)"`;
+      editHTML = `ondblclick="app.widget('edit', this, event)"`
+    }
+
+
+    html += trHTML + `<td>${this.idrRow + 1}</td> <td>${rel.identity}</td>
+                      <td idr="content${this.idrContent++}" ${dragDropHTML}>${nodeID}</td>
+                      <td idr="content${this.idrContent++}" ${dragDropHTML}>${name}</td>
                       <td>${type}</td>
-                      <td ondblclick="app.widget('edit', this, event)" idr="content${this.idrContent++}">${comment}</td>
-                      <td><button idr="delete${this.idrRow++}" onclick="app.widget('markForDeletion', this)">Delete</button></td></tr>`;
+                      <td idr="content${this.idrContent++}" ${editHTML}>${comment}</td>
+                      ${deleteHTML}</tr>`;
   }
 
   // If an array of ordered nodes was passed in, add this line to it
@@ -442,6 +465,22 @@ addLine(relation, html, orderedNodes) {
     orderedNodes.push(node);
   }
   return html;
+}
+
+drag(line, evnt) { // This is what happens when a row from someone else's view is dragged
+  const data = {};
+  data.name = line.children[3].textContent;
+  data.type = line.children[4].textContent;
+  data.nodeID = line.children[2].textContent;
+  data.comment = line.children[5].textContent;
+  evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
+
+  const obj = {};
+  obj.id = app.domFunctions.widgetGetId(line);
+  obj.idr = line.getAttribute("idr");
+  obj.action = "dragstart";
+  app.regression.log(JSON.stringify(obj));
+  app.regression.record(obj);
 }
 
 

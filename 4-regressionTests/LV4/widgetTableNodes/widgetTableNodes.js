@@ -41,7 +41,7 @@ class widgetTableNodes {
     // init cypherQuery data
     let match    = `(n:${this.queryObject.nodeLabel})`;
     if (app.login.userID) {
-      match += `,(a)`;
+      match += `, (a)`;
     }
     let where    = this.buildWhere();
     let orderBy  = this.queryObject.orderBy;
@@ -64,9 +64,9 @@ class widgetTableNodes {
     */  // <tr><th><input>  must go up 2 levels to get to tr
     const th  = app.domFunctions.getChildByIdr(this.widget, "header").firstElementChild.children; // get collection of th
 
-    let where = "";
+    let where = " ";
     if (app.login.userID) {
-      where = `ID(a)=${app.login.userID} and not (a)-[:Trash]->()-[:Trash]->(n) and `;
+      where = `ID(a)=${app.login.userID} and not (a)-[:Trash]->(n) and `;
     }
     // iterate siblings of input
 
@@ -291,9 +291,9 @@ class widgetTableNodes {
     data.name = name;
     data.type = type;
     data.nodeID = ID;
-
     evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
-    let obj = {};
+
+    const obj = {};
     obj.id = app.domFunctions.widgetGetId(evnt.target);
     obj.idr = event.target.getAttribute("idr");
     obj.action = "dragstart";

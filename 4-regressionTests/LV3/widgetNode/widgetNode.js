@@ -34,13 +34,14 @@ constructor(label, id) {
 
   this.idWidget = app.idGet(0);
   app.widgets[app.idCounter] = this; // Add to app.widgets
+  this.containedWidgets = [];
 
   this.db          = new db();
 
-  // If we're editing, then the ID for the node was passed in, and so was an in-progress object for logging the result of opening the node
+  // If we're editing, then the ID for the node was passed in.
   if (id) {
     if (app.login.userID) {
-      this.db.setQuery(`match (n) where ID(n)=${id} optional match (a) where ID(a)=${app.login.userID} optional match (a)-[:Trash]->()-[r:Trash]->(n) return n, r.reason as reason`)
+      this.db.setQuery(`match (n) where ID(n)=${id} match (a) where ID(a)=${app.login.userID} optional match (a)-[r:Trash]->(n) return n, r.reason as reason`)
     }
     else {
       this.db.setQuery(`match (n) where ID(n) = ${id} return n`);
@@ -67,8 +68,8 @@ finishConstructor(data) {
 
   if (data) { // I hate to do this twice, but I have to create dataNode before I can call buildWidget or buildDataNode, and I have to call buildWidget before changing and using DOM elements.
     if (data[0].reason) { // If a reason for trashing was returned (meaning that the node was already trashed by this user)...
-      this.dataNode.trash=true;
-      this.dataNode.reason = data[0].reason;                                                // Record in the dataNode that it was trashed already...
+      this.dataNode.properties.trash=true;
+      this.dataNode.properties.reason = data[0].reason;                                                // Record in the dataNode that it was trashed already...
       const trashCheck = app.domFunctions.getChildByIdr(this.widgetDOM, "trashCheck");
       trashCheck.checked=true;
 
@@ -84,11 +85,13 @@ finishConstructor(data) {
 }
 
 buildStart() {
-  new widgetRelations(this.startDOM, this.dataNode.identity, "start", app.idCounter, this, 'buildEnd');
+  this.containedWidgets.push(app.idCounter);
+  new widgetView(this.startDOM, this.dataNode.identity, "start", this, 'buildEnd');
 }
 
 buildEnd() {
-  new widgetRelations(this.endDOM, this.dataNode.identity, "end", app.idCounter);
+  this.containedWidgets.push(app.idCounter);
+  new widgetView(this.endDOM, this.dataNode.identity, "end");
 }
 
 buildWidget() { // public - build table header
@@ -186,15 +189,16 @@ buildDataNode() {   // put in one field label and input row for each field
 
   const reason = document.createElement("input");
   reason.setAttribute("hidden", true);
-  reason.setAttribute("onblur", "app.regression.logText(this)");
+  reason.setAttribute("onblur", "app.widget('changed', this)");
   reason.setAttribute("idr", "trashReason");
+  reason.setAttribute("db", "reason");
   trashInput.appendChild(reason);
 
   if (!app.login.userID) { // If no user is logged in
     trashRow.setAttribute("hidden", "true");
   }
   this.tableDOM.appendChild(trashRow);
-  app.loginOnly.push(trashRow);
+  app.login.viewLoggedIn.push(trashRow);
 
   // set the button to be save or added
   if (this.dataNode) {this.addSaveDOM.value = "Save";
@@ -206,13 +210,16 @@ saveAdd(widgetElement) { // Saves changes or adds a new node
   // director function
   if (widgetElement.value === "Save") {
     const checkbox = app.domFunctions.getChildByIdr(this.widgetDOM, "trashCheck");
-    if (this.dataNode.trash === true && checkbox.checked === false && app.login.userID) { // If the node was trashed and now shouldn't be
+    if (this.dataNode.properties.trash === true && checkbox.checked === false && app.login.userID) { // If the node was trashed and now shouldn't be
       this.untrashNode(widgetElement);
     }
-    else if (!(this.dataNode.trash === true) && checkbox.checked === true && app.login.userID) { // If the node was not trashed and now should be
+    else if (!(this.dataNode.properties.trash === true) && checkbox.checked === true && app.login.userID) { // If the node was not trashed and now should be
       this.trashNode(widgetElement);
     }
-    else {
+    else if (this.dataNode.properties.trash === true && app.domFunctions.getChildByIdr(this.widgetDOM, 'trashReason').classList.contains("changedData") && app.login.userID) { // If the node was and should stay trashed, but the reason has changed
+      this.updateReason(widgetElement);
+    }
+    else { // If the node's trash status isn't changing, only the data, go straight to save().
       this.save(widgetElement);
     }
   } else {
@@ -221,20 +228,35 @@ saveAdd(widgetElement) { // Saves changes or adds a new node
 }
 
 trashNode(widgetElement) {
-  this.dataNode.trash = true;
+  this.dataNode.properties.trash = true;
   const user = app.login.userID;
   const node = this.dataNode.identity;
-  const reason = app.domFunctions.getChildByIdr(this.widgetDOM, 'trashReason').value;
-  const query = `match (user), (node) where ID(user)=${user} and ID(node)=${node}  merge (user)-[tRel1:Trash]->(tNode:TrashList) merge (tNode)-[tRel2:Trash {reason:"${reason}"}]->(node)`
+  const reasonInp = app.domFunctions.getChildByIdr(this.widgetDOM, 'trashReason');
+  const reason = reasonInp.value;
+  reasonInp.setAttribute("class",""); // remove changedData class from reason
+
+  const query = `match (user), (node) where ID(user)=${user} and ID(node)=${node} merge (user)-[tRel:Trash {reason:"${app.stringEscape(reason)}"}]->(node)`
+  this.db.setQuery(query);
+  this.db.runQuery(this, "trashUntrash", widgetElement);
+}
+
+updateReason(widgetElement) {
+  const user = app.login.userID;
+  const node = this.dataNode.identity;
+  const reasonInp = app.domFunctions.getChildByIdr(this.widgetDOM, 'trashReason');
+  const reason = reasonInp.value;
+  this.dataNode.properties.reason = reason;
+  reasonInp.setAttribute("class","");
+  const query = `match (user)-[rel:Trash]->(node) where ID(user) = ${user} and ID(node) = ${node} set rel.reason = "${reason}"`;
   this.db.setQuery(query);
   this.db.runQuery(this, "trashUntrash", widgetElement);
 }
 
 untrashNode(widgetElement) {
-  this.dataNode.trash = false;
+  this.dataNode.properties.trash = false;
   const user = app.login.userID;
   const node = this.dataNode.identity;
-  const query = `match (user)-[:Trash]->()-[rel:Trash]->(node) where ID(user)=${user} and ID(node)=${node} delete rel`;
+  const query = `match (user)-[rel:Trash]->(node) where ID(user)=${user} and ID(node)=${node} delete rel`;
   this.db.setQuery(query);
   this.db.runQuery(this, "trashUntrash", widgetElement);
 }
@@ -334,10 +356,12 @@ save(widgetElement, trashUntrash) { // Builds query to update a node, runs it an
       let fieldName = inp.getAttribute("db");
       let d1 = "n."+ fieldName +"=#value#, ";
       let d2 = "";
-      if (this.fields[fieldName].type === "number") {
-        d2 = inp.value;  // number
-      } else {
-        d2 = '"' + app.stringEscape(inp.value) + '"';  // assume string
+      if (fieldName in this.fields) {
+        if (this.fields[fieldName].type === "number") {
+          d2 = inp.value;  // number
+        } else {
+          d2 = '"' + app.stringEscape(inp.value) + '"';  // assume string
+        }
       }
       data += d1.replace('#value#',d2)
     }

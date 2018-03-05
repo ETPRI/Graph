@@ -25,6 +25,14 @@ td {
 .newData {background-color: limegreen}
 
 .deletedData {background-color: palevioletred}
+
+.loggedInView {
+	color: darkblue;
+	font-weight: bold;
+	font-size: 120%;
+}
+
+.activeView {background-color: yellow}
 /* // not being used
 [draggable=true] {
     cursor: move;
