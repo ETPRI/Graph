@@ -46,11 +46,12 @@ class widgetTableNodes {
     let where    = this.buildWhere();
     let orderBy  = this.queryObject.orderBy;
     let limit    = app.domFunctions.getChildByIdr(this.widget, "limit").value;
+    let type = this.queryObjectName;
 
     let query =
   	    "match " + match
   		+ (function(w){if(0<w.length) return " where "  + w + " "; else return " ";})(where)
-  		+ "return n "
+  		+ (function(t){if(t=="people") return "optional match (n)-[:Permissions]->(perm:LoginTable) return n, perm.name as permissions"; else return "return n";})(type)
   		+ (function(o){if(0<o.length) return " order by "+ o + " "; else return " ";}) (orderBy)
   		+ (function(l){if (l.trim === "") return ""; else return " limit " + l}) (limit)
   		;
@@ -182,6 +183,7 @@ class widgetTableNodes {
         }
         s += s1.replace('#1',fieldName)
     }
+
     const html4 = html.replace('#headerSearch#',s)
 
     // build field name part of header
@@ -245,6 +247,64 @@ class widgetTableNodes {
         text = document.createTextNode(r[i]["n"].properties[fieldName]);
         cell.appendChild(text);
         row.appendChild(cell);
+      }
+
+      // IF this is a people table...
+      if (this.queryObjectName == "people") {
+        let permissions = "None";
+        if (r[i].permissions) {
+          permissions = r[i].permissions;
+        }
+        cell = document.createElement('td');          // Make a cell showing their permissions...
+        text = document.createTextNode(permissions);
+        cell.appendChild(text);
+        row.appendChild(cell);
+
+        cell = document.createElement('td');          // and one with a button to add/remove User status...
+        const userButton = document.createElement('input');
+        userButton.setAttribute("type", "button");
+        userButton.setAttribute("idr", "changeUser");
+        cell.appendChild(userButton);
+        row.appendChild(cell);
+
+        if (app.login.permissions != "Admin") {
+          cell.setAttribute("hidden", "true");
+        }
+        app.login.viewAdmin.push(cell);
+
+        cell = document.createElement('td');          // and one with a button to add/remove Admin status
+        const adminButton = document.createElement('input');
+        adminButton.setAttribute("type", "button");
+        adminButton.setAttribute("idr", "changeAdmin");
+        cell.appendChild(adminButton);
+        row.appendChild(cell);
+
+        if (app.login.permissions != "Admin") {
+          cell.setAttribute("hidden", "true");
+        }
+        app.login.viewAdmin.push(cell);
+
+        if (permissions == "None") {
+          userButton.setAttribute("value", "Make User");
+          userButton.setAttribute("onclick", "app.widget('makeUser', this)");
+
+          adminButton.setAttribute("value", "Make Admin");
+          adminButton.setAttribute("onclick", "app.widget('makeAdmin', this)");
+        }
+        else if (permissions == "User") {
+          userButton.setAttribute("value", "Remove User");
+          userButton.setAttribute("onclick", "app.widget('removeUser', this)");
+
+          adminButton.setAttribute("value", "Make Admin");
+          adminButton.setAttribute("onclick", "app.widget('makeAdmin', this)");
+        }
+        else if (permissions == "Admin") {
+          userButton.setAttribute("value", "Remove User");
+          userButton.setAttribute("onclick", "app.widget('removeUser', this)");
+
+          adminButton.setAttribute("value", "Remove Admin");
+          adminButton.setAttribute("onclick", "app.widget('removeAdmin', this)");
+        }
       }
 
       // Append the whole row to the data table
@@ -339,5 +399,80 @@ edit(element){
     obj.action = "click";
     app.regression.log(JSON.stringify(obj));
     app.regression.record(obj);
+  }
+
+  makeUser(button) {
+    // Get ID of the person to promote
+    const row = button.parentElement.parentElement;
+    const ID = row.children[1].textContent;
+    // Get username and password
+    let password;
+    const username = prompt("Enter the username:", "");
+    if (username) {
+      password = prompt("Enter the password:", "");
+    }
+
+    // If they entered data, create a link from them to the User table
+    if (username && password) {
+      this.db.setQuery(`match (user:people), (permTable:LoginTable) where ID(user) = ${ID} and permTable.name = "User"
+                        create (user)-[:Permissions {username:"${username}", password:"${password}"}]->(permTable)`);
+      this.db.runQuery(this, 'search'); // Create the link and refresh the table
+    }
+  }
+
+  makeAdmin(button) {
+    // Get ID of the person to promote
+    const row = button.parentElement.parentElement;
+    const ID = row.children[1].textContent;
+
+    // Check if they are already a user
+    this.db.setQuery(`match (user:people)-[rel:Permissions]-(permTable:LoginTable {name:"User"}) where ID(user) = ${ID} return rel.username as name, rel.password as password`);
+    this.db.runQuery(this, 'finishAdmin', ID);
+  }
+
+  finishAdmin(data, ID) {
+    if (data.length > 0 && data[0].name && data[0].password) { // If a link between the person and the User table was found, remove it, and add a link to the Admin table
+      this.db.setQuery(`match (user:people)-[relUser:Permissions]-(userTable:LoginTable {name:"User"}) where ID(user) = ${ID}
+                        delete relUser
+                        with user match (adminTable:LoginTable{name:"Admin"})
+                        create (user)-[:Permissions {username:"${data[0].name}", password:"${data[0].password}"}]->(adminTable)`)
+      this.db.runQuery(this, 'search');
+    }
+    else { // If they weren't a user already...
+      let password;
+      const username = prompt("Enter the username:", "");
+      if (username) {
+        password = prompt("Enter the password:", "");
+      }
+
+      // If they entered data, create a link from them to the Admin table
+      if (username && password) {
+        this.db.setQuery(`match (user:people), (permTable:LoginTable) where ID(user) = ${ID} and permTable.name = "Admin"
+                          create (user)-[:Permissions {username:"${username}", password:"${password}"}]->(permTable)`);
+        this.db.runQuery(this, 'search'); // Create the link and refresh the table
+      }
+    }
+  }
+
+  removeUser(button) {
+    // Get ID of the person to demote
+    const row = button.parentElement.parentElement;
+    const ID = row.children[1].textContent;
+
+    this.db.setQuery(`match (user)-[rel:Permissions]->(permTable:LoginTable) where ID(user) = ${ID} delete rel`); // Delete the connection to either the User or Admin table
+    this.db.runQuery(this, 'search'); // Create the link and refresh the table
+
+  }
+
+  removeAdmin(button) {
+    const row = button.parentElement.parentElement;
+    const ID = row.children[1].textContent;
+
+    // Delete the connection to the admin table; replace with one to the User table.
+    this.db.setQuery(`match (user)-[rel:Permissions]->(permTable:LoginTable {name:"Admin"}) where ID(user) = ${ID}
+                      with user, rel
+                      match (permTable:LoginTable {name:"User"})
+                      create (user)-[:Permissions {username:rel.username, password:rel.password}]->(permTable) delete rel`);
+    this.db.runQuery(this, 'search'); // Create the link and refresh the table
   }
 } ////////////////////////////////////////////////////// end class widgetTableNodes

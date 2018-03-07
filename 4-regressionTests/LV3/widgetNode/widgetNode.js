@@ -41,7 +41,9 @@ constructor(label, id) {
   // If we're editing, then the ID for the node was passed in.
   if (id) {
     if (app.login.userID) {
-      this.db.setQuery(`match (n) where ID(n)=${id} match (a) where ID(a)=${app.login.userID} optional match (a)-[r:Trash]->(n) return n, r.reason as reason`)
+      this.db.setQuery(`match (n) where ID(n)=${id} match (a) where ID(a)=${app.login.userID}
+                        optional match (a)-[r:Trash]->(n)
+                        return n, r.reason as reason`);
     }
     else {
       this.db.setQuery(`match (n) where ID(n) = ${id} return n`);
@@ -102,7 +104,7 @@ buildWidget() { // public - build table header
   }
   const html = app.widgetHeader() +`<table><tbody><tr>
   <td idr="end"></td>
-  <td><b idr="nodeLabel">${this.label}#${id}</b>
+  <td><b idr="nodeLabel">${this.label}#${id}: ${this.dataNode.properties.name}</b>
     <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
     <table idr = "nodeTable"></table>
   </td>
@@ -274,9 +276,9 @@ add(widgetElement) { // Builds a query to add a new node, then runs it and passe
   const create = "create (n:"+ this.label+" {#data#}) return n";
   let data="";
   while (tr) {
-    let inp = tr.lastElementChild.firstElementChild;
+    const inp = tr.lastElementChild.firstElementChild;
 
-    if (inp && inp.getAttribute("db")) { // Only process input rows with a db value - not the trash div; that's done separately
+    if (inp && inp.hasAttribute("db")) { // Only process input rows with a db value - not the trash div; that's done separately
       data += inp.getAttribute("db") +':"' + app.stringEscape(inp.value) +'", ';
     }
     tr=tr.nextElementSibling;
@@ -415,5 +417,4 @@ toggleReason(checkBox) {
     reasonText.setAttribute("hidden", true);
   }
 }
-
 } ///////////////////// endclass

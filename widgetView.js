@@ -73,11 +73,11 @@ class widgetView {
     this.relCell = document.createElement('td');
     this.relCell.setAttribute("idr", "relationsDOM");
 
-    if (this.relationType == "start") { // Should see this order:  end relations, end view, node, start view, start relations
+    if (this.relationType === "start") { // Should see this order:  end relations, end view, node, start view, start relations
       row.appendChild(tableCell);
       row.appendChild(this.relCell);
     }
-    else if (this.relationType == "end") {
+    else if (this.relationType === "end") {
       row.appendChild(this.relCell);
       row.appendChild(tableCell);
     }
@@ -130,14 +130,14 @@ class widgetView {
 
       const dataID = data[i].ID.low;
       if (app.login.userID && app.login.userID.low == dataID) {      // if this row represents the logged-in user...
-        innerRow.classList.add("loggedInView", "activeView");           // format it...
+        innerRow.classList.add("loggedIn", "activeView");           // format it...
         nameCell.setAttribute("idr", "loggedInView");                // give the cell with their name an idr, so it can be logged and replayed...
         nameCell.setAttribute("ondrop", "app.widget('drop', this, event)")  // give the cell with their name an ondrop, so data can be dropped in...
         nameCell.setAttribute("ondragover", "app.widget('allowDrop', this, event)"); // and an ondragover, so data can be dropped...
         this.add.setAttribute("hidden", "true");                     // hide the "Add Me" button because the user is already shown...
         button.setAttribute("value", "__")                           // set the toggle button to "__" because the relation will be shown...
         this.activeToggle = button;
-        this.toggleRelation();                                       // and automatically show their view (pending).
+        this.toggleRelation();                                       // and automatically show their view.
       }
 
       if (this.relationType === 'start') {
@@ -326,13 +326,6 @@ class widgetView {
       comment = data.comment;
     }
 
-    // let nodeID = "";
-    // let name = "";
-    // let type = "";
-    // if ('nodeID' in data) { // if ONE of these three exists, they should ALL exist.
-    //
-    // }
-
     const userViewDOM = this.relations[app.login.userID]; // DOM element containing the user's view
     const dragDropDOM = userViewDOM.lastElementChild; // The dragDrop widget
     const dragDropID = dragDropDOM.getAttribute("id");
@@ -413,7 +406,7 @@ class widgetView {
     const name = document.createTextNode(`${app.login.userName}`)
     nameCell.appendChild(name);
 
-    innerRow.classList.add("loggedInView", "activeView");           // format it...
+    innerRow.classList.add("loggedIn", "activeView");           // format it...
     nameCell.setAttribute("idr", "loggedInView");                // give the cell with their name an idr, so it can be logged and replayed...
     nameCell.setAttribute("ondrop", "app.widget('drop', this, event)")  // give the cell with their name an ondrop, so data can be dropped in...
     nameCell.setAttribute("ondragover", "app.widget('allowDrop', this, event)");  // and an ondragover, so the data can be dropped...
@@ -469,7 +462,7 @@ class widgetView {
         const toggleCell = rows[i].children[toggleColumn];
         const nameCell = rows[i].children[1];
 
-        rows[i].classList.add("loggedInView", "activeView");            // format it...
+        rows[i].classList.add("loggedIn", "activeView");            // format it...
         nameCell.setAttribute("idr", "loggedInView");                // give the cell with their name an idr, so it can be logged and replayed...
         nameCell.setAttribute("ondrop", "app.widget('drop', this, event)")  // give the cell with their name an ondrop, so data can be dropped in...
         nameCell.setAttribute("ondragover", "app.widget('allowDrop', this, event)");  // and an ondragover, so data can be dropped...
@@ -513,8 +506,8 @@ class widgetView {
       const toggleButton = toggleCell.firstElementChild;
       toggleButton.setAttribute("value", "+");
 
-      if (rows[i].classList.contains("loggedInView")) { // If this row used to represent the logged-in user...
-        rows[i].classList.remove("loggedInView")        // remove formatting...
+      if (rows[i].classList.contains("loggedIn")) { // If this row used to represent the logged-in user...
+        rows[i].classList.remove("loggedIn")        // remove formatting...
         const nameCell = rows[i].children[1];
         nameCell.removeAttribute("idr");                // remove idr, ondragover and ondrop.
         nameCell.removeAttribute("ondrop");

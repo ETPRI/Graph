@@ -26,8 +26,8 @@ td {
 
 .deletedData {background-color: palevioletred}
 
-.loggedInView {
-	color: darkblue;
+.loggedIn {
+	color: green;
 	font-weight: bold;
 	font-size: 120%;
 }

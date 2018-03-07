@@ -448,7 +448,7 @@ addLine(relation, html, orderedNodes) {
     }
 
 
-    html += trHTML + `<td>${this.idrRow + 1}</td> <td>${rel.identity}</td>
+    html += trHTML + `<td>${this.idrRow}</td> <td>${rel.identity}</td>
                       <td idr="content${this.idrContent++}" ${dragDropHTML}>${nodeID}</td>
                       <td idr="content${this.idrContent++}" ${dragDropHTML}>${name}</td>
                       <td>${type}</td>

@@ -11,16 +11,18 @@ constructor() {
 	this.widgets   = {}; // store widgets as they are created, remove when closed
 	this.idCounter = 0;  // init id counter - used get getElementById, is the id of the widget
 
+	// used by classDB to access neo4j database,
+	this.authToken = neo4j.v1.auth.basic("neo4j", "paleo3i");
+	this.driver    = neo4j.v1.driver("bolt://localhost", this.authToken, {encrypted:false});
+
 	this.metaData  			= new metaData();
 	this.db        			= new db();
 	this.domFunctions 	= new domFunctions();
 	this.regression 		= new regressionTesting();
 	this.login 					= new widgetLogin();
+	
 	this.widgets.regressionHeader = this.regression;
 	this.widgets.loginDiv = this.login;
-	// used by classDB to access neo4j database,
-	this.authToken = neo4j.v1.auth.basic("neo4j", "paleo3i");
-	this.driver    = neo4j.v1.driver("bolt://localhost", this.authToken, {encrypted:false});
 }
 
 
