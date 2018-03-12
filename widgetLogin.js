@@ -19,7 +19,7 @@ class widgetLogin {
 
     // Example: {object:widgetView, method:"onLogin", args:[]}
     this.doOnLogin = [];    // Arrays of objects, each containing object, objectMethod, and parameters, to run when logging in or out
-    this.doOnLogout = [];   
+    this.doOnLogout = [];
 
     this.loginDiv = document.getElementById("loginDiv");
     if (!(this.loginDiv == null)) {
@@ -52,6 +52,7 @@ class widgetLogin {
     loginInfo.appendChild(passwordPrompt);
 
     this.passwordInput = document.createElement("input");
+    this.passwordInput.setAttribute("type", "password");
     this.passwordInput.setAttribute("idr", "password");
     this.passwordInput.setAttribute("onblur", "app.regression.logText(this)");
     loginInfo.appendChild(this.passwordInput);
