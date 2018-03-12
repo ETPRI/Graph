@@ -185,6 +185,9 @@ class widgetLogin {
      this.info.textContent = `Not Logged In`;
      this.info.classList.remove("loggedIn");
 
+     this.nameInput.value = "";
+     this.passwordInput.value = "";
+
      // Log
      const obj = {};
      obj.id = "loginDiv";
