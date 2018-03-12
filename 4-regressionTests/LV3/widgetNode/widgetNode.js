@@ -98,13 +98,16 @@ buildEnd() {
 
 buildWidget() { // public - build table header
   let id="";  // assume add mode
+  let name = "New Node"
   if (this.dataNode) {
     // we are edit mode
     id = this.dataNode.identity;
+    name = this.dataNode.properties.name
+
   }
   const html = app.widgetHeader() +`<table><tbody><tr>
   <td idr="end"></td>
-  <td><b idr="nodeLabel">${this.label}#${id}: ${this.dataNode.properties.name}</b>
+  <td><b idr="nodeLabel">${this.label}#${id}: ${name}</b>
     <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
     <table idr = "nodeTable"></table>
   </td>
