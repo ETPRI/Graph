@@ -52,8 +52,7 @@ rComplete(data) {
     buttonValue = "Save";
   }
   // Create table for existing data
-  this.containerDOM.innerHTML = `<input idr = "toggle" type="button" value="." onclick="app.widget('toggle',this)">
-                                 <input idr = "SaveSync" type="Button" value=${buttonValue} onclick="app.widget('saveSync', this)">
+  this.containerDOM.innerHTML = `<input idr = "SaveSync" type="Button" value=${buttonValue} onclick="app.widget('saveSync', this)">
                                  <table>${this.complete(data)}</table>`;
 
   if (app.login.userID && app.login.userID == this.viewID) { // Add a dragdrop table if this view belongs to the user who is logged in
@@ -330,33 +329,6 @@ addNode(row, rows) {
 
 
 //////////////////////////////////////////////////// below not reviewed
-
-toggle(button){ // Shows or hides relations
-  if (button.value ==="+") {
-    button.value = ".";
-    let sibling = button.nextElementSibling;
-    while (sibling) {
-      sibling.hidden = false;
-      sibling = sibling.nextElementSibling;
-    }
-  } else {
-    button.value = "+";
-    let sibling = button.nextElementSibling;
-    while (sibling) {
-      sibling.hidden = true;
-      sibling = sibling.nextElementSibling;
-    }
-  }
-
-  // log
-  let obj = {};
-  obj.id = app.domFunctions.widgetGetId(button);
-  obj.idr = button.getAttribute("idr");
-  obj.action = "click";
-  app.regression.log(JSON.stringify(obj));
-  app.regression.record(obj);
-}
-
 
 complete(nodes) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
   const logNodes = JSON.parse(JSON.stringify(nodes)); // Need a copy that WON'T have stuff deleted, in order to log it later
