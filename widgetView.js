@@ -321,47 +321,50 @@ class widgetView {
     const dataText = evnt.dataTransfer.getData("text/plain");
     const data = JSON.parse(dataText);
 
-    let comment = "";
-    if ('comment' in data) {
-      comment = data.comment;
+    // Only continue if the object being dragged is a row from a widgetRelations object (representing someone else's view)
+    if (data.sourceType == "widgetRelations" && data.sourceTag == "TR") { 
+      let comment = "";
+      if ('comment' in data) {
+        comment = data.comment;
+      }
+
+      const userViewDOM = this.relations[app.login.userID]; // DOM element containing the user's view
+      const dragDropDOM = userViewDOM.lastElementChild; // The dragDrop widget
+      const dragDropID = dragDropDOM.getAttribute("id");
+      const dragDropObj = app.widgets[dragDropID];  // The javascript object for the dragDrop widget
+
+      const tbody = app.domFunctions.getChildByIdr(dragDropDOM, "container");
+      const inputRow = app.domFunctions.getChildByIdr(tbody, "insertContainer");
+      const numrows = tbody.children.length - 1; // Subtract 1 for the input row
+
+      // Create new row
+      const row = document.createElement('tr');
+      row.setAttribute("idr", `item${dragDropObj.itemCount}`); // Assign an idr and increment itemCount in the dragDrop object
+      row.setAttribute("ondrop", "app.widget('drop', this, event)");
+      row.setAttribute("ondragover", "app.widget('allowDrop', this, event)");
+      row.setAttribute("draggable", "true");
+      row.setAttribute("ondragstart", "app.widget('drag', this, event)");
+
+      const html = `<td></td>
+                    <td></td>
+                    <td ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropData', this, event)" idr="content${dragDropObj.contentCount++}">${data.nodeID}</td>
+                    <td ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropData', this, event)" idr="content${dragDropObj.contentCount++}">${data.name}</td>
+                    <td>${data.type}</td>
+                    <td ondblclick="app.widget('edit', this, event)" idr="content${dragDropObj.contentCount++}">${comment}</td>
+                    <td><input type="button" idr="delete${dragDropObj.itemCount++}" value="Delete" onclick="app.widget('markForDeletion', this)"></td>`
+
+      row.innerHTML = html;
+      row.classList.add("newData");
+      tbody.insertBefore(row, inputRow);
+
+      //log
+      const obj = {};
+      obj.id = app.domFunctions.widgetGetId(viewName);
+      obj.idr = viewName.getAttribute("idr");
+      obj.action = "drop";
+      app.regression.log(JSON.stringify(obj));
+      app.regression.record(obj);
     }
-
-    const userViewDOM = this.relations[app.login.userID]; // DOM element containing the user's view
-    const dragDropDOM = userViewDOM.lastElementChild; // The dragDrop widget
-    const dragDropID = dragDropDOM.getAttribute("id");
-    const dragDropObj = app.widgets[dragDropID];  // The javascript object for the dragDrop widget
-
-    const tbody = app.domFunctions.getChildByIdr(dragDropDOM, "container");
-    const inputRow = app.domFunctions.getChildByIdr(tbody, "insertContainer");
-    const numrows = tbody.children.length - 1; // Subtract 1 for the input row
-
-    // Create new row
-    const row = document.createElement('tr');
-    row.setAttribute("idr", `item${dragDropObj.itemCount}`); // Assign an idr and increment itemCount in the dragDrop object
-    row.setAttribute("ondrop", "app.widget('drop', this, event)");
-    row.setAttribute("ondragover", "app.widget('allowDrop', this, event)");
-    row.setAttribute("draggable", "true");
-    row.setAttribute("ondragstart", "app.widget('drag', this, event)");
-
-    const html = `<td></td>
-                  <td></td>
-                  <td ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropData', this, event)" idr="content${dragDropObj.contentCount++}">${data.nodeID}</td>
-                  <td ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropData', this, event)" idr="content${dragDropObj.contentCount++}">${data.name}</td>
-                  <td>${data.type}</td>
-                  <td ondblclick="app.widget('edit', this, event)" idr="content${dragDropObj.contentCount++}">${comment}</td>
-                  <td><input type="button" idr="delete${dragDropObj.itemCount++}" value="Delete" onclick="app.widget('markForDeletion', this)"></td>`
-
-    row.innerHTML = html;
-    row.classList.add("newData");
-    tbody.insertBefore(row, inputRow);
-
-    //log
-    const obj = {};
-    obj.id = app.domFunctions.widgetGetId(viewName);
-    obj.idr = viewName.getAttribute("idr");
-    obj.action = "drop";
-    app.regression.log(JSON.stringify(obj));
-    app.regression.record(obj);
   }
 
   allowDrop(input, evnt){ // the event doesn't take its default action

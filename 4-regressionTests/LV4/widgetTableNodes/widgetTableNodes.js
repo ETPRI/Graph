@@ -351,6 +351,9 @@ class widgetTableNodes {
     data.name = name;
     data.type = type;
     data.nodeID = ID;
+    data.sourceID = app.domFunctions.widgetGetId(input);
+    data.sourceType = "widgetTableNodes";
+    data.sourceTag = input.tagName;
     evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
 
     const obj = {};

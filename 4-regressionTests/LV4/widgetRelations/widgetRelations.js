@@ -88,15 +88,15 @@ createDragDrop(widgetRel) {
     let idr = row.getAttribute("idr");
 
     const dataText = evnt.dataTransfer.getData("text/plain");
+    const data = JSON.parse(dataText);
 
-    // If there's no data, we are rearranging rows. Use drop instead of dropData.
-    if (dataText=="") {
+    // If the source is a cell from this dragDrop table, we are rearranging. Call drop instead.
+    if (data.sourceType == "dragDrop" && data.sourceTag == "TD" && data.sourceID == this.id) {
             this.drop(input, evnt);
     }
 
-    else {
-      const data = JSON.parse(dataText);
-
+    // If the source is a cell from a widgetTableNodes, we are adding. Continue.
+    else if (data.sourceType == "widgetTableNodes" && data.sourceTag == "TD"){
       if (idr == "insertContainer") { // If a node is dragged to the insert row, create a new row and add the data to that.
         row = this.insert();
         idr = row.getAttribute("idr");
@@ -141,7 +141,7 @@ createDragDrop(widgetRel) {
         app.regression.log(JSON.stringify(obj));
         app.regression.record(obj);
       } // end if (cell is not in template row)
-    } // end else (there was data; dragDrop and not drop was the appropriate function)
+    } // end else if (the source was a widgetTableNodes cell and we added data)
   } // end dragDrop.dropData function
 }
 
@@ -445,6 +445,9 @@ drag(line, evnt) { // This is what happens when a row from someone else's view i
   data.type = line.children[4].textContent;
   data.nodeID = line.children[2].textContent;
   data.comment = line.children[5].textContent;
+  data.sourceID = app.domFunctions.widgetGetId(line);
+  data.sourceType = "widgetRelations";
+  data.sourceTag = line.tagName;
   evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
 
   const obj = {};

@@ -105,9 +105,9 @@ buildWidget() { // public - build table header
     name = this.dataNode.properties.name
 
   }
-  const html = app.widgetHeader() +`<table><tbody><tr>
+  const html = app.widgetHeader() + `<b idr="nodeLabel">${this.label}#${id}: ${name}</b><table><tbody><tr>
   <td idr="end"></td>
-  <td><b idr="nodeLabel">${this.label}#${id}: ${name}</b>
+  <td>
     <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
     <table idr = "nodeTable"></table>
   </td>

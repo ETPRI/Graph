@@ -20,9 +20,11 @@ constructor() {
 	this.domFunctions 	= new domFunctions();
 	this.regression 		= new regressionTesting();
 	this.login 					= new widgetLogin();
-	
+
 	this.widgets.regressionHeader = this.regression;
 	this.widgets.loginDiv = this.login;
+
+	this.activeWidget = null; // widget being dragged
 }
 
 
@@ -91,7 +93,7 @@ widgetHeader(tag){
 		tag = "div";
 	}
 	return(`
-<${tag} id="${this.idCounter++}" class="widget"><hr>
+<${tag} id="${this.idCounter++}" class="widget" draggable="true" ondragstart="app.drag(this, event)" ondragover="app.allowDrop(this, event)" ondrop="app.drop(this, event)"><hr>
 <input type="button" value="X" idr="closeButton" onclick="app.widgetClose(this)">
 <input type="button" value="__" idr="expandCollapseButton" onclick="app.widgetCollapse(this)">
 		`)
@@ -177,6 +179,56 @@ stripIDs (data) { // Assume that the data is the result of a query. Each row may
 	} // end for (every row)
 }
 
+drag(widget, evnt) { // sets value of activeNode and data
+	this.activeWidget = evnt.target;
+
+	const data = {};
+	data.sourceID = this.domFunctions.widgetGetId(widget);
+	data.sourceType = "widget";
+	data.sourceTag = widget.tagName;
+	evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
+
+	let obj = {};
+	obj.id = this.domFunctions.widgetGetId(evnt.target);
+	obj.action = "dragstart";
+	this.regression.log(JSON.stringify(obj));
+	this.regression.record(obj);
+
+}
+
+allowDrop(input, evnt) { // the event doesn't take its default action
+	evnt.preventDefault();
+}
+
+drop(widget, evnt) {
+	evnt.preventDefault();
+
+	const dataText = evnt.dataTransfer.getData("text/plain");
+	const data = JSON.parse(dataText);
+
+	if (data.sourceType == "widget" && data.sourceTag == "DIV") { // Make sure the object being dragged is a widget
+		let target = evnt.target;
+		while (target.parentNode.id != "widgets") { // Make sure we're dropping into a top-level widget - one whose parent is the widgets div
+			target = target.parentNode;
+		}
+		if (this.activeWidget) { // If activeNode exists
+			if (this.activeWidget.offsetTop < target.offsetTop) {  // drag down
+				target.parentNode.insertBefore(this.activeWidget, target.nextSibling); // Insert after target
+			}
+			else { // drag up
+				target.parentNode.insertBefore(this.activeWidget, target); // Insert before target
+			}
+		}
+
+		this.activeNode = null;
+
+		const obj = {};
+		obj.id = this.domFunctions.widgetGetId(evnt.target);
+		obj.action = "drop";
+		this.regression.log(JSON.stringify(obj));
+		this.regression.record(obj);
+	}
+}
 
 
 ////////////////////// get,getLast,replace where all id functions

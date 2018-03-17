@@ -81,8 +81,15 @@ class dragDrop {
     }
   }
 
-  drag(input, evnt){ // sets value of activeNode
+  drag(input, evnt){ // sets value of activeNode and data
     this.activeNode = evnt.target;
+
+    const data = {};
+    data.sourceID = app.domFunctions.widgetGetId(input);
+    data.sourceType = "dragDrop";
+    data.sourceTag = input.tagName;
+    evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
+
     let obj = {};
     obj.id = this.domFunctions.widgetGetId(evnt.target);
     obj.idr = event.target.getAttribute("idr");
@@ -96,29 +103,35 @@ class dragDrop {
   	evnt.preventDefault();
   }
 
-  drop(input, evnt) { // drops the dwb node above or below the target. evnt is the drop event and its target is what's being dropped onto.
+  drop(input, evnt) { // drops the active node above or below the target. evnt is the drop event and its target is what's being dropped onto.
   	evnt.preventDefault();
-    let target = evnt.target;
-    while (target.draggable == false) { // Also for nested tags
-      target = target.parentNode;
-    }
-    if (this.activeNode) { // If activeNode exists
-    	if (this.activeNode.offsetTop < target.offsetTop) {  // drag down
-    		target.parentNode.insertBefore(this.activeNode, target.nextSibling); // Insert after target
-    	}
-      else { // drag up
-    		target.parentNode.insertBefore(this.activeNode, target); // Insert before target
-    	}
-    }
 
-    this.activeNode = null;
-    const obj = {};
-    obj.id = this.domFunctions.widgetGetId(evnt.target);
-    obj.idr = target.getAttribute("idr");
-    obj.action = "drop";
-    this.log(JSON.stringify(obj));
-    app.regression.log(JSON.stringify(obj));
-    app.regression.record(obj);
+    const dataText = evnt.dataTransfer.getData("text/plain");
+    const data = JSON.parse(dataText);
+
+    if (data.sourceType == "dragDrop" && data.sourceTag == "TD" && data.sourceID == this.id) { // Make sure the data comes from this table
+      let target = evnt.target;
+      while (target.draggable == false) { // Also for nested tags
+        target = target.parentNode;
+      }
+      if (this.activeNode) { // If activeNode exists
+      	if (this.activeNode.offsetTop < target.offsetTop) {  // drag down
+      		target.parentNode.insertBefore(this.activeNode, target.nextSibling); // Insert after target
+      	}
+        else { // drag up
+      		target.parentNode.insertBefore(this.activeNode, target); // Insert before target
+      	}
+      }
+
+      this.activeNode = null;
+      const obj = {};
+      obj.id = this.domFunctions.widgetGetId(evnt.target);
+      obj.idr = target.getAttribute("idr");
+      obj.action = "drop";
+      this.log(JSON.stringify(obj));
+      app.regression.log(JSON.stringify(obj));
+      app.regression.record(obj);
+    }
   }
 
   lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (inserting a new node or changing an existing one)
@@ -178,7 +191,7 @@ class dragDrop {
     newEl.setAttribute("idr", `item${this.itemCount}`);
     newEl.setAttribute("class", "newData");
 
-    this.contentCount--; // The outer, draggable element was originally given an idr of content{this.contentCount++}, but it doesn't keep that idr. Decrement contentCount so that idr can be used again. 
+    this.contentCount--; // The outer, draggable element was originally given an idr of content{this.contentCount++}, but it doesn't keep that idr. Decrement contentCount so that idr can be used again.
 
     this.createDelete(newEl);
 
