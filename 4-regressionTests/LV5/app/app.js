@@ -180,6 +180,7 @@ stripIDs (data) { // Assume that the data is the result of a query. Each row may
 }
 
 drag(widget, evnt) { // sets value of activeNode and data
+	if (event.dataTransfer.getData("text/plain") == "") { // If there's not already data from something smaller being dragged
 	this.activeWidget = evnt.target;
 
 	const data = {};
@@ -193,7 +194,7 @@ drag(widget, evnt) { // sets value of activeNode and data
 	obj.action = "dragstart";
 	this.regression.log(JSON.stringify(obj));
 	this.regression.record(obj);
-
+	}
 }
 
 allowDrop(input, evnt) { // the event doesn't take its default action
