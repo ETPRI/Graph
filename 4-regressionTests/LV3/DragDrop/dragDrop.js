@@ -26,10 +26,16 @@ class dragDrop {
 
     // This is where we start building the insert line. insertContainer is the outermost template tag (the draggable one) (or the only one, if they're not nested)
     this.insertContainer = this.container.lastElementChild;
-    this.insertContainer.setAttribute("ondrop", "app.widget('drop', this, event)");
-    this.insertContainer.setAttribute("ondragover", "app.widget('allowDrop', this, event)");
+    if (!this.insertContainer.hasAttribute("ondrop")) { // If there's already an ondrop event set up, don't replace it
+      this.insertContainer.setAttribute("ondrop", "app.widget('drop', this, event)");
+    }
+    if (!this.insertContainer.hasAttribute("ondragover")) { // Same goes for ondragover...
+      this.insertContainer.setAttribute("ondragover", "app.widget('allowDrop', this, event)");
+    }
     this.insertContainer.setAttribute("draggable", "true");
-    this.insertContainer.setAttribute("ondragstart", "app.widget('drag', this, event)");
+    if (!this.insertContainer.hasAttribute("ondragstart")) { // and ondragstart.
+      this.insertContainer.setAttribute("ondragstart", "app.widget('drag', this, event)");
+    }
 
     if (row) {
       this.itemCount = row; // Number of finished rows which have been added
@@ -109,7 +115,7 @@ class dragDrop {
     const dataText = evnt.dataTransfer.getData("text/plain");
     const data = JSON.parse(dataText);
 
-    if (data.sourceType == "dragDrop" && data.sourceTag == "TD" && data.sourceID == this.id) { // Make sure the data comes from this table
+    if (data.sourceType == "dragDrop" && data.sourceTag == "TR" && data.sourceID == this.id) { // Make sure the data comes from this table
       let target = evnt.target;
       while (target.draggable == false) { // Also for nested tags
         target = target.parentNode;
@@ -163,7 +169,7 @@ class dragDrop {
     return newEl;
   }
 
-  insert(input) { // Insert a new node
+  insert(input, row) { // Insert a new node. Default position is just before the insert row. Can pass in a different row to insert just before that row.
     if (input) {
       // Log first so input hasn't been deleted yet. Log only if insert was triggered by an input - if it's triggered by something else, the other thing will log it.
       let obj = {};
@@ -179,15 +185,33 @@ class dragDrop {
 
     const newEl = this.insertElement(this.insertContainer); // Should create an appropriately nested element with data in leaves
 
-    // Insert the new element before the input
-    this.container.insertBefore(newEl, this.insertContainer);
+    if (row) {
+      // Insert the new element before the given row
+      this.container.insertBefore(newEl, row);
+
+    }
+    else {
+      // Insert the new element before the input
+      this.container.insertBefore(newEl, this.insertContainer);
+    }
     // this.activeNode = newEl; // remember item that we are editing
 
     // set all the draggable functions
-    newEl.setAttribute("ondrop"        ,"app.widget('drop', this, event)"     );
-    newEl.setAttribute("ondragover"    ,"app.widget('allowDrop', this, event)");
-    newEl.setAttribute("ondragstart"   ,"app.widget('drag', this, event)"     );
-    newEl.draggable  = true;
+    if (!newEl.hasAttribute("ondrop")) { // If there's already an ondrop event set up, don't replace it
+      newEl.setAttribute("ondrop", "app.widget('drop', this, event)");
+    }
+    if (!newEl.hasAttribute("ondragover")) { // Same goes for ondragover...
+      newEl.setAttribute("ondragover", "app.widget('allowDrop', this, event)");
+    }
+    newEl.setAttribute("draggable", "true");
+    if (!newEl.hasAttribute("ondragstart")) { // and ondragstart.
+      newEl.setAttribute("ondragstart", "app.widget('drag', this, event)");
+    }
+
+    // newEl.setAttribute("ondrop"        ,"app.widget('drop', this, event)"     );
+    // newEl.setAttribute("ondragover"    ,"app.widget('allowDrop', this, event)");
+    // newEl.setAttribute("ondragstart"   ,"app.widget('drag', this, event)"     );
+    // newEl.draggable  = true;
     newEl.setAttribute("idr", `item${this.itemCount}`);
     newEl.setAttribute("class", "newData");
 

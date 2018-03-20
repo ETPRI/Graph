@@ -55,6 +55,7 @@ class widgetLogin {
     this.passwordInput.setAttribute("type", "password");
     this.passwordInput.setAttribute("idr", "password");
     this.passwordInput.setAttribute("onblur", "app.regression.logText(this)");
+    this.passwordInput.setAttribute("onkeydown", "app.widget('loginOnEnter', this, event)");
     loginInfo.appendChild(this.passwordInput);
 
     this.loginButton = document.createElement("input");
@@ -63,6 +64,12 @@ class widgetLogin {
     this.loginButton.setAttribute("value", "Log In");
     this.loginButton.setAttribute("onclick", "app.widget('login', this)");
     this.loginDiv.appendChild(this.loginButton);
+  }
+
+  loginOnEnter(textBox, evnt) {
+    if (textBox == this.passwordInput && evnt.key == "Enter") {
+      this.login();
+    }
   }
 
   checkAdminTable() { // Ensure that the Admin and User nodes exist, and search for users who are admins
@@ -84,8 +91,14 @@ class widgetLogin {
   login() {
   	const name = this.nameInput.value;
     const password = this.passwordInput.value;
-  	this.db.setQuery(`match (user)-[rel:Permissions {username:"${name}", password:"${password}"}]->(table:LoginTable) return ID(user) as userID, user.name as name, table.name as permissions`);
-  	this.db.runQuery(this, 'loginComplete');
+
+    if (name == "" || password == "") { // If the user didn't enter a name and password, don't even bother trying to log in.
+      alert("Enter your name and password first!");
+    }
+    else {
+  	  this.db.setQuery(`match (user)-[rel:Permissions {username:"${name}", password:"${password}"}]->(table:LoginTable) return ID(user) as userID, user.name as name, table.name as permissions`);
+  	  this.db.runQuery(this, 'loginComplete');
+    }
   }
 
   loginComplete(data) {

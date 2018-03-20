@@ -84,25 +84,31 @@ createDragDrop(widgetRel) {
   } // end dragdrop.changeComment function
 
   dragDrop.dropData = function(input, evnt) { // If data is dragged to a cell with ondrop = dropData
-    let row = input.parentElement;
+    let row = input;
     let idr = row.getAttribute("idr");
 
     const dataText = evnt.dataTransfer.getData("text/plain");
     const data = JSON.parse(dataText);
 
     // If the source is a cell from this dragDrop table, we are rearranging. Call drop instead.
-    if (data.sourceType == "dragDrop" && data.sourceTag == "TD" && data.sourceID == this.id) {
+    if (data.sourceType == "dragDrop" && data.sourceTag == "TR" && data.sourceID == this.id) {
             this.drop(input, evnt);
     }
 
-    // If the source is a cell from a widgetTableNodes, we are adding. Continue.
-    else if (data.sourceType == "widgetTableNodes" && data.sourceTag == "TD"){
-      if (idr == "insertContainer") { // If a node is dragged to the insert row, create a new row and add the data to that.
-        row = this.insert();
-        idr = row.getAttribute("idr");
-      }
+    // If the source is a cell from a widgetTableNodes, we are either adding a new entry or changing an entry's node.
+    // If the source is another table of relations, we are definitely adding a new entry.
+    else if (data.sourceType == "widgetTableNodes" && data.sourceTag == "TD" ||
+             data.sourceType == "widgetRelations" && data.sourceTag == "TR" ||
+             data.sourceType == "dragDrop" && data.sourceTag == "TR" && data.sourceID != this.id) {
 
       if (idr != "template") { // Verify that the cell is not in the template row...
+
+        // If a node was dragged from a node table to the insert row, or a whole relation was dragged from another table to ANY row, create a new row and add to that.
+        if (idr == "insertContainer" || data.sourceType == "widgetRelations" || data.sourceType == "dragDrop") {
+          row = this.insert(null, row);
+          idr = row.getAttribute("idr");
+        }
+
         const nodeIDcell = row.children[2];
         nodeIDcell.textContent = data.nodeID;
         const nameCell = row.children[3];
@@ -141,8 +147,38 @@ createDragDrop(widgetRel) {
         app.regression.log(JSON.stringify(obj));
         app.regression.record(obj);
       } // end if (cell is not in template row)
-    } // end else if (the source was a widgetTableNodes cell and we added data)
+    } // end else if (the source was a widgetTableNodes cell
   } // end dragDrop.dropData function
+
+  dragDrop.drag = function(input, evnt){ // Expand drag function to store data as well as mark an active node
+    this.activeNode = evnt.target;
+    const IDcell = this.activeNode.children[2];
+    const ID = IDcell.textContent;
+    const nameCell = this.activeNode.children[3];
+    const name = nameCell.textContent;
+    const typeCell = this.activeNode.children[4];
+    const type = typeCell.textContent;
+    const commentCell = this.activeNode.children[5];
+    const comment = commentCell.textContent;
+
+    const data = {};
+    data.nodeID = ID;
+    data.name = name;
+    data.type = type;
+    data.comment = comment;
+    data.sourceID = app.domFunctions.widgetGetId(input);
+    data.sourceType = "dragDrop";
+    data.sourceTag = input.tagName;
+    evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
+
+    let obj = {};
+    obj.id = this.domFunctions.widgetGetId(evnt.target);
+    obj.idr = event.target.getAttribute("idr");
+    obj.action = "dragstart";
+    this.log(JSON.stringify(obj));
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+  } // end dragDrop.drag function
 }
 
 saveSync(button) {
@@ -339,9 +375,9 @@ complete(nodes) { // Builds html for a table. Each row is a single relation and 
     ordering = nodes[0].ordering;
   }
 
-  let html       = `<thead><tr idr='template'> <th>#</th> <th>R#</th> <th ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">N#</th>
-                    <th ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)">Name</th>
-                    <th>Type</th><th editable>Comment</th> </tr></thead><tbody idr='container'>`;
+  let html       = `<thead><tr idr='template' ondrop="app.widget('dropData', this, event)">
+                    <th>#</th> <th>R#</th> <th>N#</th> <th>Name</th> <th>Type</th> <th editable>Comment</th>
+                    </tr></thead><tbody idr='container'>`;
   this.idrRow     = 0;
   this.idrContent = 0;
   this.existingRelations = {};
@@ -408,21 +444,19 @@ addLine(relation, html, orderedNodes) {
     // Default is that this is NOT the logged in user. The row can only be dragged, the cells can't be interacted with at all and the delete button is not needed.
     let trHTML = `<tr idr="item${this.idrRow}" draggable="true" ondragstart="app.widget('drag', this, event)">`;
     let deleteHTML = "";
-    let dragDropHTML = "";
     let editHTML = "";
 
     // If this is the logged-in user's view, they get the full functionality - ability to drag, drop and delete.
     if (app.login.userID && app.login.userID == this.viewID) {
-      trHTML = `<tr idr="item${this.idrRow}" ondrop="app.widget('drop', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
+      trHTML = `<tr idr="item${this.idrRow}" ondrop="app.widget('dropData', this, event)" ondragover="app.widget('allowDrop', this, event)" draggable="true" ondragstart="app.widget('drag', this, event)">`
       deleteHTML = `<td><button idr="delete${this.idrRow++}" onclick="app.widget('markForDeletion', this)">Delete</button></td>`;
-      dragDropHTML = `ondragover="app.widget('allowDrop', this, event)" ondrop ="app.widget('dropData', this, event)"`;
       editHTML = `ondblclick="app.widget('edit', this, event)"`
     }
 
 
     html += trHTML + `<td>${this.idrRow}</td> <td>${rel.identity}</td>
-                      <td idr="content${this.idrContent++}" ${dragDropHTML}>${nodeID}</td>
-                      <td idr="content${this.idrContent++}" ${dragDropHTML}>${name}</td>
+                      <td idr="content${this.idrContent++}">${nodeID}</td>
+                      <td idr="content${this.idrContent++}">${name}</td>
                       <td>${type}</td>
                       <td idr="content${this.idrContent++}" ${editHTML}>${comment}</td>
                       ${deleteHTML}</tr>`;
