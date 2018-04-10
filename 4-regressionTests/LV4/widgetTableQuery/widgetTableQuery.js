@@ -65,7 +65,7 @@ queryComplete(data) {
 buildHeader() {
   // build header
 
-  const html =app.widgetHeader() +'<b> '+ this.tableName +` </b>
+  const html =app.widgetHeader() +'<b> '+ this.tableName +` </b></div>
 
   <table>
     <thead>#header#</thead>

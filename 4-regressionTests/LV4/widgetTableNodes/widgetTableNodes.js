@@ -137,6 +137,7 @@ class widgetTableNodes {
     <input type="button" value="Add" idr = "addButton" onclick="app.widget('addNode',this)">
     <input type="button" value="Search" idr = "searchButton" onclick="app.widgetSearch(this)">
     limit <input value ="9" idr = "limit" style="width: 20px;" onblur = "app.regression.logText(this)">
+    </div>
 
     <table>
       <thead idr = "header">
@@ -393,7 +394,7 @@ edit(element){
 
   // open add widget
   addNode(element){
-    new widgetNode(this.queryObject.nodeLabel)
+    new widgetNode(this.queryObject.nodeLabel);
 
     // log
     let obj = {};

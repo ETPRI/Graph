@@ -97,18 +97,24 @@ buildEnd() {
 }
 
 buildWidget() { // public - build table header
-  let id="";  // assume add mode
-  let name = "New Node"
+  let id=null;  // assume add mode
+  let name = "New Node";
+  let otherButtonHTML = "";
+
   if (this.dataNode) {
     // we are edit mode
     id = this.dataNode.identity;
     name = this.dataNode.properties.name
-
   }
-  const html = app.widgetHeader() + `<b idr="nodeLabel">${this.label}#${id}: ${name}</b><table><tbody><tr>
+
+  if (this.label == "graphic") {
+    otherButtonHTML = `<input idr="showButton" type="button" onclick="new widgetSVG(this, ${id})" value="Show graphic">`;
+  }
+
+  const html = app.widgetHeader() + `<b idr="nodeLabel">${this.label}#${id}: ${name}</b></div><table><tbody><tr>
   <td idr="end"></td>
   <td>
-    <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
+    <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">${otherButtonHTML}</div>
     <table idr = "nodeTable"></table>
   </td>
   <td idr="start"></td>
@@ -157,7 +163,9 @@ buildDataNode() {   // put in one field label and input row for each field
     if (this.dataNode) {
       const d=this.dataNode.properties;
       value = d[fieldName];
-      value = value.replace(/"/g, "&quot;");
+      if (value) { // No need to sanitize data that don't exist, and this can avoid errors when a value is undefined during testing
+        value = value.replace(/"/g, "&quot;");
+      }
     }
 
     const dataField = document.createElement('td');
@@ -209,7 +217,6 @@ buildDataNode() {   // put in one field label and input row for each field
   if (this.dataNode) {this.addSaveDOM.value = "Save";
   } else {this.addSaveDOM.value = "Add";}
 }
-
 
 saveAdd(widgetElement) { // Saves changes or adds a new node
   // director function
@@ -289,7 +296,6 @@ add(widgetElement) { // Builds a query to add a new node, then runs it and passe
 
 
   const query = create.replace("#data#", data.substr(0,data.length-2) );
-//  this.db = new db();
   this.db.setQuery(query);
   this.db.runQuery(this,"addComplete");
 }

@@ -34,6 +34,52 @@ td {
 
 .activeView {background-color: yellow}
 
+svg {
+	border-style: ridge;
+	border-width: 5px;
+	background-color: antiquewhite;
+}
+
+text {
+	text-anchor: middle;
+	font-size: 16px;
+}
+
+.link {
+	fill: none;
+	stroke: black;
+	stroke-width: 3px;
+}
+
+.nodeRect {
+	stroke: black;
+	stroke-width: 1px;
+	fill: lightblue;
+}
+
+.tempLine {
+	stroke: gray;
+	stroke-width: 2px;
+	stroke-dasharray: 2 2;
+}
+
+.permLine {
+	stroke: black;
+	stroke-width: 3px;
+}
+
+.svgLabel {
+		-webkit-user-select:none;
+	-khtml-user-select:none;
+	-moz-user-select:none;
+	-ms-user-select:none;
+	-o-user-select:none;
+	user-select:none;
+	fill: black;
+	font-size: 12px;
+	font-family: arial;
+}
+
 .hidden {display: none}
 /* // not being used
 [draggable=true] {

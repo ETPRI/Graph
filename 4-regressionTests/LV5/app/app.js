@@ -42,7 +42,7 @@ relationCreate(){
 widget(method, widgetElement, ...args) { // SHOULD take all the remaining arguments and store them in an array
 	// app.widget("add",this) on widget to get back to method from html to class
 	const id = this.domFunctions.widgetGetId(widgetElement);
-	if (id) {
+	if (id && this.widgets[id] && this.widgets[id][method]) {
 		this.widgets[id][method](widgetElement, ...args); //  Call the method, which belongs to the widget containing widgetElement, and pass in widgetElement. SHOULD also pass in extra args
 	} else {
      // create instance of widget and remember it
@@ -93,7 +93,9 @@ widgetHeader(tag){
 		tag = "div";
 	}
 	return(`
-<${tag} id="${this.idCounter++}" class="widget" draggable="true" ondragstart="app.drag(this, event)" ondragover="app.allowDrop(this, event)" ondrop="app.drop(this, event)"><hr>
+<${tag} id="${this.idCounter++}" class="widget">
+<hr>
+<div idr="header" draggable="true" ondragstart="app.drag(this, event)" ondragover="app.allowDrop(this, event)" ondrop="app.drop(this, event)">
 <input type="button" value="X" idr="closeButton" onclick="app.widgetClose(this)">
 <input type="button" value="__" idr="expandCollapseButton" onclick="app.widgetCollapse(this)">
 		`)
@@ -102,8 +104,8 @@ widgetHeader(tag){
 
 widgetCollapse(domElement) {  // toggle expand collapse
 	// called from widgetList
-	let table=domElement.parentElement.lastElementChild;
-  // above code is brittle, it assumes position of table relative to button.
+	let table=domElement.parentElement.parentElement.lastElementChild;
+  // above code is brittle, it assumes position of table relative to button. Currently: Button is in header which is in widget div (the grandparent). The last child of the widget div is the table.
 
 	table.hidden = !table.hidden  // toggle hidden
 	if(table.hidden) {
@@ -182,6 +184,9 @@ stripIDs (data) { // Assume that the data is the result of a query. Each row may
 drag(widget, evnt) { // sets value of activeNode and data
 	if (event.dataTransfer.getData("text/plain") == "") { // If there's not already data from something smaller being dragged
 	this.activeWidget = evnt.target;
+	while (this.activeWidget.parentNode.id != "widgets") { // Make the active node being dragged the top-level widget that the target was in
+		this.activeWidget = this.activeWidget.parentElement;
+	}
 
 	const data = {};
 	data.sourceID = this.domFunctions.widgetGetId(widget);

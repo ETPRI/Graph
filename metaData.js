@@ -91,6 +91,19 @@ this.node.address = {
   ,"comment":    {label: "Comment"  }
   }}
 
+this.node.graphic = {
+  nodeLabel: "graphic"
+  ,orderBy: "n.name" // , n.lastEdited, n.created, n.lastEditor, n.creator
+  ,fieldsDisplayed: ["name", "comment"] // , "creator", "created", "lastEditor", "lastEdited"
+  ,fields: {
+    "name":         {label: "Name"}
+    ,"comment":     {label: "Comment"}
+    // ,"creator":     {label: "Created by"}  // Add this stuff later - have to research how to search by a date
+    // ,"created":     {label: "Created on", type: "date"}
+    // ,"lastEditor":  {label: "Last edited by"}
+    // ,"lastEdited":  {label: "Last edited on", type: "date"}
+  }}
+
 this.node.Test = {
   nodeLabel: "Test"
   ,orderBy: "n.name, n.field1, n.field2, n.field3"
