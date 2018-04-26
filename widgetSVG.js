@@ -9,18 +9,19 @@ class widgetSVG {
     this.nameCell = table.getElementsByTagName("TH")[0].nextElementSibling;
 
     app.widgets[app.idCounter] = this;
-    this.width = 1200; // Width of the SVG element
-    this.height = 300; // Height of the SVG element
+    this.count = 0;
 
     // constants for drawing
+    this.width = 1200; // Width of the SVG element
+    this.height = 300; // Height of the SVG element
     this.nodeWidth = 150;
     this.nodeHeight = 30;
+    this.toggleWidth = 20;
 
     // variables for dragging
-    this.activeNode = null;
     this.currentX=0;
     this.currentY=0;
-    this.transform = [0,0];
+    this.transform = [];
 
     // data for making trees. This will hold an array of objects.
     // each with a name, a parent (although the parent will be null), x and y coordinates and a children array, as well as other data not needed for a tree.
@@ -51,7 +52,7 @@ class widgetSVG {
   } // end buildWidget
 
   loadGraphic () { // Call database to get the trees for this graphic and their locations, then call loadComplete().
-    const query = `match (graphic:graphic) where ID(graphic) = ${this.graphicID} and graphic.name = "${this.name}" return graphic.roots as roots`;
+    const query = `match (graphic:graphic) where ID(graphic) = ${this.graphicID} and graphic.name = "${this.name}" return graphic.roots as roots, graphic.count as count`;
     app.db.setQuery(query);
     app.db.runQuery(this, 'loadComplete');
   } // end load
@@ -65,6 +66,7 @@ class widgetSVG {
     }
     else { // If one graphic was returned - which should always happen
       this.roots = JSON.parse(data[0].roots);
+      this.count = data[0].count;
       this.update();
     }
   }
@@ -78,7 +80,6 @@ class widgetSVG {
     const data = JSON.parse(dataText);
 
     if (data.sourceType == "widgetTableNodes" && data.sourceTag == "TD") { // If the object being dragged is a node
-      const ID = data.nodeID;
       const name = data.name;
 
       const x = evnt.clientX;
@@ -89,44 +90,34 @@ class widgetSVG {
       const relX = x-left;
       const relY = y-top;
 
-      const rootObj = {};
-      rootObj.x = relX;
-      rootObj.y = relY;
-      rootObj.id = data.nodeID;
-      rootObj.name = name;
-      rootObj.parent = "null";
-      rootObj.children = [];
-      this.roots.push(rootObj);
-      this.update();
+      const newObj = {};
+      newObj.x = relX;
+      newObj.y = relY;
+      newObj.nodeID = data.nodeID;
+      newObj.id = this.count++;
+      newObj.name = name;
+      newObj.parent = "null";
+      newObj.children = [];
+
+      // Right here, I should check whether I dropped ONTO something. If so, instead of adding the new node as a root, I should call dropConnect.
+      const group = this.checkDrop(null, x, y);
+      if (group) {
+        this.dropConnect(group, newObj);
+      }
+      else {
+        this.roots.push(newObj);
+        this.update();
+      }
     }
   }
 
-  dropConnect(node) { // Creates a link between the node being dragged and the node it was dropped onto
-    const newChild = this.activeNode;
-    this.activeNode = null;
-    const parentID = node.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-    const childID = newChild.getAttribute("idr").slice(4); // And this IDR will be like treexxx
-
-    // Get object representing child's root (from roots array)
-    let childObj = null;
-    for (let i = 0; i < this.roots.length; i++) {
-      const root = this.roots[i];
-      if (root.id == childID) {
-        childObj = root;
-        break;
-      }
-    }
-    if (childObj == null) {
-      alert("Error: The child object was not found.");
-    }
-
-    // Get object representing parent node (may not be a root)
-    let parentObj = null;
+  getObjFromID(nodeID) {
+    let nodeObj = null;
     let nonRootObjs = [];
     for (let i = 0; i < this.roots.length; i++) { // for every root...
       const root = this.roots[i];
-      if (root.id == parentID) { // check that root...
-        parentObj = root;
+      if (root.id == nodeID) { // check that root...
+        nodeObj = root;
         break;
       }
       if (root.children) {
@@ -134,10 +125,10 @@ class widgetSVG {
       }
     }
 
-    while (nonRootObjs.length > 0 && parentObj == null) { // If the parent object hasn't been found and there are more objects to check...
+    while (nonRootObjs.length > 0 && nodeObj == null) { // If the parent object hasn't been found and there are more objects to check...
       const testObj = nonRootObjs.pop(); // Grab an object and check it...
-      if (testObj.id == parentID) {
-        parentObj = testObj;
+      if (testObj.id == nodeID) {
+        nodeObj = testObj;
         break;
       }
       if (testObj.children) {
@@ -145,23 +136,40 @@ class widgetSVG {
       }
     }
 
-    if (parentObj == null) {
-      alert("Error: The parent object was not found.");
+    if (nodeObj == null) {
+      alert(`Error: The object belonging to the node with idr "group${nodeID}" was not found.`);
     }
+    return nodeObj;
+  }
 
-    if (parentObj && childObj) { // If both objects were found
-      const index = this.roots.indexOf(childObj); // Remove the child from the roots array
-      if (index == -1) {
-        alert("Error: The child object is not a root");
-      }
-      else {
-        parentObj.children.push(childObj); // Make the child a child of the parent
-        childObj.parent = parentObj.name; // Make the parent the child's parent
-        delete childObj.x;
-        delete childObj.y;
+  dropConnect(node, childObj) { // Creates a link between the node being dragged and the node it was dropped onto
+    // Get object representing parent node (object representing child node was already found)
+    const nodeID = node.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+    const parentObj = this.getObjFromID(nodeID);
 
+    if (parentObj && childObj) { // If both objects exist
+      const index = this.roots.indexOf(childObj); // Remove the child from the roots array if it's in there
+      if (index != -1) {
         this.roots.splice(index, 1);
       }
+
+      // Make the child a child of the parent
+      if (parentObj.children) {
+        parentObj.children.push(childObj);
+      }
+      else if (parentObj._children) {
+        parentObj._children.push(childObj);
+      }
+      else {
+        parentObj.children = [];
+        parentObj.children.push(childObj);
+        alert ("The parent object had no children or _children array. A children array has been created.");
+      }
+
+      // Make the parent the child's parent and remove the child's coordinates, which are no longer needed
+      childObj.parent = parentObj.id;
+      delete childObj.x;
+      delete childObj.y;
 
       this.update(); // Update the graphic
     } // End if (both objects found)
@@ -171,20 +179,18 @@ class widgetSVG {
     // Because THIS is the closest SVG gets to a goddamn "Bring to front" command!
     // It just draws everything in whatever order it's listed in the DOM,
     // so to move something to the front you have to actually move the HTML that generates it forward!
-    this.SVG_DOM.appendChild(element);
+    this.SVG_DOM.appendChild(element.parentElement);
 
-    this.activeNode = element;
     this.currentX = evnt.clientX; // get mouse position
     this.currentY = evnt.clientY;
-    let transform = element.getAttribute("transform");
+    const transform = element.parentElement.getAttribute("transform");
     this.transform = transform.slice(10, -1).split(' '); // Get the transformation string and extract the coordinates
     this.transform[0] = parseFloat(this.transform[0]);
     this.transform[1] = parseFloat(this.transform[1]);
+
     element.setAttribute("onmousemove", "app.widget('moveNode', this, event)");
     element.setAttribute("onmouseup", "app.widget('releaseNode', this, event)");
     element.setAttribute("onmouseout", "app.widget('releaseNode', this, event)");
-
-    const widgetDOM = document.getElementById(this.id);
   }
 
   moveNode (element, evnt) { // Compares current to previous mouse position to see how much the element should have moved, then moves it by that much and updates the mouse position.
@@ -198,14 +204,39 @@ class widgetSVG {
     this.transform[0] += dx;
     this.transform[1] += dy;
     const newTransform = `translate(${this.transform[0]} ${this.transform[1]})`;
-    element.setAttribute("transform", newTransform);
+    element.parentElement.setAttribute("transform", newTransform);
   }
 
   releaseNode(element, evnt) { // Removes all the onmousemove, onmouseup and onmouseout events which were set when the node was selected.
-    element.removeAttribute("onmousemove");
     const x = evnt.clientX;
     const y = evnt.clientY;
 
+    const group = this.checkDrop(element.parentElement, x, y); // checkDrop returns the first other group (not element) it finds at the mouse coordinates (x and y), or null if there is no such group.
+    if (group) { // If there is another group at the mouse coordinates, then we dropped element (the node being moved) onto that group, so we should connect them.
+      const newChild = element.parentElement;
+      const childID = newChild.getAttribute("idr").slice(4); // this IDR will be like treexxx
+
+      // Get object representing child's root (from roots array)
+      let childObj = null;
+      for (let i = 0; i < this.roots.length; i++) {
+        const root = this.roots[i];
+        if (root.id == childID) {
+          childObj = root;
+          break;
+        }
+      }
+      if (childObj == null) {
+        alert("Error: The child object was not found.");
+      }
+      else this.dropConnect(group, childObj);
+    } // end if (the node was dragged onto another node)
+
+    element.removeAttribute("onmousemove");
+    element.removeAttribute("onmouseup");
+    element.removeAttribute("onmouseout");
+  }
+
+  checkDrop(element, x, y) {
     const rectangles = this.SVG_DOM.getElementsByTagName("rect"); // Get all rectangles in the graphic
 
     for (let i = 0; i < rectangles.length; i++) { // Loop through all rectangles
@@ -215,14 +246,115 @@ class widgetSVG {
       const bottom = bound.bottom;
       const left = bound.left;
       const right = bound.right;
-      const contains = element.contains(group);
-      if (top < y && y < bottom && left < x && x < right && !contains ) { // If the mouse is inside this element, and this is NOT the element being dragged
-        this.dropConnect(group);
+      let contains = false;
+      if (element) {
+        contains = element.contains(group);
+      }
+
+      if (top < y && y < bottom && left < x && x < right && !contains ) { // If the mouse is inside this element, and this is NOT the element being dragged or that element doesn't exist
+        return group;
       }
     }
+    return null;
+  }
 
+  selectChild(element, evnt) {
+    // Move the element to the front by reappending it where it was (SVG doesn't have 3D ordering, it just puts whatever was added last in front)
+    element.parentElement.appendChild(element);
+
+    // Get array of ALL SVG elements to move - this node, all its children and the lines connecting it to its children
+    const nodeID = element.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+    const nodeObj = this.getObjFromID(nodeID); // Get the object representing this node
+    this.elemsToMove = [element]; // A list of all elements that need to move. It starts with just the node being dragged.
+    let descendantObjs = nodeObj.children.slice(); // To list the node's descendants, start with its children. slice makes a shallow copy.
+    while (descendantObjs.length > 0) {
+      const currentObj = descendantObjs.pop(); // Grab a descendant object...
+      const descendantSVG = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${currentObj.id}`); // Get the node associated with that object
+      const linkSVG = app.domFunctions.getChildByIdr(this.SVG_DOM, `link${currentObj.parent}to${currentObj.id}`); // Get the line linking that object to its parent
+      this.elemsToMove.push(descendantSVG);
+      this.elemsToMove.push(linkSVG);  // Add them both to the list of things to move
+      descendantObjs = descendantObjs.concat(currentObj.children); // Add the descendant's children to the array of descendants
+    }
+    // At this point, should have a complete array of items to move stored in this.elemsToMove, accessible from any method.
+
+    this.currentY = evnt.clientY; // I'm only interested in vertical motion
+
+    // For every item in elemsToMove, extract the current transform. Store in a 2D array where the first subscript represents the object and the second represents the coordinate (x or y).
+    for (let i = 0; i < this.elemsToMove.length; i++) {
+      const transform = this.elemsToMove[i].getAttribute("transform");
+      if (transform) {
+        this.transform[i] = transform.slice(10, -1).split(' '); // Get the transformation string and extract the coordinates
+      }
+      else {
+        this.transform[i] = ["0","0"];
+      }
+      this.transform[i][0] = parseFloat(this.transform[i][0]); // I do need the original x in order to rewrite the transform later
+      this.transform[i][1] = parseFloat(this.transform[i][1]);
+    }
+
+    element.setAttribute("onmousemove", "app.widget('moveChild', this, event)");
+    element.setAttribute("onmouseup", "app.widget('releaseChildRearrange', this, event)");
+    element.setAttribute("onmouseout", "app.widget('releaseChildSnapBack', this, event)");
+  }
+
+  moveChild(element, evnt) {
+    // Get amount of mouse movement, and update mouse position
+    const dy = evnt.clientY - this.currentY; // Still only interested in vertical motion
+    this.currentY = evnt.clientY;
+
+    // Move everything vertically
+    for (let i = 0; i < this.elemsToMove.length; i++) {
+    this.transform[i][1] += dy;
+    const newTransform = `translate(${this.transform[i][0]} ${this.transform[i][1]})`;
+    this.elemsToMove[i].setAttribute("transform", newTransform);
+    }
+
+  }
+
+  releaseChildSnapBack(element, evnt) {
+    element.removeAttribute("onmousemove");
     element.removeAttribute("onmouseup");
     element.removeAttribute("onmouseout");
+    this.update();
+  }
+
+  releaseChildRearrange(element, evnt) {
+    const elementY = this.transform[0][1]; // The first row in the transform array represents the element being dragged, and its second value represents the y-coordinate
+    const nodeID = element.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+    const elementObj = this.getObjFromID(nodeID);
+    const parentObj = this.getObjFromID(elementObj.parent); // Get the parent object
+    const siblings = parentObj.children; // List of all the element's siblings (and itself). This should be an alias for the children array, not a new array - changes should affect the parent object.
+    const currentPos = siblings.indexOf(elementObj); // This should be the element's current location in the siblings array
+    siblings.splice(currentPos, 1); // Remove the element from its current position
+
+    let yTransforms = []; // Array of the y transforms of each sibling element, starting with the first (highest). Remember that in SVG, high points have LOW y-coordinates.
+    for (let i = 0; i < siblings.length; i++) {
+      const sibNode = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${siblings[i].id}`); // Get the DOM element representing the current sibling
+      let transform = sibNode.getAttribute("transform");
+      transform = transform.slice(10, -1).split(' '); // Get its transform string and extract the x and y values
+      yTransforms[i] = parseFloat(transform[1]); // Parse the y-value of the transform as a float and store it in yTransforms
+    }
+    // When this loop finishes, the yTransforms array should be finished
+
+    let found = false; // flag to tell whether the new position of the element has been found
+
+    for (let i = 0; i < siblings.length; i++) {
+      if (elementY < yTransforms[i]) {  // If the element being dragged ended up HIGHER than this one, then it should come before this one in the array.
+        found = true; // flag that the position has been found
+        siblings.splice(i, 0, elementObj); // Put the element back in at position i (moving the object that was already there down one).
+        break;
+      } // end if (position was found)
+    } // end for (all siblings)
+
+    if (!found) { // If the current position is NOT higher than any sibling, then this element should be last.
+      siblings.push(elementObj); // Add it back at the end of the array
+    }
+
+    // At this point the parent's children array should be reordered, so all that's left to do is remove unneeded mouse functions and update the graphic.
+    element.removeAttribute("onmousemove");
+    element.removeAttribute("onmouseup");
+    element.removeAttribute("onmouseout");
+    this.update();
   }
 
   save (button) { // Saves the current state of the graph to the database.
@@ -232,7 +364,19 @@ class widgetSVG {
                                                                         // or if the user clicked the "Save As" button, indicating they want to change the name, ask for a name.
       name = prompt("Please enter the name for this graphic", name);
     }
-    const query = `merge (graphic: graphic {name:"${name}"}) with graphic set graphic.roots="${app.stringEscape(JSON.stringify(this.roots))}"`;
+
+    let rootsCopy = JSON.parse(JSON.stringify(this.roots));
+
+    for (let i=0; i< rootsCopy.length; i++) { // Go through all the roots and add their transform values to their coordinates, so they'll display in the right places.
+        let root = rootsCopy[i];
+        const id = root.id;
+        const group = app.domFunctions.getChildByIdr(this.SVG_DOM, `tree${id}`);
+        const transform = group.getAttribute("transform").slice(10, -1).split(' '); // Get the transformation string and extract the coordinates
+        root.x = parseFloat(transform[0]);
+        root.y = parseFloat(transform[1]);
+    }
+
+    const query = `merge (graphic: graphic {name:"${name}"}) with graphic set graphic.roots="${app.stringEscape(JSON.stringify(rootsCopy))}", graphic.count = ${this.count}`;
 
     app.db.setQuery(query);
     app.db.runQuery();
@@ -247,9 +391,8 @@ class widgetSVG {
           .attr("idr", function(d) {return `tree${d.id}`})
           .attr("nodeWidth", this.nodeWidth)
           .attr("nodeHeight", this.nodeHeight)
+          .attr("toggleWidth", this.toggleWidth)
           .attr("transform", function(d) {return "translate(" + d.x + " " + d.y + ")";} )
-          .attr("onmousedown", "app.widget('selectNode', this, event)")
-          .attr("onmouseup", "app.widget('dropConnect', this, event)");
     newTrees.each(this.buildTree);
     groups.each(this.buildTree);
     groups.exit().remove();
@@ -261,26 +404,29 @@ class widgetSVG {
   // NOTE: I don't know why yet, but it seems that when building a group for each tree, data is stored in d.
   // When building a node for each leaf WITHIN a tree (in buildTree), data is stored in d.data.
   buildTree(datum, index, group) {
-    var tree = d3.tree()
+    const tree = d3.tree()
     	.nodeSize([50, 200]);
 
-    var root = d3.hierarchy(datum);
-    var nodes = root.descendants();
+    const root = d3.hierarchy(datum);
+    const nodes = root.descendants();
 
-    var links = tree(root).links();
+    const links = tree(root).links();
 
     // Update the nodes…
-    var g = d3.select(this);
-    var node = g.selectAll(".node") // This means that all the nodes inside the given group are part of this tree
+    const g = d3.select(this);
+    const node = g.selectAll(".node") // This means that all the nodes inside the given group are part of this tree
      .data(nodes, function(d) {return d.id || d.data.id;}) // Update what data to include..
-     .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+     .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; });
 
     // Enter any new nodes
-    var nodeEnter = node.enter().append("g") // Append a "g" for each new node
+    const nodeEnter = node.enter().append("g") // Append a "g" for each new node
   	  .attr("class", "node")
-  	  .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
-  	  .attr("onclick", "app.widget('click', this)")
-      .attr("idr", function (d) {return `group${d.data.id}`; });
+  	  .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; })
+      .attr("idr", function (d) {return `group${d.data.id}`; })
+      .attr("onmousedown", function(d) {
+        if (d.data.parent == "null") return "app.widget('selectNode', this, event)";
+        else return "app.widget('selectChild', this, event)";
+      });
 
     nodeEnter.append("rect")
       .attr("width", this.getAttribute("nodeWidth"))
@@ -288,12 +434,35 @@ class widgetSVG {
       .attr("idr", function (d) {return `node${d.data.id}`; })
       .attr("class", "nodeRect");
 
+    nodeEnter.append("rect")
+      .attr("width", this.getAttribute("toggleWidth"))
+      .attr("height", this.getAttribute("nodeHeight"))
+      .attr("idr", function(d) {return `toggle${d.data.id}`})
+      .attr("transform", `translate(${this.getAttribute("nodeWidth")} 0)`)
+      .attr("onmouseover", "app.widget('toggle', this)")
+      .attr("class", "toggleRect");
+
     nodeEnter.append("text") // Add text
     	.attr("dx", this.getAttribute("nodeWidth")/2)
     	.attr("dy", this.getAttribute("nodeHeight")/2 + 6)
-    	.text(function(d) { return d.data.name; })
+      .attr("class", "unselectable")
+    	.text(function(d) { return d.data.name; });
 
-    node.exit().remove;
+    nodeEnter.selectAll(".toggleRect") // For each toggle rectangle
+      .classed("childrenVisibleToggle", function(d) {if (d.data.children && d.data.children.length>0) return true; else return false;}) // Set the appropriate class
+      .classed("childrenHiddenToggle", function(d) {if (d.data._children && d.data._children.length>0) return true; else return false;})
+      .classed("noChildrenToggle", function(d) {if ((!d.data.children || d.data.children.length==0)
+                                                && (!d.data._children || d.data._children.length==0))
+                                                return true; else return false;});
+
+    node.selectAll(".toggleRect") // For each toggle rectangle
+      .classed("childrenVisibleToggle", function(d) {if (d.data.children && d.data.children.length>0) return true; else return false;}) // Set the appropriate class
+      .classed("childrenHiddenToggle", function(d) {if (d.data._children && d.data._children.length>0) return true; else return false;})
+      .classed("noChildrenToggle", function(d) {if ((!d.data.children || d.data.children.length==0)
+                                                && (!d.data._children || d.data._children.length==0))
+                                                return true; else return false;});
+
+    node.exit().remove();
 
     // Update the links…
     var link = g.selectAll("path.link")
@@ -301,24 +470,29 @@ class widgetSVG {
 
     link.enter().insert("path", "g")
         .attr("class", "link")
+        .attr("idr", function(d) {return `link${d.source.data.id}to${d.target.data.id}`; })
       .merge(link)
         .attr("d", d3.linkHorizontal()
           .x(function(d) { return d.y; })
           .y(function(d) { return d.x; })
           .source(function(d) { return {x: d.source.x + 15, y: d.source.y + 120}; })
-          .target(function(d) { return {x: d.target.x + 15, y: d.target.y}; }));
+          .target(function(d) { return {x: d.target.x + 15, y: d.target.y}; }))
+        .attr("transform", "translate(0 0)");
+
       link.exit().remove();
   }
 
-  click(node) { // Toggle children on click.
-    d = node.__data__;
+  toggle(button) { // Toggle children.
+    const node = button.parentElement;
+    const d = node.__data__;
     if (d.data.children) {
-  	d.data._children = d.data.children;
-  	d.data.children = null;
-    } else {
-  	d.data.children = d.data._children;
-  	d.data._children = null;
+  	  d.data._children = d.data.children;
+  	  d.data.children = null;
     }
-    update();
+    else {
+  	  d.data.children = d.data._children;
+  	  d.data._children = null;
+    }
+    this.update();
   }
 }
