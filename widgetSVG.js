@@ -364,19 +364,77 @@ class widgetSVG {
                                                                         // or if the user clicked the "Save As" button, indicating they want to change the name, ask for a name.
       name = prompt("Please enter the name for this graphic", name);
     }
+    // Old code: just stored a copy of all the trees
+    // let rootsCopy = JSON.parse(JSON.stringify(this.roots));
+    //
+    // for (let i=0; i< rootsCopy.length; i++) { // Go through all the roots and add their transform values to their coordinates, so they'll display in the right places.
+    //     let root = rootsCopy[i];
+    //     const id = root.id;
+    //     const group = app.domFunctions.getChildByIdr(this.SVG_DOM, `tree${id}`);
+    //     const transform = group.getAttribute("transform").slice(10, -1).split(' '); // Get the transformation string and extract the coordinates
+    //     root.x = parseFloat(transform[0]);
+    //     root.y = parseFloat(transform[1]);
+    // }
+    //
+    // const query = `merge (graphic:graphic {name:"${name}"}) with graphic set graphic.roots="${app.stringEscape(JSON.stringify(rootsCopy))}", graphic.count = ${this.count}`;
 
-    let rootsCopy = JSON.parse(JSON.stringify(this.roots));
+    // Erase any links the graphic already has, and any relation nodes it linked to
+    let query = `merge (graphic:graphic {name:"${name}"}) with graphic optional match (graphic)-[]-(rel:graphicRelation) detach delete rel
+                 with graphic optional match (graphic)-[r]-() delete r`;
 
-    for (let i=0; i< rootsCopy.length; i++) { // Go through all the roots and add their transform values to their coordinates, so they'll display in the right places.
-        let root = rootsCopy[i];
-        const id = root.id;
-        const group = app.domFunctions.getChildByIdr(this.SVG_DOM, `tree${id}`);
-        const transform = group.getAttribute("transform").slice(10, -1).split(' '); // Get the transformation string and extract the coordinates
-        root.x = parseFloat(transform[0]);
-        root.y = parseFloat(transform[1]);
+    // For each root object, store the x- and y- coordinates for the transform in an object, and create a relation from the graphic DB node to the node DB node storing that object.
+    for (let i = 0; i < this.roots.length; i++) {
+      let coords = {}; // create an object to store the root's coordinates
+      // Set the coordinates to the (current) transform values, so the root will display in the right place.
+      let root = this.roots[i];
+      const id = root.id;
+      const group = app.domFunctions.getChildByIdr(this.SVG_DOM, `tree${id}`);
+      const transform = group.getAttribute("transform").slice(10, -1).split(' '); // Get the transformation string and extract the coordinates
+      coords.x = parseFloat(transform[0]);
+      coords.y = parseFloat(transform[1]);
+      query += ` with graphic match (root) where ID(root) = ${root.nodeID} create (graphic)-[:Root {coords: ${JSON.stringify(coords)}}]->(root)`; // Create the relation
     }
+    // For each relation, create a new "graphRelation" node with a "owned" link to the graph, a "parent" link and a "child" link, and a number stating the order of the children.
+    // Example statement:
+    // merge (n:graphic {name: "Positions"}) with n match (me:people {name: "Amy Fiori"}) match (mom:people {name: "Malinda McMillan"})
+    // create (n)-[:Owner]->(rel:graphicRelation)-[:Parent]->(mom) with rel create (rel)-[:Child]->(me)
+    let potentialParents = JSON.parse(JSON.stringify(this.roots)); // Easy way to make a copy
+    while (potentialParents.length > 0) { // For every node (because they each might be a parent)
+      const parent = potentialParents.pop();
+      let children = [];
+      let visible = true;
 
-    const query = `merge (graphic: graphic {name:"${name}"}) with graphic set graphic.roots="${app.stringEscape(JSON.stringify(rootsCopy))}", graphic.count = ${this.count}`;
+      if (parent.children) { // If the parent has visible children, use them as its children list
+        children = parent.children;
+      }
+      else if (parent._children) { // If the parent has invisible children, use them as the children list, and remember that they're invisible
+        children = parent._children;
+        visible = false;
+      }
+
+      for (let i = 0; i < children.length; i++) { // for every child the parent has
+        query += ` with graphic match (child) where ID(child) = ${children[i].nodeID} match (parent) where ID(parent) = ${parent.nodeID}
+                  create (graphic)-[:Owner]->(rel:graphicRelation {visible: "${visible}", order: ${i}})-[:Parent]->(parent)
+                  with rel, graphic, child create (rel)-[:Child]->(child)`; // Add a relation node to the graph, linked to the graphic, parent and child
+        potentialParents.push(child); // add the child to the list of potential parents
+      } // end for (every child of a given node)
+    } // end while (there are nodes which haven't been searched for children)
+
+// Example so far
+// merge (graphic:graphic {name:"Positions"})
+// with graphic optional match (graphic)-[]-(rel:graphRelation) detach delete rel
+// with graphic match (graphic)-[r]-() delete r
+// with graphic match (root) where ID(root) = 11 create (graphic)-[:Root {coords: "momTest"}]->(root)
+// with graphic match (root) where ID(root) = 127 create (graphic)-[:Root {coords: "BKTest"}]->(root)
+// with graphic match (child) where ID(child) = 9 match (parent) where ID(parent) = 11
+// create (graphic)-[:Owner]->(rel:graphicRelation {visible: "true", order: 0})-[:Parent]->(parent)
+// with rel, graphic create (rel)-[:Child]->(child)
+// with graphic match (child) where ID(child) = 10 match (parent) where ID(parent) = 11
+// create (graphic)-[:Owner]->(rel:graphicRelation {visible: "true", order: 1})-[:Parent]->(parent)
+// with rel, graphic create (rel)-[:Child]->(child)
+
+// THIS BLEW UP! I think I need to delete stuff separately from adding new stuff, because it wants to add the new stuff once for each thing that was deleted.
+
 
     app.db.setQuery(query);
     app.db.runQuery();
@@ -400,7 +458,6 @@ class widgetSVG {
 
   // Builds an individual tree, given the data to build it from and the group to build it in.
   // Only called by update, which passes in the appropriate values for each tree.
-
   // NOTE: I don't know why yet, but it seems that when building a group for each tree, data is stored in d.
   // When building a node for each leaf WITHIN a tree (in buildTree), data is stored in d.data.
   buildTree(datum, index, group) {
