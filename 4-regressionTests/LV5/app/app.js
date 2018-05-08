@@ -131,7 +131,7 @@ widgetClose(widgetElement) {
 	const id = this.domFunctions.widgetGetId(widgetElement);
 
 	// delete javascript instance of widgetTable
-	const children = [];
+	let children = [];
 	if (this.widgets[id].containedWidgets) { // Get the IDs of all widgets contained within this one.
 		children = children.concat(this.widgets[id].containedWidgets)
 	}
