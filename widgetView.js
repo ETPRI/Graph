@@ -320,7 +320,9 @@ class widgetView {
     const data = JSON.parse(dataText);
 
     // Only continue if the object being dragged is a row from a widgetRelations object (representing someone else's view)
-    if (data.sourceType == "widgetRelations" && data.sourceTag == "TR") {
+    // or a row from some other dragDrop table (representing your view of something else)
+    if (data.sourceType == "widgetRelations" && data.sourceTag == "TR" ||
+        data.sourceType == "dragDrop" && data.sourceTag == "TR" && data.sourceID != this.id) {
       let comment = ""; // The other person may not have added a comment. If not, it should be "" rather than undefined.
       if ('comment' in data) {
         comment = data.comment;

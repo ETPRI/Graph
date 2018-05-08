@@ -78,7 +78,7 @@ complete(nodes) {  // "nodes" is the array of nodes to be shown which was return
     ordering = nodes[0].ordering;
   }
 
-  // Start building HTML for the table
+  // Start building HTML for the table. Note the ondrop event in the template, which causes all rows to have the same ondrop event.
   let html       = `<thead><tr idr='template' ondrop="app.widget('dropData', this, event)">
                     <th>#</th> <th>R#</th> <th>N#</th> <th>Name</th> <th>Type</th> <th editable>Comment</th>
                     </tr></thead><tbody idr='container'>`;
@@ -125,9 +125,10 @@ complete(nodes) {  // "nodes" is the array of nodes to be shown which was return
   return html + "</tbody>";
 }
 
-// Takes a row from the DB (including a relation and the object it links to), the HTML which is in progress from this.complete,
+// Takes a row from the DB (including a relation and the object it links to), the HTML which is in progress from this.complete(),
 // and the orderedNodes array, which stores data about nodes in the order in which they were stored (and are added).
 // Adds to the existing HTML to produce another row in a table of relations, then adds data on the current node to orderedNodes.
+// Makes the row draggable, and allows dropping and editing if the table being built is of the logged-in user's view.
 // NOTE: Section on placeholders needs work.
 addLine(relation, html, orderedNodes) {
   const rel = relation.r; // The relation described in this row of the table
@@ -192,32 +193,51 @@ addLine(relation, html, orderedNodes) {
   return html;
 }
 
+// Creates a dragDrop table if the logged-in user is looking at their own view. Adds three new functions to the table:
+  // changeComment fires when a comment textbox is blurred, and adds or removes the "changedData" class depending on whether
+    // the comment now matches the comment stored in the database.
+  // dropData fires when a node from another view or a node table is dragged to the table. It either creates a new row
+    //for that node, or changes the node referenced in the row that was dragged to.
+  // drag overrides the drag function from the dragDrop class. It does the same thing - set the active node -
+    // but it also records data about the line being dragged (in case that row is dragged to another table).
+// Takes the widgetRelation object as an argument because it's called by setTimeout and can't refer to it as "this".
 createDragDrop(widgetRel) {
-  widgetRel.containedWidgets.push(app.idCounter);
+  widgetRel.containedWidgets.push(app.idCounter); // The dragDrop table will be a widget, so add it to the list of "widgets the widgetRelation contains"
+  // Create the new dragDrop table
 	const dragDrop = new dragDropTable("template", "container", widgetRel.containerDOM, widgetRel.idrRow, widgetRel.idrContent);
+  // Make the edit textbox call the new "changeComment" method instead of dragDrop's "save" method
   dragDrop.editDOM.setAttribute("onblur", " app.widget('changeComment', this); app.widget('save', this)");
-  dragDrop.existingRelations = JSON.parse(JSON.stringify(widgetRel.existingRelations)); // Makes a copy of this.existingRelations
+  // Make a copy of this.existingRelations and attaches it to the dragDrop table
+  dragDrop.existingRelations = JSON.parse(JSON.stringify(widgetRel.existingRelations));
 
+  // create the new changeComment function, which just updates the class of a row when its comment is edited
   dragDrop.changeComment = function(input) { // input should be the edit object, which is still attached to the row being edited
-    const commentCell = input.parentElement;
+    const commentCell = input.parentElement; // Get the cell that was just edited
     const row = commentCell.parentElement;
     const IDcell = row.children[1];
-    const ID = IDcell.textContent;
+    const ID = IDcell.textContent; // Get the node ID of the row that was changed
 
-    if (ID in this.existingRelations) {
-      if (input.value != this.existingRelations[ID].comment) {
-        commentCell.classList.add("changedData");
+    if (ID in this.existingRelations) { // If that node is an existing relation (that is, it's been saved)...
+      if (input.value != this.existingRelations[ID].comment) { // and the new value is DIFFERENT from the saved value...
+        commentCell.classList.add("changedData"); // mark it as "changed data".
       }
-      else {
-        commentCell.classList.remove("changedData");
+      else { // If the node exists, and the new value is THE SAME AS the saved value...
+        commentCell.classList.remove("changedData"); // make sure it's NOT marked "changed data".
       }
     }
   } // end dragdrop.changeComment function
 
-  dragDrop.dropData = function(input, evnt) { // If data is dragged to a cell with ondrop = dropData
+  // create the new dropData function. When something is dropped on a row in the table, dropData checks the source.
+  // If it's a row from the same table, it calls drop instead to rearrange rows. If it's row from another relations table,
+  // it copies the row. If it's a cell from a widgetTableNodes and it was dragged to the input row, it makes a new row.
+  // If the source is a cell from a widgetTableNodes, and the row it was dragged to isn't the input row,
+  // it updates that row to refer to the node that was dragged.
+  dragDrop.dropData = function(input, evnt) {
+    // Get the idr of the row that was dragged to
     let row = input;
     let idr = row.getAttribute("idr");
 
+    // Get the data from the element that was being dragged
     const dataText = evnt.dataTransfer.getData("text/plain");
     const data = JSON.parse(dataText);
 
@@ -232,7 +252,7 @@ createDragDrop(widgetRel) {
              data.sourceType == "widgetRelations" && data.sourceTag == "TR" ||
              data.sourceType == "dragDrop" && data.sourceTag == "TR" && data.sourceID != this.id) {
 
-      if (idr != "template") { // Verify that the cell is not in the template row...
+      if (idr != "template") { // Verify that the destination is not in the template row...
 
         // If a node was dragged from a node table to the insert row, or a whole relation was dragged from another table to ANY row, create a new row and add to that.
         if (idr == "insertContainer" || data.sourceType == "widgetRelations" || data.sourceType == "dragDrop") {
@@ -240,30 +260,38 @@ createDragDrop(widgetRel) {
           idr = row.getAttribute("idr");
         }
 
+        // get the cells in the target row where the name, type and node ID are stored,
+        // and update them to use the info from the element that was dragged
         const nodeIDcell = row.children[2];
         nodeIDcell.textContent = data.nodeID;
         const nameCell = row.children[3];
         nameCell.textContent = data.name;
         const typeCell = row.children[4];
         typeCell.textContent = data.type;
+        if ('comment' in data) {
+          const commentCell = row.children[5];
+          commentCell.textContent = data.comment;
+        }
 
-        // add changedData class if necessary
+        // Get the relation ID for the row that was just updated.
         const IDcell = row.children[1];
         const ID = IDcell.textContent;
-        if (ID in this.existingRelations) { // If this node was already in the database, check whether the node that was just added differs from the recorded one. Mark the cell as changed or not accordingly
-          if (nodeIDcell.textContent != this.existingRelations[ID].nodeID) {
+        // If this relation was already in the database, check whether any data that was added differs from what's recorded.
+        // Mark the cells as changed or not accordingly.
+        if (ID in this.existingRelations) {
+          if (nodeIDcell.textContent != this.existingRelations[ID].nodeID) { // Check the node ID...
             nodeIDcell.classList.add("changedData");
           } else {
             nodeIDcell.classList.remove("changedData");
           }
 
-          if (nameCell.textContent != this.existingRelations[ID].name) {
+          if (nameCell.textContent != this.existingRelations[ID].name) { // and the name...
             nameCell.classList.add("changedData");
           } else {
             nameCell.classList.remove("changedData");
           }
 
-          if (typeCell.textContent != this.existingRelations[ID].type) {
+          if (typeCell.textContent != this.existingRelations[ID].type) { // and the type.
             typeCell.classList.add("changedData");
           } else {
             typeCell.classList.remove("changedData");
