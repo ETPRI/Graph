@@ -350,7 +350,7 @@ class widgetView {
                     <td ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropData', this, event)" idr="content${dragDropObj.contentCount++}">${data.name}</td>
                     <td>${data.type}</td>
                     <td ondblclick="app.widget('edit', this, event)" idr="content${dragDropObj.contentCount++}">${comment}</td>
-                    <td><input type="button" idr="delete${dragDropObj.itemCount++}" value="Delete" onclick="app.widget('markForDeletion', this)"></td>`
+                    <td><input type="button" idr="delete${dragDropObj.itemCount++}" value="Delete" onclick="app.widget('delete', this)"></td>`
 
       row.innerHTML = html;
       row.classList.add("newData");

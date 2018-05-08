@@ -260,7 +260,7 @@ createDragDrop(widgetRel) {
           idr = row.getAttribute("idr");
         }
 
-        // get the cells in the target row where the name, type and node ID are stored,
+        // get the cells in the target row where the name, type, node ID and comment are stored,
         // and update them to use the info from the element that was dragged
         const nodeIDcell = row.children[2];
         nodeIDcell.textContent = data.nodeID;

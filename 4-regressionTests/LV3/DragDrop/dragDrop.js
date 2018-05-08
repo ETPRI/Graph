@@ -307,32 +307,32 @@ class dragDrop {
     app.regression.record(obj);
   }
 
-save(evnt){ // Save changes to a node
-  const el = this.domFunctions.getChildByIdr(this.domElement, "edit");
-  el.hidden=true; 		 // hide input element
-  const text = document.createTextNode(el.value);
-  this.activeNode.insertBefore(text, el); // Add the input text to the selected node
-  this.domElement.appendChild(el);           // move input field to end of DOM element representing the table
-  if (this.activeNode.children.length > 0) { // since only leaves are editable, this should be true ONLY if there's a close button attached
-    const closeButton = this.activeNode.firstElementChild;
-    closeButton.hidden = false;
+  save(evnt){ // Save changes to a node
+    const el = this.domFunctions.getChildByIdr(this.domElement, "edit");
+    el.hidden=true; 		 // hide input element
+    const text = document.createTextNode(el.value);
+    this.activeNode.insertBefore(text, el); // Add the input text to the selected node
+    this.domElement.appendChild(el);           // move input field to end of DOM element representing the table
+    if (this.activeNode.children.length > 0) { // since only leaves are editable, this should be true ONLY if there's a close button attached
+      const closeButton = this.activeNode.firstElementChild;
+      closeButton.hidden = false;
+    }
+    this.activeNode = null;
+
+    // Log
+    const obj = {};
+    obj.id = this.domFunctions.widgetGetId(el);
+    obj.idr = el.getAttribute("idr");
+    obj.value = el.value;
+    obj.action = "blur";
+    this.log(JSON.stringify(obj));
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+
+    // this.input.focus(); // return focus to input
   }
-  this.activeNode = null;
 
-  // Log
-  const obj = {};
-  obj.id = this.domFunctions.widgetGetId(el);
-  obj.idr = el.getAttribute("idr");
-  obj.value = el.value;
-  obj.action = "blur";
-  this.log(JSON.stringify(obj));
-  app.regression.log(JSON.stringify(obj));
-  app.regression.record(obj);
-
-  // this.input.focus(); // return focus to input
-}
-
-log(text) { // Add a message to the eventLog
+  log(text) { // Add a message to the eventLog
     const ul = document.getElementById("eventLog");
     if (ul) {
       const li = document.createElement("li");
