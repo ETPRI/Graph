@@ -18,9 +18,6 @@ class widgetTableNodes {
     this.queryData       = {}; // where returned data will be stored
 
     this.idWidget = app.idGet(0);   // strings
-  //  this.idLimit  = app.idGet(1);
-  //  this.idHeader = app.idGet(2);
-  //  this.idData   = app.idGet(3);
     this.searchTrigger = controlId;
 
     this.buildHeader();  //  show table header on screen
@@ -43,12 +40,12 @@ class widgetTableNodes {
     if (app.login.userID) {
       match += `, (a)`;
     }
-    let where    = this.buildWhere();
-    let orderBy  = this.queryObject.orderBy;
-    let limit    = app.domFunctions.getChildByIdr(this.widget, "limit").value;
-    let type = this.queryObjectName;
+    const where    = this.buildWhere();
+    const orderBy  = this.queryObject.orderBy;
+    const limit    = app.domFunctions.getChildByIdr(this.widget, "limit").value;
+    const type = this.queryObjectName;
 
-    let query =
+    const query =
   	    "match " + match
   		+ (function(w){if(0<w.length) return " where "  + w + " "; else return " ";})(where)
   		+ (function(t){if(t=="people") return "optional match (n)-[:Permissions]->(perm:LoginTable) return n, perm.name as permissions"; else return "return n";})(type)
@@ -72,11 +69,11 @@ class widgetTableNodes {
     // iterate siblings of input
 
     for(let i=2; i<th.length; i++) {
-      let inputDOM = th[i].firstElementChild;  // <input>  tag
-      let dropDown = inputDOM.nextElementSibling;
+      const inputDOM = th[i].firstElementChild;  // <input>  tag
+      const dropDown = inputDOM.nextElementSibling;
       if (0 < inputDOM.value.length) {
         // get value of search type
-        let searchType = dropDown.options[dropDown.selectedIndex].value;
+        const searchType = dropDown.options[dropDown.selectedIndex].value;
         let w1 = "";
         if (dropDown.options[0].value === "S") {
           w1 = this.getSearchString(inputDOM, searchType);  // assume a string search
@@ -167,13 +164,10 @@ class widgetTableNodes {
     <option value="<">&lt;</option>
     </select></th>`
 
-  //  const html2 = app.idReplace(html,1);  // replace relative ids with absolute ids
-  //  const html3 = html.replace('#tableName#',this.tableName); // This variable doesn't seem to exist
-
     // build search part of buildHeader
     let s="";
     for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
-        let fieldName =this.fieldsDisplayed[i];
+        const fieldName =this.fieldsDisplayed[i];
         let s1 = `<th><input idr = "text` + i + `" db="fieldName: #1" size="7" onblur="app.regression.logText(this)">`
         if (this.fields[fieldName].type === "number") {
           // number search
@@ -190,7 +184,7 @@ class widgetTableNodes {
     // build field name part of header
     let f="";
     for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
-        let fieldName =this.fieldsDisplayed[i];
+        const fieldName =this.fieldsDisplayed[i];
         f += "<th onClick='app.widgetSort(this)'>"+ this.fields[fieldName].label + "</th>" ;
     }
     const html5 = html4.replace('#header#',f);
@@ -198,9 +192,9 @@ class widgetTableNodes {
     /*
     Create new element, append to the widgets div in front of existing widgets
     */
-    let parent = document.getElementById('widgets');
-    let child = parent.firstElementChild;
-    let newWidget = document.createElement('div'); // create placeholder div
+    const parent = document.getElementById('widgets');
+    const child = parent.firstElementChild;
+    const newWidget = document.createElement('div'); // create placeholder div
     parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
     newWidget.outerHTML = html5; // replace placeholder with the div that was just written
   }
@@ -211,10 +205,10 @@ class widgetTableNodes {
     let html = "";
     const r = data;
     let rowCount = 1;
-    var cell; // the cell currently being built
-    var row; // the row currently being built
-    var text; // the text to go in the cell
-    var table = app.domFunctions.getChildByIdr(this.widget, "data");
+    let cell; // the cell currently being built
+    let row; // the row currently being built
+    let text; // the text to go in the cell
+    const table = app.domFunctions.getChildByIdr(this.widget, "data");
 
     // Delete what's already in the table
     while (table.hasChildNodes()) {
@@ -239,7 +233,7 @@ class widgetTableNodes {
       // For each display field, create a cell and append it
       for (let j=0; j<this.fieldsDisplayed.length; j++) {
         cell = document.createElement('td');
-        let fieldName = this.fieldsDisplayed[j];
+        const fieldName = this.fieldsDisplayed[j];
         if (this.fieldsDisplayed[j] == 'name') { // Make the name cell draggable
           cell.setAttribute("draggable", "true");
           cell.setAttribute("ondragstart", "app.widget('drag', this, event)");
@@ -313,14 +307,14 @@ class widgetTableNodes {
     }
 
     // New code for creating a JSON object
-    let obj = {};
+    const obj = {};
     obj.id = this.searchTrigger;
     if (obj.id == this.idWidget) { // If the call for the search came from this widget, then record the idr of the search button and that it was clicked.
       obj.idr = "searchButton";
       obj.action = "click";
     }
     if (obj.id == "menuNodes") { // If the call came from the menuNodes dropdown, then record the value of the dropDown and that it was selected.
-      let dropDown = document.getElementById('menuNodes');
+      const dropDown = document.getElementById('menuNodes');
     	obj.value = dropDown.options[dropDown.selectedIndex].value;
       obj.action = "click";
     }
@@ -329,7 +323,7 @@ class widgetTableNodes {
     }
 
     obj.data = JSON.parse(JSON.stringify(data)); // This should make a COPY of data, so deleting its identity won't affect the original.
-    for (var i = 0; i< obj.data.length; i++) { // Trying to remove the IDs from the log - they're not particularly useful, and can cause problems because they rarely match
+    for (let i = 0; i< obj.data.length; i++) { // Trying to remove the IDs from the log - they're not particularly useful, and can cause problems because they rarely match
       delete obj.data[i].n.identity;
     }
     app.regression.log(JSON.stringify(obj));
@@ -379,11 +373,11 @@ relationAdd(element) {
 
 
 edit(element){
-    let id = element.innerHTML;
+    const id = element.innerHTML;
     new widgetNode(this.queryObject.nodeLabel, id);
 
     // log
-    let obj = {};
+    const obj = {};
     obj.id = app.domFunctions.widgetGetId(element);
     obj.idr = element.getAttribute("idr");
     obj.action = "click";
@@ -397,7 +391,7 @@ edit(element){
     new widgetNode(this.queryObject.nodeLabel);
 
     // log
-    let obj = {};
+    const obj = {};
     obj.id = app.domFunctions.widgetGetId(element);
     obj.idr = element.getAttribute("idr");
     obj.action = "click";

@@ -63,7 +63,7 @@ class dragDropTable extends dragDrop {
 
   delete(button) {
     // logging
-    let obj = {};
+    const obj = {};
     obj.id = this.domFunctions.widgetGetId(button);
     obj.idr = button.getAttribute("idr");
     obj.action = "click";
@@ -71,7 +71,7 @@ class dragDropTable extends dragDrop {
     app.regression.log(JSON.stringify(obj));
     app.regression.record(obj);
 
-    let line = button.parentNode.parentNode;
+    const line = button.parentNode.parentNode;
     line.parentNode.removeChild(line);
   }
 }

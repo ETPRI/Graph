@@ -137,7 +137,7 @@ class widgetLogin {
       }
 
       const dropDown = document.getElementById("metaData"); // Add "myTrash" to metadata options
-      let option = document.createElement('option');
+      const option = document.createElement('option');
       option.setAttribute("idr", "myTrash");
       option.setAttribute("value", "myTrash");
       option.appendChild(document.createTextNode("My Trashed Nodes"));

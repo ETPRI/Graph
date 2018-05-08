@@ -2,9 +2,9 @@ class domFunctions {
   constructor() {}
 
   getChildByIdr(element, idr) {
-    let children = Array.from(element.children); // Get the element's children
+    const children = Array.from(element.children); // Get the element's children
     while (children.length > 0) {
-      let child = children.pop(); // For each child...
+      const child = children.pop(); // For each child...
       if (child.getAttribute("idr") == idr) {
         return child; // If the idr matches, return the element...
       }

@@ -1,11 +1,3 @@
-/*
-
-var x = new db();
-x.setQuery('match (n) return n');
-x.runQuery('method',this);
-
-*/
-
 //////////////////////////////////////////////
 class db  {
 
@@ -61,7 +53,7 @@ runQuery (object, objectMethod, ...args) { // call widget, with widgetMethod whe
 ////////////////////////////////////////////////////////////////////
 // called by neo4j for each record returned by query
 onNext(record) {
-	let obj={};
+	const obj={};
 	for (let i=0; i< record.length; i++) {
 		obj[record.keys[i]]=record._fields[i];
 		}

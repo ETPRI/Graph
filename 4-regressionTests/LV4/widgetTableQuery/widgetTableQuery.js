@@ -34,14 +34,14 @@ queryComplete(data) {
   this.buildData();    // add to this.html
 
   // add
-  let parent = document.getElementById('widgets');
-  let child = parent.firstElementChild;
-  let newWidget = document.createElement('div'); // create placeholder div
+  const parent = document.getElementById('widgets');
+  const child = parent.firstElementChild;
+  const newWidget = document.createElement('div'); // create placeholder div
   parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
   newWidget.outerHTML = this.html; // replace placeholder with the div that was just written
 
   // log
-  let obj = {};
+  const obj = {};
   obj.id = this.dropdownId;
   obj.value = this.queryObjectName;
   obj.action = "click";
@@ -79,11 +79,11 @@ buildHeader() {
   // create html for header
   (function(fields) {
   	// build search part of buildHeader
-    let r="<tr>#fields#</tr>"
+    const r="<tr>#fields#</tr>"
 
     // append label part of the header
     let f="";
-    for (var propt in fields){
+    for (let propt in fields){
         f += "<th onClick='app.widgetSort(this)'>"+ fields[propt].label + "</th>" ;
   	}
     return r.replace('#fields#',f);
@@ -182,10 +182,10 @@ this.queryObjects.allTrash = {
 } /// end method
 
 edit(element){
-  let id = element.innerHTML;
+  const id = element.innerHTML;
   new widgetNode(element.nextElementSibling.nextElementSibling.innerText, id);
 
-  let obj={};
+  const obj={};
   obj.id=app.domFunctions.widgetGetId(element);
   obj.idr=element.getAttribute("idr");
   obj.action="click";
@@ -194,8 +194,8 @@ edit(element){
 }
 
 showReasons(element) {
-  let id = element.innerHTML;
-  let query = `match (user)-[rel:Trash]->(node) where ID(node) = ${id} return user.name as userName, ID(user) as userID, rel.reason as reason, node.name as nodeName, ID(node) as nodeID`;
+  const id = element.innerHTML;
+  const query = `match (user)-[rel:Trash]->(node) where ID(node) = ${id} return user.name as userName, ID(user) as userID, rel.reason as reason, node.name as nodeName, ID(node) as nodeID`;
   this.db.setQuery(query);
   this.db.runQuery(this, "buildReasons");
 }
@@ -214,9 +214,9 @@ buildReasons(data) {
     html+='</tbody></table></div>';
 
     // add
-    let parent = document.getElementById('widgets');
-    let child = parent.firstElementChild;
-    let newWidget = document.createElement('div'); // create placeholder div
+    const parent = document.getElementById('widgets');
+    const child = parent.firstElementChild;
+    const newWidget = document.createElement('div'); // create placeholder div
     parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
     newWidget.outerHTML = html; // replace placeholder with the div that was just written
   }

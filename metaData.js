@@ -104,6 +104,17 @@ this.node.graphic = {
     // ,"lastEdited":  {label: "Last edited on", type: "date"}
   }}
 
+  this.node.calendar = {
+    nodeLabel: "calendar"
+    ,orderBy: "n.name, n.description"
+    ,fieldsDisplayed: ["name", "description"]
+    ,fields: {
+      "name": {label: "Name"}
+      ,"description": {label: "Description"}
+      // Add more here later - probably search criteria (each calendar is like a different search for events)
+    }
+  }
+
 this.node.Test = {
   nodeLabel: "Test"
   ,orderBy: "n.name, n.field1, n.field2, n.field3"

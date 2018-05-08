@@ -107,8 +107,13 @@ buildWidget() { // public - build table header
     name = this.dataNode.properties.name
   }
 
+  // Adding buttons specific to certain labels
   if (this.label == "graphic") {
     otherButtonHTML = `<input idr="showButton" type="button" onclick="new widgetSVG(this, ${id})" value="Show graphic">`;
+  }
+
+  if (this.label == "calendar") {
+    otherButtonHTML = `<input idr="showButton" type="button" onclick="new widgetCalendar(this, ${id})" value="Show calendar">`
   }
 
   const html = app.widgetHeader() + `<b idr="nodeLabel">${this.label}#${id}: ${name}</b></div><table><tbody><tr>
@@ -123,14 +128,14 @@ buildWidget() { // public - build table header
   /*
   Create new element, append to the widgets div in front of existing widgets
   */
-  let parent = document.getElementById('widgets');
-  let child = parent.firstElementChild;
-  let newWidget = document.createElement('div'); // create placeholder div
+  const parent = document.getElementById('widgets');
+  const child = parent.firstElementChild;
+  const newWidget = document.createElement('div'); // create placeholder div
   parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
   newWidget.outerHTML = html; // replace placeholder with the div that was just written
 
   // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
-  let widget = document.getElementById(this.idWidget);
+  const widget = document.getElementById(this.idWidget);
   this.widgetDOM  = widget;
   this.addSaveDOM = app.domFunctions.getChildByIdr(widget, "addSaveButton");
   this.tableDOM   = app.domFunctions.getChildByIdr(widget, "nodeTable");
@@ -141,7 +146,7 @@ buildWidget() { // public - build table header
 
 buildDataNode() {   // put in one field label and input row for each field
   let fieldCount = 0;
-  var value = "";
+  let value = "";
 
   // Clear any existing data
   while (this.tableDOM.hasChildNodes()) {
@@ -323,7 +328,7 @@ addComplete(data) { // Refreshes the node table and logs that addSave was clicke
 
 changed(input) { // Logs changes to fields, and highlights when they are different from saved fields
   if (!this.dataNode) {
-    let obj = {};
+    const obj = {};
     obj.id = app.domFunctions.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.value = input.value;
@@ -340,7 +345,7 @@ changed(input) { // Logs changes to fields, and highlights when they are differe
   }
 
   // log
-  let obj = {};
+  const obj = {};
   obj.id = app.domFunctions.widgetGetId(input);
   obj.idr = input.getAttribute("idr");
   obj.value = input.value;
@@ -361,11 +366,11 @@ save(widgetElement, trashUntrash) { // Builds query to update a node, runs it an
 
   let data="";
   while (tr) {
-    let inp = tr.lastElementChild.firstElementChild;  // find <input> element
+    const inp = tr.lastElementChild.firstElementChild;  // find <input> element
     if(inp.getAttribute("class") === "changedData") {
       // create a set for this field
-      let fieldName = inp.getAttribute("db");
-      let d1 = "n."+ fieldName +"=#value#, ";
+      const fieldName = inp.getAttribute("db");
+      const d1 = "n."+ fieldName +"=#value#, ";
       let d2 = "";
       if (fieldName in this.fields) {
         if (this.fields[fieldName].type === "number") {
@@ -381,7 +386,7 @@ save(widgetElement, trashUntrash) { // Builds query to update a node, runs it an
 
   if (data==="") {
     if (trashUntrash) { // If the node was trashed or untrashed, but no other changes need to be made, don't bother to run an empty query or refresh the widget, but do log the fact that addSave was clicked.
-      let obj = {};
+      const obj = {};
       obj.id = this.idWidget;
       obj.idr = "addSaveButton";
       obj.action = "click";
@@ -402,7 +407,7 @@ saveData(data) { // Refreshes the node table and logs that addSave was clicked
   this.buildDataNode();
 
   // log
-  let obj = {};
+  const obj = {};
   obj.id = this.idWidget;
   obj.idr = "addSaveButton";
   obj.action = "click";

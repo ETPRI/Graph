@@ -26,9 +26,9 @@ class regressionTesting {
   }
 
   buildRegressionHeader() {
-    let regHeader = document.getElementById("regressionHeader");
+    const regHeader = document.getElementById("regressionHeader");
     regHeader.setAttribute("class", "widget");
-    let record = document.createElement("input");
+    const record = document.createElement("input");
     record.setAttribute("type", "button");
     record.setAttribute("id", "Record");
     record.setAttribute("value", "Record");
@@ -37,27 +37,27 @@ class regressionTesting {
 
     regHeader.appendChild(document.createTextNode("Select a playback file: "));
 
-    let playback = document.createElement("input");
+    const playback = document.createElement("input");
     playback.setAttribute("type", "file");
     playback.setAttribute("id", "playback");
     playback.setAttribute("multiple", "true");
     regHeader.appendChild(playback);
 
-    let replay = document.createElement("input");
+    const replay = document.createElement("input");
     replay.setAttribute("type", "button");
     replay.setAttribute("id", "replay");
     replay.setAttribute("value", "Play Remaining Steps");
     replay.setAttribute("onclick", "app.widget('play', this)");
     regHeader.appendChild(replay);
 
-    let step = document.createElement("input");
+    const step = document.createElement("input");
     step.setAttribute("type", "button");
     step.setAttribute("id", "stepThrough");
     step.setAttribute("value", "Play Next Step");
     step.setAttribute("onclick", "app.widget('play', this)");
     regHeader.appendChild(step);
 
-    let delayOn = document.createElement("input");
+    const delayOn = document.createElement("input");
     delayOn.setAttribute("type", "checkbox");
     delayOn.setAttribute("id", "delayOn");
     delayOn.setAttribute("checked", "true");
@@ -66,7 +66,7 @@ class regressionTesting {
 
     regHeader.appendChild(document.createTextNode("Use delay when replaying"));
 
-    let delayMS = document.createElement("input");
+    const delayMS = document.createElement("input");
     delayMS.setAttribute("type", "number");
     delayMS.setAttribute("id", "delayMS");
     delayMS.setAttribute("value", 500);
@@ -74,15 +74,15 @@ class regressionTesting {
 
     regHeader.appendChild(document.createTextNode("Enter delay (in milliseconds)"));
 
-    let dlink = document.createElement("p");
+    const dlink = document.createElement("p");
     dlink.setAttribute("id", "dlink");
     regHeader.appendChild(dlink);
   }
 
   log(message){
   	if (this.logField && !this.logField.hidden) { // If log field exists and is visible
-      let line = document.createElement('p');
-      let text = document.createTextNode(message);
+      const line = document.createElement('p');
+      const text = document.createTextNode(message);
       line.appendChild(text);
   		this.logField.appendChild(line);
   	}
@@ -106,7 +106,7 @@ class regressionTesting {
 
   // Can log when any text field is changed. Called by text fields that don't already have an onchange or onblur event
   logText(textBox) {
-  	let obj = {};
+  	const obj = {};
     if (textBox.id) { // If the text box is outside any widget and has its own ID, record its ID.
       obj.id = textBox.id;
     }
@@ -122,7 +122,7 @@ class regressionTesting {
 
   // Logs when the search criterion for an input field changes
   logSearchChange(selector) { // selector is the dropdown which chooses among "S", "M" or "E" for strings, and "<", ">", "<=", ">=" or "=" for numbers.
-    let obj = {};
+    const obj = {};
   	obj.id = this.domFunctions.widgetGetId(selector);
   	obj.idr = selector.getAttribute("idr");
   	obj.value = selector.options[selector.selectedIndex].value;
@@ -158,10 +158,10 @@ class regressionTesting {
   recordToggle(button){
     if (this.recording) { // If the page was recording
   		button.value = "Record";
-  		let text = JSON.stringify(this.recordText);
+  		const text = JSON.stringify(this.recordText);
   		if (this.playing || this.stepThrough) { // If actions were being recorded during playback
 
-        let playbackText = JSON.stringify(this.playbackObj);
+        const playbackText = JSON.stringify(this.playbackObj);
   			if (text == playbackText) {
   				alert ("Success!");
   			}
@@ -170,15 +170,15 @@ class regressionTesting {
   			}
   		}
   		else { // If actions were being recorded in order to save them
-        let para = document.createElement('p');
-  			let uriContent = "data:application/octet-stream," + encodeURIComponent(text);
-        let link = document.createElement('a');
+        const para = document.createElement('p');
+  			const uriContent = "data:application/octet-stream," + encodeURIComponent(text);
+        const link = document.createElement('a');
         link.href = uriContent;
-        let now = new Date();
-        let numberDate = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}_${now.getHours()}-${now.getMinutes()}`
+        const now = new Date();
+        const numberDate = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}_${now.getHours()}-${now.getMinutes()}`
         link.download = `Recording_${numberDate}.txt`;
-        let message = `Download recording #${this.recordings++}  `;
-        let linkText = document.createTextNode(message);
+        const message = `Download recording #${this.recordings++}  `;
+        const linkText = document.createTextNode(message);
         link.appendChild(linkText);
         para.appendChild(link);
         this.linkDiv.appendChild(para);
@@ -209,8 +209,8 @@ class regressionTesting {
       this.next(this);
     }
     else { // if a file is NOT already running
-    	let fileButton = document.getElementById("playback");
-    	var replayText;
+    	const fileButton = document.getElementById("playback");
+    	let replayText;
 
     	if ('files' in fileButton && fileButton.files.length > this.playFiles) { // If there's another file to play back
         alert("Now Playing: " + fileButton.files[this.playFiles].name);
@@ -226,14 +226,14 @@ class regressionTesting {
 
     		this.instruction = 1;
     		this.playbackObj = {}; // Reset playback variables
-        let regression = this;
+        const regression = this;
 
     		if (!this.recording) {
     			this.recordToggle(document.getElementById("Record")); // make sure app is recording
     		}
 
-    		let myFile = fileButton.files[this.playFiles];
-     		let fileReader = new FileReader();
+    		const myFile = fileButton.files[this.playFiles];
+     		const fileReader = new FileReader();
     		fileReader.onload = function(fileLoadedEvent){ // ANONYMOUS INNER FUNCTION STARTS HERE! Cannot use 'this' to refer to regressionTesting object here!
     			replayText = fileLoadedEvent.target.result;
     			regression.playbackObj = JSON.parse(replayText);
@@ -270,7 +270,7 @@ class regressionTesting {
 
   processPlayback(instructionObj) { // takes a single instruction object as argument, plays it
     if ('id' in instructionObj) { // Can only replay an action or set a value if this instruction defines an element, using an id and maybe an idr
-  	  let id = instructionObj.id;
+  	  const id = instructionObj.id;
     	let element = document.getElementById(id);
 
     	if ('idr' in instructionObj) {
@@ -282,13 +282,13 @@ class regressionTesting {
     	}
 
       if ('action' in instructionObj) {
-        let evnt = new Event(instructionObj.action);
+        const evnt = new Event(instructionObj.action);
         if (instructionObj.action == "keydown" && 'key' in instructionObj) { // keydown events have a "key" value that determines WHICH key was pressed
           evnt.key = instructionObj.key;
         }
         if (instructionObj.action == "dragstart" || instructionObj.action == "drop") { // I'm going to TRY to make a mock dataTransfer object.
           evnt.dataTransfer = {};
-          // evnt.dataTransfer.data = {};
+
           evnt.dataTransfer.setData = function(type, data) {
             app.regression.dragData[type] = data;
           }
@@ -303,7 +303,7 @@ class regressionTesting {
 
   clearAll(app) {
   	if (confirm("This will clear ALL DATA from the database and remove ALL WIDGETS from the webpage. Are you sure you want to do this?")) {
-  		for (var id in app.widgets) {
+  		for (let id in app.widgets) {
         if (id != "loginDiv" && id != "regHeader") {
     			// Remove widget objects
     			delete app.widgets[id];
@@ -316,7 +316,7 @@ class regressionTesting {
         }
   		}
   		// Remove nodes and relationships
-  		let command = "MATCH (n) DETACH DELETE n";
+  		const command = "MATCH (n) DETACH DELETE n";
   		app.db.setQuery(command);
   		app.db.runQuery(this, "dummy");
 

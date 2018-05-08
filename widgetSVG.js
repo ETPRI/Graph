@@ -37,7 +37,7 @@ class widgetSVG {
 
     const html = app.widgetHeader() + `<b idr="name">${this.name}</b><input type="button" idr="save" value="Save" onclick="app.widget('save', this)">
                                        <input type="button" idr="saveAs" value="Save As" onclick="app.widget('save', this)"></div>
-                                       <div><svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}" ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropAdd', this, event)"</svg></div>`;
+                                       <div><svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}" ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropAdd', this, event)"</svg></div></div>`;
 
     const parent = document.getElementById('widgets');
     const child = parent.firstElementChild;
@@ -65,8 +65,12 @@ class widgetSVG {
       alert ("Error: Multiple graphics found with same name");
     }
     else { // If one graphic was returned - which should always happen
-      this.roots = JSON.parse(data[0].roots);
-      this.count = data[0].count;
+      if (data[0].roots) {
+        this.roots = JSON.parse(data[0].roots);
+      }
+      if (data[0].count) {
+        this.count = data[0].count;
+      }
       this.update();
     }
   }
@@ -266,7 +270,7 @@ class widgetSVG {
     const nodeID = element.getAttribute("idr").slice(5); // the IDR will be like groupxxx
     const nodeObj = this.getObjFromID(nodeID); // Get the object representing this node
     this.elemsToMove = [element]; // A list of all elements that need to move. It starts with just the node being dragged.
-    let descendantObjs = nodeObj.children.slice(); // To list the node's descendants, start with its children. slice makes a shallow copy.
+    const descendantObjs = nodeObj.children.slice(); // To list the node's descendants, start with its children. slice makes a shallow copy.
     while (descendantObjs.length > 0) {
       const currentObj = descendantObjs.pop(); // Grab a descendant object...
       const descendantSVG = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${currentObj.id}`); // Get the node associated with that object
@@ -327,7 +331,7 @@ class widgetSVG {
     const currentPos = siblings.indexOf(elementObj); // This should be the element's current location in the siblings array
     siblings.splice(currentPos, 1); // Remove the element from its current position
 
-    let yTransforms = []; // Array of the y transforms of each sibling element, starting with the first (highest). Remember that in SVG, high points have LOW y-coordinates.
+    const yTransforms = []; // Array of the y transforms of each sibling element, starting with the first (highest). Remember that in SVG, high points have LOW y-coordinates.
     for (let i = 0; i < siblings.length; i++) {
       const sibNode = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${siblings[i].id}`); // Get the DOM element representing the current sibling
       let transform = sibNode.getAttribute("transform");
@@ -365,10 +369,10 @@ class widgetSVG {
       name = prompt("Please enter the name for this graphic", name);
     }
 
-    let rootsCopy = JSON.parse(JSON.stringify(this.roots));
+    const rootsCopy = JSON.parse(JSON.stringify(this.roots));
 
     for (let i=0; i< rootsCopy.length; i++) { // Go through all the roots and add their transform values to their coordinates, so they'll display in the right places.
-        let root = rootsCopy[i];
+        const root = rootsCopy[i];
         const id = root.id;
         const group = app.domFunctions.getChildByIdr(this.SVG_DOM, `tree${id}`);
         const transform = group.getAttribute("transform").slice(10, -1).split(' '); // Get the transformation string and extract the coordinates
@@ -383,9 +387,10 @@ class widgetSVG {
   }
 
   update() { // Creates a group for each item in the array of roots, then calls buildTree to make a tree for each group.
-    let groups = d3.select("svg").selectAll("g.tree")
+    const groups = d3.select("svg").selectAll("g.tree")
       .data(this.roots, function(d) {return d.name;});
-    let newTrees = groups.enter()
+    if (groups._enter) {
+      const newTrees = groups.enter()
         .append("g")
           .attr("class", "tree")
           .attr("idr", function(d) {return `tree${d.id}`})
@@ -393,9 +398,14 @@ class widgetSVG {
           .attr("nodeHeight", this.nodeHeight)
           .attr("toggleWidth", this.toggleWidth)
           .attr("transform", function(d) {return "translate(" + d.x + " " + d.y + ")";} )
-    newTrees.each(this.buildTree);
-    groups.each(this.buildTree);
-    groups.exit().remove();
+      newTrees.each(this.buildTree);
+    }
+    if (groups._groups) {
+      groups.each(this.buildTree);
+    }
+    if (groups._exit) {
+      groups.exit().remove();
+    }
   }
 
   // Builds an individual tree, given the data to build it from and the group to build it in.
@@ -465,7 +475,7 @@ class widgetSVG {
     node.exit().remove();
 
     // Update the links…
-    var link = g.selectAll("path.link")
+    const link = g.selectAll("path.link")
       .data(links);
 
     link.enter().insert("path", "g")

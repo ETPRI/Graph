@@ -20,6 +20,7 @@
     <script src="../../../checkEmpty.js"></script>
     <script src="../../../widgetView.js"></script>
     <script src="../../../widgetSVG.js"></script>
+    <script src="../../../widgetCalendar.js"></script>
     <script src="https://d3js.org/d3.v5.min.js"></script>
 
   </head>
@@ -65,5 +66,8 @@ app.test();
 checkEmpty = new checkEmpty();
 // build node menu
 app.menuNodesInit();
+// create preset calendar options
+app.presetCalendars();
+// create temp admin account if a real one doesn't yet exist; delete it if a real one does exist
 app.login.checkAdminTable();
 </script>

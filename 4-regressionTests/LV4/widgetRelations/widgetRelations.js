@@ -63,7 +63,7 @@ rComplete(data) {
 
 createDragDrop(widgetRel) {
   widgetRel.containedWidgets.push(app.idCounter);
-	let dragDrop = new dragDropTable("template", "container", widgetRel.containerDOM, widgetRel.idrRow, widgetRel.idrContent);
+	const dragDrop = new dragDropTable("template", "container", widgetRel.containerDOM, widgetRel.idrRow, widgetRel.idrContent);
   dragDrop.editDOM.setAttribute("onblur", " app.widget('changeComment', this); app.widget('save', this)");
   dragDrop.existingRelations = JSON.parse(JSON.stringify(widgetRel.existingRelations)); // Makes a copy of this.existingRelations
 
@@ -171,7 +171,7 @@ createDragDrop(widgetRel) {
     data.sourceTag = input.tagName;
     evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
 
-    let obj = {};
+    const obj = {};
     obj.id = this.domFunctions.widgetGetId(evnt.target);
     obj.idr = event.target.getAttribute("idr");
     obj.action = "dragstart";
@@ -349,16 +349,6 @@ addNode(row, rows) {
                merge (per)-[:Owner]->(view2:View {direction:"end"})-[:Subject]->(end)
                merge (view2)-[:Link {${attributes}}]->(start)`;
 
-
-  // const queryStart =     (r => {switch (r) {
-  //     case "start": return `match (a), (b) where ID(a) = ${this.nodeID} and id(b) = ${otherNodeID} create (a)-[r:Link`; break;
-  //     case "end":   return `match (a), (b) where ID(a) = ${otherNodeID} and id(b) = ${this.nodeID} create (a)-[r:Link`; break;
-  //     case "peer":  return "";  break;// not finished
-  //     default: alert("error"); // better error handling
-  //   }}) (this.relationType);
-  // const queryEnd = `]->(b) return ID(r)`;
-  // const query = queryStart + ` {${attributes}}` + queryEnd;
-
   this.db.setQuery(query);
   this.db.runQuery(this, "processNext", rows);
 }
@@ -369,8 +359,8 @@ addNode(row, rows) {
 complete(nodes) { // Builds html for a table. Each row is a single relation and shows the number, the id, the end and the type of that relation.
   const logNodes = JSON.parse(JSON.stringify(nodes)); // Need a copy that WON'T have stuff deleted, in order to log it later
   app.stripIDs(logNodes); // May as well go ahead and remove the IDs now
-  let ordering = []; // Stores the ordered IDs, as stored in the table
-  let orderedNodes = []; // Stores ordered DATA, which is reproducible and human-readable, for testing
+  const ordering = []; // Stores the ordered IDs, as stored in the table
+  const orderedNodes = []; // Stores ordered DATA, which is reproducible and human-readable, for testing
   if (nodes[0] && nodes[0].ordering) { // If at least one node and an ordering were returned...
     ordering = nodes[0].ordering;
   }
@@ -491,135 +481,4 @@ drag(line, evnt) { // This is what happens when a row from someone else's view i
   app.regression.log(JSON.stringify(obj));
   app.regression.record(obj);
 }
-
-
-//NOTE: I'm pretty sure everything below this line is never used in this class. It seems to be copied from widgetNode.
-
-saveAdd(widgetElement) { // Saves changes or adds a new node
-  // director function
-  if (widgetElement.value === "Save") {
-    this.save(widgetElement);
-  } else {
-    this.add(widgetElement);
-  }
-}
-
-
-////////////////////////////////////////////////////////////////////
-add(widgetElement) { // Builds a query to add a new node, then runs it and passes the result to addComplete
-  // CREATE (n:person {name:'David Bolt', lives:'Knoxville'}) return n
-
-  let tr = this.tableDOM.firstElementChild;
-
-  const create = "create (n:"+ this.label+" {#data#}) return n";
-  let data="";
-  while (tr) {
-    let inp = tr.lastElementChild.firstElementChild;
-
-    data += inp.getAttribute("db") +":'" + inp.value +"', ";
-    tr=tr.nextElementSibling;
-  }
-
-
-  const query = create.replace("#data#", data.substr(0,data.length-2) );
-//  this.db = new db();
-  this.db.setQuery(query);
-  this.db.runQuery(this,"addComplete");
-}
-
-
-addComplete(data) { // Refreshes the node table and logs that addSave was clicked
-  //this.data = data[0].n // takes single node
-  this.dataNode = data[0].n // takes single nodes
-  this.buildDataNode();
-  // log
-  let obj = {};
-  obj.id = this.idWidget;
-  obj.idr = "addSaveButton";
-  obj.action = "click";
-  app.regression.log(JSON.stringify(obj));
-  app.regression.record(obj);
-}
-
-
-changed(input) { // Logs changes to fields, and highlights when they are different from saved fields
-  if (!this.dataNode) {
-    let obj = {};
-    obj.id = app.domFunctions.widgetGetId(input);
-    obj.idr = input.getAttribute("idr");
-    obj.value = input.value;
-    obj.action = "change";
-    app.regression.log(JSON.stringify(obj));
-    app.regression.record(obj);
-    return;  // no feedback in add mode, but do log the change
-  }
-  // give visual feedback if edit data is different than db data
-  if (input.value === this.dataNode.properties[input.getAttribute('db')]) {
-    input.setAttribute("class","");
-  } else {
-    input.setAttribute("class","changedData");
-  }
-
-  // log
-  let obj = {};
-  obj.id = app.domFunctions.widgetGetId(input);
-  obj.idr = input.getAttribute("idr");
-  obj.value = input.value;
-  obj.action = "change";
-  app.regression.log(JSON.stringify(obj));
-  app.regression.record(obj);
-}
-
-
-save(widgetElement) { // Builds query to update a node, runs it and passes the results to saveData()
-/*
-  MATCH (n)
-  WHERE id(n)= 146
-  SET n.born = 2003  // loop changed
-  RETURN n
-*/
-
-  let tr = this.tableDOM.firstElementChild;
-
-  let data="";
-  while (tr) {
-    let inp = tr.lastElementChild.firstElementChild;  // find <input> element
-    if(inp.getAttribute("class") === "changedData") {
-      // create a set for this field
-      let fieldName = inp.getAttribute("db");
-      let d1 = "n."+ fieldName +"=#value#, ";
-      let d2 = "";
-      if (this.fields[fieldName].type === "number") {
-        d2 = inp.value;  // number
-      } else {
-        d2 = '"' + inp.value + '"';  // assume string
-      }
-      data += d1.replace('#value#',d2)
-    }
-    tr=tr.nextElementSibling;
-  }
-
-  if (data==="") {
-    alert("no changes to save")
-  } else {
-    this.db.setQuery( `match (n) where id(n)=${this.dataNode.identity} set ${data.substr(0,data.length-2)} return n` );
-    this.db.runQuery(this,"saveData");
-  }
-}
-saveData(data) { // Refreshes the node table and logs that addSave was clicked
-  // redo from as edit now that data is saved
-  // alert(JSON.stringify(data));
-  //this.data = data[0].n;
-  this.dataNode = data[0].n;
-  this.buildDataNode();
-
-  // log
-  let obj = {};
-  obj.id = this.idWidget;
-  obj.idr = "addSaveButton";
-  obj.action = "click";
-  app.regression.log(JSON.stringify(obj));
-  app.regression.record(obj);
-}
-
 } ///////////////////// endclass

@@ -20,6 +20,36 @@ td {
 	vertical-align: top;
 }
 
+.month td {
+	width: 200px;
+	height: 150px;
+	font-weight: bold;
+	font-size:large;
+}
+
+.year td {
+	width:40px;
+	height: 40px;
+	font-weight: bold;
+	font-size: small;
+}
+
+.month .wrongMonth {
+	font-size: medium;
+	font-weight: normal;
+	color: gray;
+}
+
+.year .wrongMonth {
+	font-size: x-small;
+	font-weight: normal;
+	color: gray;
+}
+
+.today {
+	color: red;
+}
+
 .changedData {background-color: yellow}
 
 .newData {background-color: limegreen}
