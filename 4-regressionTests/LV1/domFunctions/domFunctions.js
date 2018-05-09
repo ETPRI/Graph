@@ -1,6 +1,9 @@
 class domFunctions {
   constructor() {}
 
+  // Takes a DOM element and an idr to search for within it. Searches through the element's children, then their children
+  // and so on, until it finds an element with that idr, and returns that element. Returns null if it finds no such element.
+  // If other widgets are nested inside the element passed in, these are NOT searched.
   getChildByIdr(element, idr) {
     const children = Array.from(element.children); // Get the element's children
     while (children.length > 0) {
@@ -15,27 +18,21 @@ class domFunctions {
   	return null; // return null if no idr matches
   }
 
+  // Takes a DOM element as an argument and returns the ID of the widget that element is part of.
+  // If the element is part of nested widgets, returns the inner one. If it's not part of any widget,
+  // produces an error message and returns null.
   widgetGetId(domElement) {
-  	/* input - domElememt inside a widget
-  	   return - string id associated with widget
-  	*/
-  	// go up the dom until class="widget" is found,
-  	// grap the id and
   	if (domElement.getAttribute("class") == "widget") {
   		// found start of widget
   		return(domElement.getAttribute("id"));
   	}
     else if (domElement.parentElement){ // if the parent element exists - if we haven't gone all the way up the tree looking for a widget
+      // call this method recursively, working up the tree until you either find a widget or run out of parents.
   		return(this.widgetGetId(domElement.parentElement));
   	}
     else {
       alert ("Error: Searched for the widget ID of an element which is not in a widget.");
       return null;
     }
-
-  	/* need some error processing if the original domElememt passed is not inside a widget,
-  	or if there is a widget construction error and the class was not placed there */
-
-    // I took a first shot at it - we'll see how it works. -AMF
   }
 }

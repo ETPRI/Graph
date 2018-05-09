@@ -22,6 +22,9 @@ class widgetSVG {
     this.currentX=0;
     this.currentY=0;
     this.transform = [];
+    this.parentNode = null;
+    this.nextSibling = null;
+    this.prevSibling = null;
 
     // data for making trees. This will hold an array of objects.
     // each with a name, a parent (although the parent will be null), x and y coordinates and a children array, as well as other data not needed for a tree.
@@ -75,8 +78,9 @@ class widgetSVG {
     }
   }
 
-  allowDrop(object, evnt) { // Prevent default action so drag and drop works properly.
+  allowDrop(object, evnt) { // Prevent default action so drag and drop works properly. Also find parent and sibling nodes.
     evnt.preventDefault();
+    this.highlightParent(evnt.clientX, evnt.clientY, null);
   }
 
   dropAdd (svg, evnt) { // Add node to the list of root nodes in the graphic and call update.
@@ -104,9 +108,9 @@ class widgetSVG {
       newObj.children = [];
 
       // Right here, I should check whether I dropped ONTO something. If so, instead of adding the new node as a root, I should call dropConnect.
-      const group = this.checkDrop(null, x, y);
-      if (group) {
-        this.dropConnect(group, newObj);
+      // const group = this.checkDrop(null, x, y);
+      if (this.parentNode) {
+        this.dropConnect(this.parentNode, newObj);
       }
       else {
         this.roots.push(newObj);
@@ -152,18 +156,39 @@ class widgetSVG {
     const parentObj = this.getObjFromID(nodeID);
 
     if (parentObj && childObj) { // If both objects exist
-      const index = this.roots.indexOf(childObj); // Remove the child from the roots array if it's in there
-      if (index != -1) {
-        this.roots.splice(index, 1);
+      const rootIndex = this.roots.indexOf(childObj); // Remove the child from the roots array if it's in there
+      if (rootIndex != -1) {
+        this.roots.splice(rootIndex, 1);
+      }
+
+      // Auto-show parent's children
+      if (parentObj._children) {
+        const button = node.children[1]; // Every node group has three children - a node rect, a toggle rect and text - in that order.
+        this.toggle(button);
       }
 
       // Make the child a child of the parent
-      if (parentObj.children) {
+      // Get index of next or previous sibling if applicable, and insert there. If no sibling, just push to the end of the children array.
+      if (this.prevSibling) {
+        const sibID = this.prevSibling.getAttribute("idr").slice(5);
+        const prevSibObj = this.getObjFromID(sibID);
+        const siblings = parentObj.children;
+        const index = siblings.indexOf(prevSibObj) + 1; // Insert in the NEXT position, to come after the previous sibling
+        parentObj.children.splice(index, 0, childObj);
+      }
+
+      else if (this.nextSibling) {
+        const sibID = this.nextSibling.getAttribute("idr").slice(5);
+        const nextSibObj = this.getObjFromID(sibID);
+        const siblings = parentObj.children;
+        const index = siblings.indexOf(nextSibObj); // Insert in the PREVIOUS position, to come after the next sibling
+        parentObj.children.splice(index, 0, childObj);
+      }
+
+      else if (parentObj.children) {
         parentObj.children.push(childObj);
       }
-      else if (parentObj._children) {
-        parentObj._children.push(childObj);
-      }
+
       else {
         parentObj.children = [];
         parentObj.children.push(childObj);
@@ -174,6 +199,12 @@ class widgetSVG {
       childObj.parent = parentObj.id;
       delete childObj.x;
       delete childObj.y;
+
+      // Remove parent node and formatting
+      this.parentNode.classList.remove("parent");
+      this.parentNode = null;
+      this.nextSibling = null;
+      this.prevSibling = null;
 
       this.update(); // Update the graphic
     } // End if (both objects found)
@@ -209,14 +240,58 @@ class widgetSVG {
     this.transform[1] += dy;
     const newTransform = `translate(${this.transform[0]} ${this.transform[1]})`;
     element.parentElement.setAttribute("transform", newTransform);
+
+    this.highlightParent(evnt.clientX, evnt.clientY, element.parentElement);
+  }
+
+  highlightParent(x, y, element) {
+    // Check for parent and highlight it if found
+    let nextSibling = null;
+    let prevSibling = null;
+    let parent = null;
+    if (element) { // Check for hovering over something first, but ONLY if moving an existing box!
+      parent = this.checkDrop(element, x, y);
+    }
+    if (!parent) {
+      parent = this.checkFront(element, x, y); // Then for being in front of something without kids...
+    }
+    if (!parent) {                                           // Finally, for being next to a potential sibling.
+      nextSibling = this.checkSides(element, x, y, true);
+      if (nextSibling) {
+        const parentID = nextSibling.__data__.data.parent;
+        parent = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${parentID}`);
+      }
+    }
+    if(!parent) {
+      prevSibling = this.checkSides(element, x, y, false);
+      if (prevSibling) {
+        const parentID = prevSibling.__data__.data.parent;
+        parent = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${parentID}`);
+      }
+    }
+
+    this.nextSibling = nextSibling; // This will be null unless a next sibling was searched for, and found, in this call
+    this.prevSibling = prevSibling; // Ditto
+
+    if (parent && parent != this.parentNode) { // If a new parent has been found
+      parent.classList.add("parent"); // Format it as the new parent, and remove formatting from the old parent
+      if (this.parentNode) {
+        this.parentNode.classList.remove("parent");
+      }
+      this.parentNode = parent;
+    }
+    if (!parent && this.parentNode) { // If there's an existing parent node, but no node should be the parent node
+      this.parentNode.classList.remove("parent"); // remove parent formatting
+      this.parentNode = null;
+    }
   }
 
   releaseNode(element, evnt) { // Removes all the onmousemove, onmouseup and onmouseout events which were set when the node was selected.
     const x = evnt.clientX;
     const y = evnt.clientY;
 
-    const group = this.checkDrop(element.parentElement, x, y); // checkDrop returns the first other group (not element) it finds at the mouse coordinates (x and y), or null if there is no such group.
-    if (group) { // If there is another group at the mouse coordinates, then we dropped element (the node being moved) onto that group, so we should connect them.
+//    const group = this.checkDrop(element.parentElement, x, y); // checkDrop returns the first other group (not element) it finds at the mouse coordinates (x and y), or null if there is no such group.
+    if (this.parentNode) { // If there is another group at the mouse coordinates, then we dropped element (the node being moved) onto that group, so we should connect them.
       const newChild = element.parentElement;
       const childID = newChild.getAttribute("idr").slice(4); // this IDR will be like treexxx
 
@@ -232,7 +307,7 @@ class widgetSVG {
       if (childObj == null) {
         alert("Error: The child object was not found.");
       }
-      else this.dropConnect(group, childObj);
+      else this.dropConnect(this.parentNode, childObj);
     } // end if (the node was dragged onto another node)
 
     element.removeAttribute("onmousemove");
@@ -241,10 +316,32 @@ class widgetSVG {
   }
 
   checkDrop(element, x, y) {
-    const rectangles = this.SVG_DOM.getElementsByTagName("rect"); // Get all rectangles in the graphic
+    const groups = this.SVG_DOM.getElementsByClassName("node"); // Get all rectangles in the graphic
 
-    for (let i = 0; i < rectangles.length; i++) { // Loop through all rectangles
-      const group=rectangles[i].parentElement;
+    for (let i = 0; i < groups.length; i++) { // Loop through all rectangles
+      const group=groups[i];
+      const bound = group.getBoundingClientRect(); // Get bounds of each rectangle
+      const top = bound.top;
+      const bottom = bound.bottom;
+      const left = bound.left;
+      const right = bound.right;
+      let contains = false;
+      if (element != null) {
+        contains = element.contains(group);
+      }
+
+      if (top < y && y < bottom && left < x && x < right && !contains ) { // If the mouse is inside this element, and this is NOT the element being dragged or that element doesn't exist
+        return group;
+      }
+    }
+    return null;
+  }
+
+  checkFront(element, x, y) {
+    const groups = this.SVG_DOM.getElementsByClassName("node"); // Get all rectangles in the graphic
+
+    for (let i = 0; i < groups.length; i++) { // Loop through all rectangles
+      const group=groups[i];
       const bound = group.getBoundingClientRect(); // Get bounds of each rectangle
       const top = bound.top;
       const bottom = bound.bottom;
@@ -254,8 +351,44 @@ class widgetSVG {
       if (element) {
         contains = element.contains(group);
       }
+      const kids = group.__data__.data.children;
+      const noKids = (kids == null || kids.length < 1); // true if the group represents a node with no chldren visible
 
-      if (top < y && y < bottom && left < x && x < right && !contains ) { // If the mouse is inside this element, and this is NOT the element being dragged or that element doesn't exist
+      // If the mouse is in front of this element, the element doesn't have visible children,
+      // and this is NOT the element being dragged or that element doesn't exist
+      if (top < y && y < bottom && right < x && x < right + 2*this.toggleWidth && !contains &&noKids) {
+        return group;
+      }
+    }
+    return null;
+  }
+
+  checkSides(element, x, y, topBool) {
+    const groups = this.SVG_DOM.getElementsByClassName("node"); // Get all rectangles in the graphic
+
+    for (let i = 0; i < groups.length; i++) { // Loop through all rectangles
+      const group=groups[i];
+      const bound = group.getBoundingClientRect(); // Get bounds of each rectangle
+      const top = bound.top;
+      const bottom = bound.bottom;
+      const left = bound.left;
+      const right = bound.right;
+      let contains = false;
+      if (element) {
+        contains = element.contains(group);
+      }
+      const notRoot = !(group.__data__.data.parent == "null"); // true if the group represents a node that isn't a root
+
+      // Where to look depends on whether we're checking the top or bottom of the node
+      let topBound = top - 20;
+      let bottomBound = top;
+      if (topBool == false) {
+        topBound = bottom;
+        bottomBound = bottom + 20;
+      }
+      // If the mouse is above this element, the element isn't a root,
+      // and this is NOT the element being dragged or that element doesn't exist
+      if (topBound < y && y < bottomBound && left < x && x < right && !contains &&notRoot) {
         return group;
       }
     }

@@ -17,10 +17,7 @@ class widgetTableNodes {
     this.db              = new db();  // where db object will be new db(this.queryObj)
     this.queryData       = {}; // where returned data will be stored
 
-    this.idWidget = app.idGet(0);   // strings
-  //  this.idLimit  = app.idGet(1);
-  //  this.idHeader = app.idGet(2);
-  //  this.idData   = app.idGet(3);
+    this.idWidget = app.idCounter;   // strings
     this.searchTrigger = controlId;
 
     this.buildHeader();  //  show table header on screen

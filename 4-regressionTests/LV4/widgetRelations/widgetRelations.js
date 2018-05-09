@@ -142,7 +142,7 @@ addLine(relation, html, orderedNodes) {
   // NOTE: CLEAN THIS UP! Placeholders aren't directly circular anymore. Need to think about how best to handle them.
   // If this node is a placeholder going the wrong way, just move along.
   if ("direction" in rel.properties && rel.properties.direction !== this.relationType) {
-    this.idrRow++;
+    this.idrRow++; // This probably isn't necessary, but honestly this whole section needs a rewrite, so why worry about its performance?
   }
   // If it's a placeholder going the right way or a real relation, add it to the table...
   else {
@@ -170,11 +170,11 @@ addLine(relation, html, orderedNodes) {
       trHTML = `<tr idr="item${this.idrRow}" ondrop="app.widget('dropData', this, event)"
                 ondragover="app.widget('allowDrop', this, event)" draggable="true"
                 ondragstart="app.widget('drag', this, event)">`
-      deleteHTML = `<td><button idr="delete${this.idrRow++}" onclick="app.widget('markForDeletion', this)">Delete</button></td>`;
+      deleteHTML = `<td><button idr="delete${this.idrRow}" onclick="app.widget('markForDeletion', this)">Delete</button></td>`;
       editHTML = `ondblclick="app.widget('edit', this, event)"`
     }
 
-    html += trHTML + `<td>${this.idrRow}</td> <td>${rel.identity}</td>
+    html += trHTML + `<td>${++this.idrRow}</td> <td>${rel.identity}</td>
                       <td idr="content${this.idrContent++}">${nodeID}</td>
                       <td idr="content${this.idrContent++}">${name}</td>
                       <td>${type}</td>
@@ -296,6 +296,8 @@ createDragDrop(widgetRel) {
           } else {
             typeCell.classList.remove("changedData");
           }
+          // No need to check the comment - comments only come in with rows from other views,
+          // and that will always make a new row, not change an existing one.
         } // end if (relation ID appears in existing relations)
 
         //log
@@ -306,11 +308,14 @@ createDragDrop(widgetRel) {
         app.regression.log(JSON.stringify(obj));
         app.regression.record(obj);
       } // end if (cell is not in template row)
-    } // end else if (the source was a widgetTableNodes cell
+    } // end else if (the source was a widgetTableNodes cell)
   } // end dragDrop.dropData function
 
+  // Create the new drag function, which sets the active node and stores data about the row being dragged.
   dragDrop.drag = function(input, evnt){ // Expand drag function to store data as well as mark an active node
     this.activeNode = evnt.target;
+
+    // Extract the needed data from the row being dragged
     const IDcell = this.activeNode.children[2];
     const ID = IDcell.textContent;
     const nameCell = this.activeNode.children[3];
@@ -320,6 +325,7 @@ createDragDrop(widgetRel) {
     const commentCell = this.activeNode.children[5];
     const comment = commentCell.textContent;
 
+    // Create an object which stores all the data
     const data = {};
     data.nodeID = ID;
     data.name = name;
@@ -328,8 +334,11 @@ createDragDrop(widgetRel) {
     data.sourceID = app.domFunctions.widgetGetId(input);
     data.sourceType = "dragDrop";
     data.sourceTag = input.tagName;
+
+    // Stringify it and store it in dataTransfer
     evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
 
+    // Log
     const obj = {};
     obj.id = this.domFunctions.widgetGetId(evnt.target);
     obj.idr = event.target.getAttribute("idr");
@@ -340,6 +349,9 @@ createDragDrop(widgetRel) {
   } // end dragDrop.drag function
 }
 
+// If the logged-in user is looking at their own view, calls this.processNext(), which will save all rows, save their ordering,
+// and then call this.refresh() in order to clear formatting (new data, changed data, etc.) and remove deleted rows.
+// If the user isn't logged in or is looking at someone else's view, just calls this.refresh() to get up-to-date info.
 saveSync(button) {
   // Log first to make sure the click is logged BEFORE any data
   const obj = {};
@@ -355,15 +367,21 @@ saveSync(button) {
     const relWidget = document.getElementById(widgetID); // Returns the relations widget
     const tableWidget = relWidget.getElementsByClassName("widget")[0]; // The only subwidget inside the relations widget should be the table
     const container = app.domFunctions.getChildByIdr(tableWidget, "container");
-    const rows = Array.from(container.children);
+    const rows = Array.from(container.children); // Get an array of all rows in the table
 
+    // Call this.processNext() to deal with the first row. Each time processNext runs, it either calls itself on the next row,
+    // or calls a function which eventually calls processNext() on the next row, so that eventually all rows are processed.
     this.processNext(null, rows);
-  }
+  } // end if (user is logged in and looking at their own view)
   else {
     this.refresh();
   }
 }
 
+// Examines a row to see what, if anything, needs to be done with it - delete it from the DB, add it to the DB,
+// replace it in the DB (needed for changing the node - relations can't change their endpoints), edit it or nothing.
+// Then calls the appropriate function - deleteNode(), addNode(), replaceNode(), modifyNode(), or processNext()
+// to skip a row that doesn't need to change the DB. (All other functions this can call eventually call processNext() again).
 processNext(data, rows) {
   // The only processing function that returns data is addNode, which returns ID(r). Check for existence of data[0] to distinguish from an empty array, which deletion returns
   // If processNext gets data, it is the ID from an addNode call. Extract the ID and add it to the order array.
@@ -373,7 +391,7 @@ processNext(data, rows) {
     this.order.push(id.toString());
   }
 
-  if (rows.length >0) {
+  if (rows.length >0) { // If there are more rows to process...
     const row = rows.pop();
     if (row.classList.contains("deletedData")) { // If the relation has been marked for deletion, delete it. No need to add to order array.
       this.deleteNode(row, rows);
@@ -404,7 +422,7 @@ processNext(data, rows) {
   else { // when all rows are processed
     this.order.reverse();
 
-    // Update the view's order property
+    // Update the view's order property and refresh the widget.
     const query = `match (user)-[:Owner]->(view:View {direction:"${this.relationType}"})-[:Subject]->(node)
                    where ID(user) = ${this.viewID} and ID(node) = ${this.nodeID}
                    set view.order = ${JSON.stringify(this.order)}`;
@@ -415,10 +433,17 @@ processNext(data, rows) {
   }
 }
 
+// Delete the relation represented by the given row from the DB. Also, delete the same relation
+// in the user's view of the OTHER node (e.g., if I think Alex is related to Amy, then I also think
+// Amy is related to Alex. If I delete one of those relations, I need to delete the other too).
+// Then call processNext() on the array of remaining rows.
 deleteNode(row, rows) {
+  // Get the ID of the relation to delete
   const cells = row.children;
   const idCell = cells[1];
   const id = idCell.textContent;
+
+  // Get the type of the other relation to delete - it will be the "mirror image" of this one
   let otherRelType;
   switch (this.relationType) {
     case "start": otherRelType = "end"; break;
@@ -426,34 +451,48 @@ deleteNode(row, rows) {
     case "peer":  otherRelType = "peer"; break;
   }
 
-  // delete the relation going to the other node in the view of this node, find the user's view of the other node, and delete the relation from that view to this node.
+  // delete the relation going to the other node in the view of this node,
+  // find the user's view of the other node, and delete the relation from that view to this node.
+  // Then call processNext() to do the next row.
   this.db.setQuery(`match ()-[r]-(node) where ID(r) = ${id} delete r with node
                     match (user)-[:Owner]->(view:View {direction:"${otherRelType}"})-[:Subject]->(node) where ID(user) = ${this.viewID}
                     match (view)-[r2:Link]->(this) where ID(this) = ${this.nodeID} delete r2`);
   this.db.runQuery(this, "processNext", rows);
 }
 
+// A workaround for the fact that Neo4j doesn't let you change the nodes a relationship is attached to.
+// Instead, this function starts the process of replacing the node by deleting it from the database,
+// changing its class in the table to "newData", and pushing it back onto the array of rows.
+// Because pop() returns the item that was pushed most recently, this row will be processed a second time
+// before anything else is, preserving the ordering. The second time it will be handled by addNode, and
+// will be added with its new endpoint.
 replaceNode (row, rows) {
-  // Apparently can't change the start or end node of a relationship. Have to delete and remake instead.
-  // I'll change the row from changed to new, put it BACK in the array, and delete the relationship from the DB.
-  // Then when it gets processed by processNext the second time, the relationship will get added.
   row.classList.remove("changedData");
   row.classList.add("newData");
   rows.push(row);
   this.deleteNode(row, rows);
 }
 
+// Simply updates a relation in the DB to include a new comment, then calls processNext() again.
 modifyNode (row, rows) {
+  // Get the ID of the relation to update and the new comment to include
   const cells = row.children;
   const idCell = cells[1];
   const id = idCell.textContent;
   const commentCell = cells[5];
   const comment = commentCell.textContent;
+
   this.db.setQuery(`match ()-[r]-() where ID(r) = ${id} set r.comment = "${app.stringEscape(comment)}"`);
   this.db.runQuery(this, "processNext", rows);
 }
 
+// Adds a new relation to the node being viewed. If a destination node was specified for the relation,
+// adds a relation between the user's view of the node and the destination node, then adds a relation
+// between the user's view of the destination node and this one (so that no matter which node you look
+// at, you see the relation). If no other node was specified, a placeholder relation is added to the
+// original node. NOTE: The section on placeholders needs work.
 addNode(row, rows) {
+  // Get the list of attributes of the relation (currently, just a comment, but could change)
   const widgetID = app.domFunctions.widgetGetId(row);
   const widget = document.getElementById(widgetID);
   const headerRow = app.domFunctions.getChildByIdr(widget, "template");
@@ -466,26 +505,31 @@ addNode(row, rows) {
   let otherNodeID;
   let attributes = "";
 
+  // Get the ID of the other node, if one was specified
   if (nodeIDcell.textContent != "") {
     otherNodeID = nodeIDcell.textContent;
   }
   // If no other node was specified, make a placeholder relationship with the original node, and give it a direction to mark it as a placeholder and show which way it goes
   else {
     otherNodeID = this.nodeID;
-    attributes = `direction:'${this.relationType}', `;
+    attributes = `direction:'${this.relationType}', `; // Not sure this is needed anymore
   }
 
-  for (let i = 5; i < headers.length-1; i++) { // start at 5 because the first 5 columns describe the node or are auto-generated - they aren't attributes of the relation.
+  // Build a string of attributes for the relation. Each attribute takes the form name:"value", and they're comma-separated.
+  // Start at i = 5 because the first 5 columns describe the node or are auto-generated - they aren't attributes of the relation.
+  // Stop at headers.length-1 because the last cell just holds the delete button.
+  for (let i = 5; i < headers.length-1; i++) {
     const text = cells[i].textContent;
     if (text != "") {
       attributes += `${headers[i].textContent.toLowerCase()}:"${app.stringEscape(text)}", `
     }
   }
 
-  if (attributes.length > 2) {
-    attributes = attributes.substr(0, attributes.length-2); // remove the final comma and space
+  if (attributes.length > 2) { // If any attributes were generated, the string will end with a comma and space.
+    attributes = attributes.substr(0, attributes.length-2); // remove the final comma and space.
   }
 
+  // Get the IDs of the start and end nodes for the relation
   let startID;
   let endID;
   switch (this.relationType) {
@@ -497,10 +541,12 @@ addNode(row, rows) {
       startID = otherNodeID;
       endID = this.nodeID;
       break;
-    case "peer":
+    case "peer": // Not yet implemented
       break;
   }
 
+  // Write the actual query: find the person whose view this is and the start and end nodes.
+  // Then add the relation to the person's view of each node.
   const query = `match (per), (start), (end)
                where ID(per) = ${this.viewID} and ID(start) = ${startID} and ID(end)=${endID}
                merge (per)-[:Owner]->(view:View {direction:"start"})-[:Subject]->(start)
@@ -512,13 +558,9 @@ addNode(row, rows) {
   this.db.runQuery(this, "processNext", rows);
 }
 
-
-//////////////////////////////////////////////////// below not reviewed
-
-
-
-
-drag(line, evnt) { // This is what happens when a row from someone else's view is dragged
+// Fires when a row from any relations table - whether it's the fully interactive table for a logged-in user,
+// or the read-only table for someone else - is dragged. Stores data from that row in dataTransfer.
+drag(line, evnt) {
   const data = {};
   data.name = line.children[3].textContent;
   data.type = line.children[4].textContent;

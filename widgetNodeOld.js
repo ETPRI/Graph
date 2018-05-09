@@ -22,7 +22,7 @@ constructor(label, data) {
   this.relationsFrom = {}; // place holder for relations ->(n)
   this.relationsTo   = {}; // place holder for relations   (n)->
   this.label       = label;
-  this.idWidget    = app.idGet(0);
+  this.idWidget    = app.idCounter;
 
   // DOM pointers to data that will change, just make place holders
   this.widgetDOM   = {};

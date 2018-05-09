@@ -17,7 +17,7 @@ class widgetTableNodes {
     this.db              = new db();  // where db object will be new db(this.queryObj)
     this.queryData       = {}; // where returned data will be stored
 
-    this.idWidget = app.idGet(0);   // strings
+    this.idWidget = app.idCounter;   // strings
     this.searchTrigger = controlId;
 
     this.buildHeader();  //  show table header on screen
@@ -359,6 +359,7 @@ class widgetTableNodes {
     app.regression.record(obj);
   }
 
+// I'm not sure this is ever used.
 getatt(fieldName) {
   let ret = this.fields[fieldName].att
   if (!ret) {

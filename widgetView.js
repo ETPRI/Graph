@@ -475,8 +475,19 @@ class widgetView {
         nameCell.setAttribute("ondragover", "app.widget('allowDrop', this, event)");  // and an ondragover, so data can be dropped...
         this.add.classList.add("hidden");                            // hide the "Add Me" button because the user is already shown...
 
+        // Close their view if it was already open (so that when it reopens, it will look like a logged-in view).
+        // Remove it from the cache. Then automatically open their view.
         const toggleButton = toggleCell.firstElementChild;
-        this.toggleRelation(toggleButton);                                       // and automatically show their view.
+        if (toggleButton.value === "__") { // If the user's view is open, then their toggle button will say "__".
+          this.toggleRelation(toggleButton); // Close it
+        }
+        if (ID in this.relations) { // If this user's view was cached...
+          const relDOM = this.relations[ID];
+          this.relCell.removeChild(relDOM);
+          delete this.relations[ID]; // Remove it both from the page and the array of cached views
+        }
+
+        this.toggleRelation(toggleButton); // Open the user's view
       } // end if (row matches logged-in user)
     } // end for (all rows)
   } // end onLogin

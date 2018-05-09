@@ -32,7 +32,7 @@ constructor(label, id) {
   this.queryObject = app.metaData.getNode(label);
   this.fields      = this.queryObject.fields;
 
-  this.idWidget = app.idGet(0);
+  this.idWidget = app.idCounter;
   app.widgets[app.idCounter] = this; // Add to app.widgets
   this.containedWidgets = [];
 
@@ -123,8 +123,8 @@ buildWidget() { // public - build table header
     <table idr = "nodeTable"></table>
   </td>
   <td idr="start"></td>
-</tr></tbody></table></div>
-`
+  </tr></tbody></table></div>
+  `
   /*
   Create new element, append to the widgets div in front of existing widgets
   */
@@ -356,12 +356,12 @@ changed(input) { // Logs changes to fields, and highlights when they are differe
 
 
 save(widgetElement, trashUntrash) { // Builds query to update a node, runs it and passes the results to saveData()
-/*
-  MATCH (n)
-  WHERE id(n)= 146
-  SET n.born = 2003  // loop changed
-  RETURN n
-*/
+  /*
+    MATCH (n)
+    WHERE id(n)= 146
+    SET n.born = 2003  // loop changed
+    RETURN n
+  */
   let tr = this.tableDOM.firstElementChild;
 
   let data="";
