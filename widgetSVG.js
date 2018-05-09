@@ -25,6 +25,7 @@ class widgetSVG {
     this.parentNode = null;
     this.nextSibling = null;
     this.prevSibling = null;
+    this.currentParent = null;
 
     // data for making trees. This will hold an array of objects.
     // each with a name, a parent (although the parent will be null), x and y coordinates and a children array, as well as other data not needed for a tree.
@@ -161,6 +162,16 @@ class widgetSVG {
         this.roots.splice(rootIndex, 1);
       }
 
+      // Remove the child from its parent's children array, if it's in there
+      if (this.currentParent) {
+        const parentID = this.currentParent.__data__.data.id;
+        const parent = this.getObjFromID(parentID);
+        const parentIndex = parent.children.indexOf(childObj);
+        if(parentIndex != -1) {
+          parent.children.splice(parentIndex, 1);
+        }
+      }
+
       // Auto-show parent's children
       if (parentObj._children) {
         const button = node.children[1]; // Every node group has three children - a node rect, a toggle rect and text - in that order.
@@ -287,32 +298,31 @@ class widgetSVG {
   }
 
   releaseNode(element, evnt) { // Removes all the onmousemove, onmouseup and onmouseout events which were set when the node was selected.
-    const x = evnt.clientX;
-    const y = evnt.clientY;
-
-//    const group = this.checkDrop(element.parentElement, x, y); // checkDrop returns the first other group (not element) it finds at the mouse coordinates (x and y), or null if there is no such group.
-    if (this.parentNode) { // If there is another group at the mouse coordinates, then we dropped element (the node being moved) onto that group, so we should connect them.
-      const newChild = element.parentElement;
-      const childID = newChild.getAttribute("idr").slice(4); // this IDR will be like treexxx
+    if (this.parentNode) { // If we dropped element (the node being moved) onto that group, we should connect them.
+      const newChild = element;
+      const childID = newChild.getAttribute("idr").slice(5); // this IDR will be like groupxxx
 
       // Get object representing child's root (from roots array)
-      let childObj = null;
-      for (let i = 0; i < this.roots.length; i++) {
-        const root = this.roots[i];
-        if (root.id == childID) {
-          childObj = root;
-          break;
-        }
-      }
+      const childObj = this.getObjFromID(childID);
       if (childObj == null) {
         alert("Error: The child object was not found.");
       }
       else this.dropConnect(this.parentNode, childObj);
     } // end if (the node was dragged onto another node)
 
+    else if (this.currentParent) { // if the node being dragged was a child, refresh the page so they snap back
+      this.update();
+    }
+
+    // Remove mouse methods and ensure all drag variables are null
     element.removeAttribute("onmousemove");
     element.removeAttribute("onmouseup");
     element.removeAttribute("onmouseout");
+    this.parent = null;
+    this.nextSibling = null;
+    this.prevSibling = null;
+    this.currentParent.classList.remove("currentParent");
+    this.currentParent = null;
   }
 
   checkDrop(element, x, y) {
@@ -414,7 +424,8 @@ class widgetSVG {
     }
     // At this point, should have a complete array of items to move stored in this.elemsToMove, accessible from any method.
 
-    this.currentY = evnt.clientY; // I'm only interested in vertical motion
+    this.currentY = evnt.clientY;
+    this.currentX = evnt.clientX;
 
     // For every item in elemsToMove, extract the current transform. Store in a 2D array where the first subscript represents the object and the second represents the coordinate (x or y).
     for (let i = 0; i < this.elemsToMove.length; i++) {
@@ -425,27 +436,38 @@ class widgetSVG {
       else {
         this.transform[i] = ["0","0"];
       }
-      this.transform[i][0] = parseFloat(this.transform[i][0]); // I do need the original x in order to rewrite the transform later
+      this.transform[i][0] = parseFloat(this.transform[i][0]);
       this.transform[i][1] = parseFloat(this.transform[i][1]);
     }
 
+    const parentID = element.__data__.data.parent;
+    this.currentParent = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${parentID}`);
+    this.currentParent.classList.add("currentParent");
+
+
     element.setAttribute("onmousemove", "app.widget('moveChild', this, event)");
-    element.setAttribute("onmouseup", "app.widget('releaseChildRearrange', this, event)");
+    element.setAttribute("onmouseup", "app.widget('releaseNode', this, event)");
     element.setAttribute("onmouseout", "app.widget('releaseChildSnapBack', this, event)");
   }
 
   moveChild(element, evnt) {
     // Get amount of mouse movement, and update mouse position
-    const dy = evnt.clientY - this.currentY; // Still only interested in vertical motion
+    const dx = evnt.clientX - this.currentX;
+    const dy = evnt.clientY - this.currentY;
+
+    this.currentX = evnt.clientX;
     this.currentY = evnt.clientY;
 
     // Move everything vertically
     for (let i = 0; i < this.elemsToMove.length; i++) {
-    this.transform[i][1] += dy;
-    const newTransform = `translate(${this.transform[i][0]} ${this.transform[i][1]})`;
-    this.elemsToMove[i].setAttribute("transform", newTransform);
+      this.transform[i][0] += dx;
+      this.transform[i][1] += dy;
+      const newTransform = `translate(${this.transform[i][0]} ${this.transform[i][1]})`;
+      this.elemsToMove[i].setAttribute("transform", newTransform);
     }
 
+    // highlight potential parents
+    this.highlightParent(evnt.clientX, evnt.clientY, element);
   }
 
   releaseChildSnapBack(element, evnt) {
@@ -455,44 +477,44 @@ class widgetSVG {
     this.update();
   }
 
-  releaseChildRearrange(element, evnt) {
-    const elementY = this.transform[0][1]; // The first row in the transform array represents the element being dragged, and its second value represents the y-coordinate
-    const nodeID = element.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-    const elementObj = this.getObjFromID(nodeID);
-    const parentObj = this.getObjFromID(elementObj.parent); // Get the parent object
-    const siblings = parentObj.children; // List of all the element's siblings (and itself). This should be an alias for the children array, not a new array - changes should affect the parent object.
-    const currentPos = siblings.indexOf(elementObj); // This should be the element's current location in the siblings array
-    siblings.splice(currentPos, 1); // Remove the element from its current position
-
-    const yTransforms = []; // Array of the y transforms of each sibling element, starting with the first (highest). Remember that in SVG, high points have LOW y-coordinates.
-    for (let i = 0; i < siblings.length; i++) {
-      const sibNode = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${siblings[i].id}`); // Get the DOM element representing the current sibling
-      let transform = sibNode.getAttribute("transform");
-      transform = transform.slice(10, -1).split(' '); // Get its transform string and extract the x and y values
-      yTransforms[i] = parseFloat(transform[1]); // Parse the y-value of the transform as a float and store it in yTransforms
-    }
-    // When this loop finishes, the yTransforms array should be finished
-
-    let found = false; // flag to tell whether the new position of the element has been found
-
-    for (let i = 0; i < siblings.length; i++) {
-      if (elementY < yTransforms[i]) {  // If the element being dragged ended up HIGHER than this one, then it should come before this one in the array.
-        found = true; // flag that the position has been found
-        siblings.splice(i, 0, elementObj); // Put the element back in at position i (moving the object that was already there down one).
-        break;
-      } // end if (position was found)
-    } // end for (all siblings)
-
-    if (!found) { // If the current position is NOT higher than any sibling, then this element should be last.
-      siblings.push(elementObj); // Add it back at the end of the array
-    }
-
-    // At this point the parent's children array should be reordered, so all that's left to do is remove unneeded mouse functions and update the graphic.
-    element.removeAttribute("onmousemove");
-    element.removeAttribute("onmouseup");
-    element.removeAttribute("onmouseout");
-    this.update();
-  }
+  // releaseChildRearrange(element, evnt) {
+  //   const elementY = this.transform[0][1]; // The first row in the transform array represents the element being dragged, and its second value represents the y-coordinate
+  //   const nodeID = element.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+  //   const elementObj = this.getObjFromID(nodeID);
+  //   const parentObj = this.getObjFromID(elementObj.parent); // Get the parent object
+  //   const siblings = parentObj.children; // List of all the element's siblings (and itself). This should be an alias for the children array, not a new array - changes should affect the parent object.
+  //   const currentPos = siblings.indexOf(elementObj); // This should be the element's current location in the siblings array
+  //   siblings.splice(currentPos, 1); // Remove the element from its current position
+  //
+  //   const yTransforms = []; // Array of the y transforms of each sibling element, starting with the first (highest). Remember that in SVG, high points have LOW y-coordinates.
+  //   for (let i = 0; i < siblings.length; i++) {
+  //     const sibNode = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${siblings[i].id}`); // Get the DOM element representing the current sibling
+  //     let transform = sibNode.getAttribute("transform");
+  //     transform = transform.slice(10, -1).split(' '); // Get its transform string and extract the x and y values
+  //     yTransforms[i] = parseFloat(transform[1]); // Parse the y-value of the transform as a float and store it in yTransforms
+  //   }
+  //   // When this loop finishes, the yTransforms array should be finished
+  //
+  //   let found = false; // flag to tell whether the new position of the element has been found
+  //
+  //   for (let i = 0; i < siblings.length; i++) {
+  //     if (elementY < yTransforms[i]) {  // If the element being dragged ended up HIGHER than this one, then it should come before this one in the array.
+  //       found = true; // flag that the position has been found
+  //       siblings.splice(i, 0, elementObj); // Put the element back in at position i (moving the object that was already there down one).
+  //       break;
+  //     } // end if (position was found)
+  //   } // end for (all siblings)
+  //
+  //   if (!found) { // If the current position is NOT higher than any sibling, then this element should be last.
+  //     siblings.push(elementObj); // Add it back at the end of the array
+  //   }
+  //
+  //   // At this point the parent's children array should be reordered, so all that's left to do is remove unneeded mouse functions and update the graphic.
+  //   element.removeAttribute("onmousemove");
+  //   element.removeAttribute("onmouseup");
+  //   element.removeAttribute("onmouseout");
+  //   this.update();
+  // }
 
   save (button) { // Saves the current state of the graph to the database.
     let name = this.nameCell.firstElementChild.value;

@@ -71,8 +71,13 @@ svg {
 }
 
 .parent .nodeRect {
-	stroke:blue;
-	stroke-width:5px;
+	stroke: blue;
+	stroke-width: 5px;
+}
+
+.currentParent .nodeRect {
+	stroke: red;
+	stroke-width: 5px;
 }
 
 text {
