@@ -18,7 +18,7 @@ class widgetSVG {
     this.nodeHeight = 30;
     this.toggleWidth = 20;
 
-    // variables for dragging
+    // variables for dragging and creating new nodes
     this.currentX=0;
     this.currentY=0;
     this.transform = [];
@@ -32,6 +32,10 @@ class widgetSVG {
     // The children array will include other objects making a tree.
     this.roots = [];
 
+    // used for creating new nodes and editing existing ones
+    this.newNode = null;
+    this.editDOM = null;
+
     this.buildWidget();
   } // end constructor
 
@@ -41,7 +45,8 @@ class widgetSVG {
 
     const html = app.widgetHeader() + `<b idr="name">${this.name}</b><input type="button" idr="save" value="Save" onclick="app.widget('save', this)">
                                        <input type="button" idr="saveAs" value="Save As" onclick="app.widget('save', this)"></div>
-                                       <div><svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}" ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropAdd', this, event)"</svg></div></div>`;
+                                       <div><svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}" ondblclick="app.widget('newBox', this, event)"
+                                       ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropAdd', this, event)"</svg></div></div>`;
 
     const parent = document.getElementById('widgets');
     const child = parent.firstElementChild;
@@ -49,6 +54,15 @@ class widgetSVG {
     parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
     newWidget.outerHTML = html; // replace placeholder with the div that was just written
     this.SVG_DOM = document.getElementById(`svg${this.widgetID}`);
+
+    this.editDOM = document.createElement("input");
+    this.editDOM.setAttribute("type", "text");
+    this.editDOM.setAttribute("onblur", "app.widget('saveInput', this)");
+    this.editDOM.setAttribute("onkeydown", "app.widget('lookForEnter', this, event)");
+    this.editDOM.setAttribute("hidden", "true");
+    this.editDOM.setAttribute("idr", "edit");
+    this.SVG_DOM.appendChild(this.editDOM);
+
 
     if (this.graphicID) {
       this.loadGraphic();
@@ -118,6 +132,33 @@ class widgetSVG {
         this.update();
       }
     }
+  }
+
+  newBox(element, evnt)  {
+    // Get positioning information
+    const x = evnt.clientX;
+    const y = evnt.clientY;
+    const bound = this.SVG_DOM.getBoundingClientRect();
+    const top = bound.top;
+    const left = bound.left;
+    const relX = x-left;
+    const relY = y-top;
+
+    // Create new object with no node associated
+    const newObj = {};
+    newObj.x = relX;
+    newObj.y = relY;
+    newObj.nodeID = null;
+    newObj.id = this.count++;
+    newObj.name = "";
+    newObj.parent = "null";
+    newObj.children = [];
+
+    // Remember which node to edit
+    this.newNode = newObj.id;
+
+    this.roots.push(newObj);
+    this.update();
   }
 
   getObjFromID(nodeID) {
@@ -321,7 +362,9 @@ class widgetSVG {
     this.parent = null;
     this.nextSibling = null;
     this.prevSibling = null;
-    this.currentParent.classList.remove("currentParent");
+    if (this.currentParent) {
+      this.currentParent.classList.remove("currentParent");
+    }
     this.currentParent = null;
   }
 
@@ -477,45 +520,6 @@ class widgetSVG {
     this.update();
   }
 
-  // releaseChildRearrange(element, evnt) {
-  //   const elementY = this.transform[0][1]; // The first row in the transform array represents the element being dragged, and its second value represents the y-coordinate
-  //   const nodeID = element.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-  //   const elementObj = this.getObjFromID(nodeID);
-  //   const parentObj = this.getObjFromID(elementObj.parent); // Get the parent object
-  //   const siblings = parentObj.children; // List of all the element's siblings (and itself). This should be an alias for the children array, not a new array - changes should affect the parent object.
-  //   const currentPos = siblings.indexOf(elementObj); // This should be the element's current location in the siblings array
-  //   siblings.splice(currentPos, 1); // Remove the element from its current position
-  //
-  //   const yTransforms = []; // Array of the y transforms of each sibling element, starting with the first (highest). Remember that in SVG, high points have LOW y-coordinates.
-  //   for (let i = 0; i < siblings.length; i++) {
-  //     const sibNode = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${siblings[i].id}`); // Get the DOM element representing the current sibling
-  //     let transform = sibNode.getAttribute("transform");
-  //     transform = transform.slice(10, -1).split(' '); // Get its transform string and extract the x and y values
-  //     yTransforms[i] = parseFloat(transform[1]); // Parse the y-value of the transform as a float and store it in yTransforms
-  //   }
-  //   // When this loop finishes, the yTransforms array should be finished
-  //
-  //   let found = false; // flag to tell whether the new position of the element has been found
-  //
-  //   for (let i = 0; i < siblings.length; i++) {
-  //     if (elementY < yTransforms[i]) {  // If the element being dragged ended up HIGHER than this one, then it should come before this one in the array.
-  //       found = true; // flag that the position has been found
-  //       siblings.splice(i, 0, elementObj); // Put the element back in at position i (moving the object that was already there down one).
-  //       break;
-  //     } // end if (position was found)
-  //   } // end for (all siblings)
-  //
-  //   if (!found) { // If the current position is NOT higher than any sibling, then this element should be last.
-  //     siblings.push(elementObj); // Add it back at the end of the array
-  //   }
-  //
-  //   // At this point the parent's children array should be reordered, so all that's left to do is remove unneeded mouse functions and update the graphic.
-  //   element.removeAttribute("onmousemove");
-  //   element.removeAttribute("onmouseup");
-  //   element.removeAttribute("onmouseout");
-  //   this.update();
-  // }
-
   save (button) { // Saves the current state of the graph to the database.
     let name = this.nameCell.firstElementChild.value;
     const id = this.graphicID;
@@ -560,6 +564,16 @@ class widgetSVG {
     }
     if (groups._exit) {
       groups.exit().remove();
+    }
+
+    // Finally, see if there's a new (blank) node. If so, append a text box to it to get the name, then make it NOT the new node anymore.
+    if (this.newNode) {
+      const newNode = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${this.newNode}`);
+      this.SVG_DOM.parentElement.appendChild(this.editDOM);
+      this.editDOM.hidden=false;
+      const bounds = newNode.getBoundingClientRect();
+      this.editDOM.setAttribute("style", `position:absolute; left:${bounds.left}px; top:${bounds.top}px`);
+      this.editDOM.focus();
     }
   }
 
@@ -627,6 +641,12 @@ class widgetSVG {
                                                 && (!d.data._children || d.data._children.length==0))
                                                 return true; else return false;});
 
+    // Update text
+    d3.selectAll(".node").each(function(d) { // For each node
+      d3.select(this).select('text')  // Should select the only text element in this node
+      .text(function(d) {return d.data.name}); // Should update the text
+    });
+
     node.exit().remove();
 
     // Update the links…
@@ -645,6 +665,26 @@ class widgetSVG {
         .attr("transform", "translate(0 0)");
 
       link.exit().remove();
+  }
+
+  lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (inserting a new node or changing an existing one)
+    if (evnt.keyCode === 13) {
+      input.onblur();
+    }
+  }
+
+  saveInput(edit) {
+    if (this.newNode) { // This SHOULD only run when there's a new node, but it doesn't hurt to check
+      const newObj = this.getObjFromID(this.newNode);
+      newObj.name = edit.value;
+      this.newNode = null;
+    }
+    // Even if there is no new object, hide and move the edit text box and refresh
+    edit.hidden = true;
+    edit.value = "";
+    edit.setAttribute("style", "position:static");
+    this.SVG_DOM.appendChild(edit);
+    this.update();
   }
 
   toggle(button) { // Toggle children.
