@@ -45,7 +45,7 @@ class widgetSVG {
 
     const html = app.widgetHeader() + `<b idr="name">${this.name}</b><input type="button" idr="save" value="Save" onclick="app.widget('save', this)">
                                        <input type="button" idr="saveAs" value="Save As" onclick="app.widget('save', this)"></div>
-                                       <div><svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}" ondblclick="app.widget('newBox', this, event)"
+                                       <div><svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}" ondblclick="app.widget('doubleClick', this, event)"
                                        ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropAdd', this, event)"</svg></div></div>`;
 
     const parent = document.getElementById('widgets');
@@ -134,7 +134,7 @@ class widgetSVG {
     }
   }
 
-  newBox(element, evnt)  {
+  doubleClick(element, evnt)  {
     // Get positioning information
     const x = evnt.clientX;
     const y = evnt.clientY;
@@ -144,10 +144,19 @@ class widgetSVG {
     const relX = x-left;
     const relY = y-top;
 
+    const box = this.checkDrop(null, relX, relY);
+    if (box) {
+      alert("Editing");
+    }
+    else {
+      this.newBox(relX, relY);
+    }
+  }
+  newBox(x, y) {
     // Create new object with no node associated
     const newObj = {};
-    newObj.x = relX;
-    newObj.y = relY;
+    newObj.x = x;
+    newObj.y = y;
     newObj.nodeID = null;
     newObj.id = this.count++;
     newObj.name = "";

@@ -279,6 +279,21 @@ drop(widget, evnt) {
 	}
 }
 
+// Check for support of JS version 6
+supportsES6() {
+  try {
+    new Function("(a = 0) => a");
+		if (navigator.userAgent != "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15") {
+			alert ("While this browser may suppoer JS v6, it has not been tested with this website, and may not work.");
+		}
+    return true;
+  }
+  catch (err) {
+		alert ("This browser doesn't support JS v6, and you will likely have some problems running this website. Try using Safari.");
+    return false;
+  }
+}
+
 // Used for testing, UI can be hard coded here to reduce amount of clicking to test code.
 // Can be called directly by app.html, or by clicking a single button. Currently empty.
 test() {}
