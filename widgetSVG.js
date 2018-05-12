@@ -45,7 +45,7 @@ class widgetSVG {
 
     const html = app.widgetHeader() + `<b idr="name">${this.name}</b><input type="button" idr="save" value="Save" onclick="app.widget('save', this)">
                                        <input type="button" idr="saveAs" value="Save As" onclick="app.widget('save', this)"></div>
-                                       <div><svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}" ondblclick="app.widget('doubleClick', this, event)"
+                                       <div><svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}" ondblclick="app.widget('newBox', this, event)"
                                        ondragover="app.widget('allowDrop', this, event)" ondrop="app.widget('dropAdd', this, event)"</svg></div></div>`;
 
     const parent = document.getElementById('widgets');
@@ -134,7 +134,7 @@ class widgetSVG {
     }
   }
 
-  doubleClick(element, evnt)  {
+  newBox(element, evnt) {
     // Get positioning information
     const x = evnt.clientX;
     const y = evnt.clientY;
@@ -144,19 +144,10 @@ class widgetSVG {
     const relX = x-left;
     const relY = y-top;
 
-    const box = this.checkDrop(null, relX, relY);
-    if (box) {
-      alert("Editing");
-    }
-    else {
-      this.newBox(relX, relY);
-    }
-  }
-  newBox(x, y) {
     // Create new object with no node associated
     const newObj = {};
-    newObj.x = x;
-    newObj.y = y;
+    newObj.x = relX;
+    newObj.y = relY;
     newObj.nodeID = null;
     newObj.id = this.count++;
     newObj.name = "";
@@ -284,9 +275,25 @@ class widgetSVG {
     this.transform[0] = parseFloat(this.transform[0]);
     this.transform[1] = parseFloat(this.transform[1]);
 
+    element.setAttribute("onmousedown", "app.widget('doubleClick', this)");
     element.setAttribute("onmousemove", "app.widget('moveNode', this, event)");
-    element.setAttribute("onmouseup", "app.widget('releaseNode', this, event)");
     element.setAttribute("onmouseout", "app.widget('releaseNode', this, event)");
+    setTimeout(this.singleClick, 500, element);
+  }
+
+  doubleClick(element) {
+    alert("doubleclick");
+    element.setAttribute("onmousedown", "app.widget('selectNode', this, event)");
+    element.removeAttribute("onmousemove");
+    element.removeAttribute("onmouseup");
+    element.removeAttribute("onmouseout");
+  }
+
+  singleClick(element) {
+    if (element.getAttribute("onmousedown") != "app.widget('selectNode', this, event)") {
+      element.setAttribute("onmousedown", "app.widget('selectNode', this, event)");
+      element.setAttribute("onmouseup", "app.widget('releaseNode', this, event)");
+    }
   }
 
   moveNode (element, evnt) { // Compares current to previous mouse position to see how much the element should have moved, then moves it by that much and updates the mouse position.

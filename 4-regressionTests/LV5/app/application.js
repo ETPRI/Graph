@@ -4,7 +4,7 @@
 
 // app.js holds the global functions and data for the application
 
-class app { ///////////////////////////////////////////////////////////////// start class
+class application { ///////////////////////////////////////////////////////////////// start class
 
 // called once by app.html to create the one instance
 constructor() {
@@ -15,25 +15,24 @@ constructor() {
 	this.authToken = neo4j.v1.auth.basic("neo4j", "paleo3i");
 	this.driver    = neo4j.v1.driver("bolt://localhost", this.authToken, {encrypted:false});
 
-
-	this.activeWidget = null; // widget being dragged
-}
-
-// Calls all the functions which need to run at the start of a session.
-buildApp() {
-	// Create instances of other classes needed to run the page. Called here because some of them require app to exist
-	// before their constructors can run.
+	// Create instances of other classes needed to run the page
 	this.metaData  			= new metaData();
 	this.db        			= new db();
 	this.domFunctions 	= new domFunctions();
-	this.login 					= new widgetLogin();
 	this.regression 		= new regressionTesting();
+	this.login 					= new widgetLogin();
 	this.checkEmpty 		= new checkEmpty();
 
 	// Add the regression header and login div to the list of widgets
 	this.widgets.regressionHeader = this.regression;
 	this.widgets.loginDiv = this.login;
 
+	this.activeWidget = null; // widget being dragged
+	this.buildApp();
+}
+
+// Calls all the functions which need to run at the start of a session.
+buildApp() {
 	// Check the brower capabilities and, if applicable, report that it definitely won't work or that it's not tested
 	this.supportsES6();
 	// Build the node menu
@@ -46,34 +45,6 @@ buildApp() {
 	this.createDebug();
 	// Run any test code currently in app
 	this.test();
-}
-
-showDebug(button) {
-	const debugHeader = document.getElementById('debugHeader');
-	debugHeader.removeAttribute("hidden");
-	button.setAttribute("value", "Hide Debug Menu");
-	button.setAttribute("onclick", "app.hideDebug(this)");
-}
-
-hideDebug(button) {
-	const debugHeader = document.getElementById('debugHeader');
-	debugHeader.setAttribute("hidden", "true");
-	button.setAttribute("value", "Show Debug Menu");
-	button.setAttribute("onclick", "app.showDebug(this)");
-}
-
-showRegression(button) {
-	const regressionHeader = document.getElementById('regressionHeader');
-	regressionHeader.removeAttribute("hidden");
-	button.setAttribute("value", "Hide Regression Menu");
-	button.setAttribute("onclick", "app.hideRegression(this)");
-}
-
-hideRegression(button) {
-	const regressionHeader = document.getElementById('regressionHeader');
-	regressionHeader.setAttribute("hidden", "true");
-	button.setAttribute("value", "Show Regression Menu");
-	button.setAttribute("onclick", "app.showRegression(this)");
 }
 
 // Takes a DOM element inside a widget, a method, and a set of arguments for that method.
@@ -111,7 +82,6 @@ menuNodesInit(){
 createDebug() {
 	const header = document.getElementById("debugHeader");
 	if (header) {
-		header.setAttribute("hidden", "true");
 		const p = document.createElement('p');
 		const text = document.createTextNode('	|-> debugging');
 		p.appendChild(text);
@@ -200,13 +170,6 @@ createDebug() {
 
 		const line = document.createElement('hr');
 		header.appendChild(line);
-
-		const obj = {};
-		obj.object = this;
-		obj.method = 'hideDebug';
-		const debugButton = document.getElementById('debugButton');
-		obj.args = [debugButton];
-		this.login.doOnLogout.push(obj);
 	}
 }
 

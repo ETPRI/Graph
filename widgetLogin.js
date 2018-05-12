@@ -73,13 +73,38 @@ class widgetLogin {
     this.passwordInput.setAttribute("onkeydown", "app.widget('loginOnEnter', this, event)");
     loginInfo.appendChild(this.passwordInput);
 
-    // Button to log in. Appended to loginInfo, so also visible only when logged out.
+    // Button to log in.
     this.loginButton = document.createElement("input");
     this.loginButton.setAttribute("idr", "loginButton");
     this.loginButton.setAttribute("type", "button");
     this.loginButton.setAttribute("value", "Log In");
     this.loginButton.setAttribute("onclick", "app.widget('login', this)");
     this.loginDiv.appendChild(this.loginButton);
+
+    // Button to show debug header. Visible only when logged in as an admin
+    this.debugButton = document.createElement('input');
+    this.debugButton.setAttribute('id', 'debugButton');
+    this.debugButton.setAttribute('type', 'button');
+    this.debugButton.setAttribute('value', 'Show Debug Menu');
+    this.debugButton.setAttribute('onclick', 'app.showDebug(this)');
+    this.debugButton.setAttribute('hidden', 'true');
+    this.loginDiv.appendChild(this.debugButton);
+    this.viewAdmin.push(this.debugButton);
+
+    // Button to show regression header. Visible only when logged in as an admin
+    this.regressionButton = document.createElement('input');
+    this.regressionButton.setAttribute('id', 'regressionButton');
+    this.regressionButton.setAttribute('type', 'button');
+    this.regressionButton.setAttribute('value', 'Show Regression Menu');
+    this.regressionButton.setAttribute('onclick', 'app.showRegression(this)');
+    this.regressionButton.setAttribute('hidden', 'true');
+    this.loginDiv.appendChild(this.regressionButton);
+    this.viewAdmin.push(this.regressionButton);
+
+
+    // Horizontal line
+    const line = document.createElement("hr");
+    this.loginDiv.appendChild(line);
   }
 
   // Called when you hit a key while in the password box. If the key was "Enter", calls the login method.

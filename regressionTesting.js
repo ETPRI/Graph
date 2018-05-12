@@ -27,7 +27,20 @@ class regressionTesting {
 
   buildRegressionHeader() {
     const regHeader = document.getElementById("regressionHeader");
+    regHeader.setAttribute("hidden", "true");
     regHeader.setAttribute("class", "widget");
+    const p1 = document.createElement('p');
+  	const text1 = document.createTextNode(`To run the premade scripts, make sure you are working in an empty database,
+  																				 then select ALL scripts and play. Due to the widget numbering system,
+  																				 later scripts will NOT run properly unless they are run immediately after
+  																				 the earlier ones.`);
+  	p1.appendChild(text1);
+  	regHeader.appendChild(p1);
+  	const p2 = document.createElement('p');
+  	const text2 = document.createTextNode(`Number of scripts recorded for this page so far: 0`);
+  	p2.appendChild(text2);
+  	regHeader.appendChild(p2);
+
     const record = document.createElement("input");
     record.setAttribute("type", "button");
     record.setAttribute("id", "Record");
@@ -77,6 +90,16 @@ class regressionTesting {
     const dlink = document.createElement("p");
     dlink.setAttribute("id", "dlink");
     regHeader.appendChild(dlink);
+
+    const line = document.createElement('hr');
+    regHeader.appendChild(line);
+
+    const obj = {};
+    obj.object = app;
+    obj.method = 'hideRegression';
+    const regressionButton = document.getElementById('regressionButton');
+    obj.args = [regressionButton];
+    app.login.doOnLogout.push(obj);
   }
 
   log(message){
@@ -98,9 +121,9 @@ class regressionTesting {
         log.removeChild(log.firstChild);
       }
   		this.log("logging started");
-  		button.value = "log stop";
+  		button.value = "Stop Logging";
   	} else {
-  		button.value = "log start";
+  		button.value = "Start Logging";
   	}
   } // end logToggle method
 
@@ -325,7 +348,7 @@ class regressionTesting {
   		if (this.recording) {
   			this.recordToggle(document.getElementById("Record")); // make sure app is not recording
   		}
-//  		log = document.getElementById('log');
+    //  		log = document.getElementById('log');
   		if (!this.logField.hidden) { // If the log is active...
   			this.logToggle(document.getElementById("LogButton")); // deactivate it
   		}
@@ -341,5 +364,5 @@ class regressionTesting {
     }
   }
 
-  dummy() {} // Empty method, only here because runQuery has to have SOMETHING for its method argument
+  dummy() {} // Empty method, only here because runQuery has to have SOMETHING for its method argument (not anymore, find where this is called and get rid of it)
 } // end class

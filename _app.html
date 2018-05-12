@@ -23,34 +23,36 @@
     <div id="loginDiv"></div>
     <hr>
     <div id="regressionHeader"></div>
-    <hr>
+    <div id="debugHeader">
+      |-> debugging
+      <select id = "metaData" onclick="app.menuDBstats(this)">
+        <option value="">--Meta Data--</option>
+        <option value="trash">Trash</option>
+        <option value="nodes">Nodes</option>
+        <option value="keysNode">Keys</option>
+        <option value="relations">Relations</option>
+        <option value="keysRelation">Keys</option>
+      </select>
 
-    |-> debugging
-    <select id = "metaData" onclick="app.menuDBstats(this)">
-      <option value="">--Meta Data--</option>
-      <option value="trash">Trash</option>
-      <option value="nodes">Nodes</option>
-      <option value="keysNode">Keys</option>
-      <option value="relations">Relations</option>
-      <option value="keysRelation">Keys</option>
-    </select>
+      <input type="button" id = "LogButton" value="log start" onclick="app.regression.logToggle(this)">
+      <input type ="button" id = "Clear" value = "Clear ALL" onclick = "app.regression.clearAll(app)">
 
-    <input type="button" id = "LogButton" value="log start" onclick="app.regression.logToggle(this)">
-    <input type ="button" id = "Clear" value = "Clear ALL" onclick = "app.regression.clearAll(app)">
+      <input id="debug" type="text" size="80">
+      <a href="http://localhost:7474/browser/" target="_blank">neo4j browser </a> neo4j desktop must be running with database started
 
-    <input id="debug" type="text" size="80">
-    <a href="http://localhost:7474/browser/" target="_blank">neo4j browser </a> neo4j desktop must be running with database started
+      <hr>
+    </div>
+    <div id="workSpace">
+      <select id="menuNodes" onclick="app.menuNodes(this)">
+        <option value="">-- Nodes --</option>
+      </select>
+      <input  type="button" value="New" onclick="app.menuNodes(this)">
 
-    <hr>
-    <select id="menuNodes" onclick="app.menuNodes(this)">
-      <option value="">-- Nodes --</option>
-    </select>
-    <input  type="button" value="New" onclick="app.menuNodes(this)">
-
-    <div id="widgets" class=""> </div>
-    <hr>
-    <div id="log" hidden="true"></div>
-    <hr>
+      <div id="widgets" class=""> </div>
+      <hr>
+      <div id="log" hidden="true"></div>
+      <hr>
+    </div>
   </body>
 </html>
 
