@@ -34,20 +34,36 @@ buildApp() {
 	this.widgets.regressionHeader = this.regression;
 	this.widgets.loginDiv = this.login;
 
+	// Make the workspace visible only when a user is logged in, and remove all widgets when the user logs out.
+	this.workSpace = document.getElementById("workSpace");
+	this.workSpace.setAttribute("hidden", true);
+	this.login.viewLoggedIn.push(this.workSpace);
+	const obj = {};
+	obj.object = this;
+	obj.method = 'clearWidgets';
+	obj.args = [];
+	this.login.doOnLogout.push(obj);
+
 	// Check the brower capabilities and, if applicable, report that it definitely won't work or that it's not tested
 	this.supportsES6();
+
 	// Build the node menu
 	this.menuNodesInit();
+
 	// Create preset calendar options
 	this.presetCalendars();
+
 	// Create temp admin account if a real one doesn't yet exist; delete it if a real one does exist
 	this.login.checkAdminTable();
+
 	// Create the debug menu, assuming a header is provided for it to go in
 	this.createDebug();
+
 	// Run any test code currently in app
 	this.test();
 }
 
+// Makes the debug header visible, and changes the button used to show it into a "Hide Debug" button
 showDebug(button) {
 	const debugHeader = document.getElementById('debugHeader');
 	debugHeader.removeAttribute("hidden");
@@ -55,6 +71,7 @@ showDebug(button) {
 	button.setAttribute("onclick", "app.hideDebug(this)");
 }
 
+// Makes the debug header invisible, and changes the button used to hide it into a "Show Debug" button
 hideDebug(button) {
 	const debugHeader = document.getElementById('debugHeader');
 	debugHeader.setAttribute("hidden", "true");
@@ -62,6 +79,7 @@ hideDebug(button) {
 	button.setAttribute("onclick", "app.showDebug(this)");
 }
 
+// Makes the regression header visible, and changes the button used to show it into a "Hide Regression" button
 showRegression(button) {
 	const regressionHeader = document.getElementById('regressionHeader');
 	regressionHeader.removeAttribute("hidden");
@@ -69,11 +87,28 @@ showRegression(button) {
 	button.setAttribute("onclick", "app.hideRegression(this)");
 }
 
+// Makes the regression header invisible, and changes the button used to show it into a "Show Regression" button
 hideRegression(button) {
 	const regressionHeader = document.getElementById('regressionHeader');
 	regressionHeader.setAttribute("hidden", "true");
 	button.setAttribute("value", "Show Regression Menu");
 	button.setAttribute("onclick", "app.showRegression(this)");
+}
+
+// Removes all widgets other than the login div and regression header from both the screen and the widgets array
+clearWidgets() {
+	for (let id in this.widgets) { // For every widget...
+		if (id != "loginDiv" && id != "regHeader") { // (except for the login div and regression header)...
+			// Remove widget objects
+			delete this.widgets[id];
+
+			// delete  html2 from page
+			const widget = document.getElementById(id);
+			if (widget) {
+				widget.parentElement.removeChild(widget);
+			}
+		}
+	}
 }
 
 // Takes a DOM element inside a widget, a method, and a set of arguments for that method.

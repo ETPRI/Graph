@@ -89,8 +89,8 @@ initNodeData() { // move to DB in the future
     ,"comment":    {label: "Comment"  }
     }}
 
-  this.node.graphic = {
-    nodeLabel: "graphic"
+  this.node.mindmap = {
+    nodeLabel: "mindmap"
     ,orderBy: "n.name" // , n.lastEdited, n.created, n.lastEditor, n.creator
     ,fieldsDisplayed: ["name", "comment"] // , "creator", "created", "lastEditor", "lastEdited"
     ,fields: {

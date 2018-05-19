@@ -326,18 +326,9 @@ class regressionTesting {
 
   clearAll(app) {
   	if (confirm("This will clear ALL DATA from the database and remove ALL WIDGETS from the webpage. Are you sure you want to do this?")) {
-  		for (let id in app.widgets) {
-        if (id != "loginDiv" && id != "regHeader") {
-    			// Remove widget objects
-    			delete app.widgets[id];
+      // Remove widgets
+      app.clearWidgets();
 
-    			// delete  html2 from page
-    			const widget = document.getElementById(id);
-          if (widget) {
-    			  widget.parentElement.removeChild(widget);
-          }
-        }
-  		}
   		// Remove nodes and relationships
   		const command = "MATCH (n) DETACH DELETE n";
   		app.db.setQuery(command);

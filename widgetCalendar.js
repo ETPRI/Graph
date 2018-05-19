@@ -1,10 +1,10 @@
 class widgetCalendar {
-  constructor(button, id) {
-    this.widgetNode = document.getElementById(app.domFunctions.widgetGetId(button));
-    const table = app.domFunctions.getChildByIdr(this.widgetNode, "nodeTable");
-    this.nameCell = table.getElementsByTagName("TH")[0].nextElementSibling;
+  constructor(id) {
+    this.calendarID = id;
     this.widgetID = app.idCounter;
     app.widgets[app.idCounter] = this;
+    this.calendarDOM = null;
+    this.widgetDOM = null;
 
     this.hourHeight = "30px";
     this.dayWidth = "600px";
@@ -27,16 +27,8 @@ class widgetCalendar {
     this.buildHeader();
   }
 
-  // isLeapYear(date) {
-  //   const year = date.getFullYear; // get the year
-  //   if (year%4 != 0) return false; // Years that aren't divisible by 4 are not leap years
-  //   if (year%100 == 0 && year%400 != 0) return false; // Years that are divisible by 100 but not by 400 aren't leap years
-  //   return true; // All other years (which are divisible by 4, and either not divisible by 100 or divisible by 400) ARE leap years
-  // }
-
   buildHeader() {
-    this.name = this.nameCell.firstElementChild.value; // Check the input in the name cell of the table to get the graphic's name.
-    if (this.name == "") this.name = "Untitled calendar";  // If that's blank, call it "Untitled calendar".
+    this.name = "Untitled calendar";  // Call it "Untitled calendar" for now - can change later
 
     const html = app.widgetHeader() + `<b idr="name">${this.name}</b>
                                        <input type="button" idr="backButton" value="<" onclick="app.widget('page', this)">
@@ -45,8 +37,9 @@ class widgetCalendar {
                                        <input type="button" idr="monthButton" value="Month" onclick="app.widget('changeView', this)">
                                        <input type="button" idr="yearButton" value="Year" onclick="app.widget('changeView', this)">
                                        <input type="button" idr="forwardButton" value=">" onclick="app.widget('page', this)">
+                                       <input type="button" idr="details" value="Show Details" onclick="app.widget('showDetails', this)">
                                        </div>
-                                       <div id="calendar${this.widgetID}"></div></div>`;
+                                       <div><table><tr idr="calendarRow"><td id="calendar${this.widgetID}"></td></tr></table></div></div>`;
 
     const parent = document.getElementById('widgets');
     const child = parent.firstElementChild; // Find the first existing element in the widgets div
@@ -54,6 +47,7 @@ class widgetCalendar {
     parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
     newWidget.outerHTML = html; // replace placeholder with the div that was just written
     this.calendarDOM = document.getElementById(`calendar${this.widgetID}`);
+    this.widgetDOM = document.getElementById(`${this.widgetID}`);
     this.buildDay(this.day);
   }
 
@@ -145,7 +139,7 @@ class widgetCalendar {
       const testCanvas = document.createElement("canvas");  // Then draw the line
       testCanvas.setAttribute("style", `position:relative; bottom:${pixels_above_bottom}px`);
       testCanvas.setAttribute("height", "20");
-      testCanvas.setAttribute("width", "800");
+      testCanvas.setAttribute("width", rect.width);
       this.calendarDOM.appendChild(testCanvas);
       const ctx = testCanvas.getContext("2d");
       ctx.beginPath();
@@ -223,7 +217,7 @@ class widgetCalendar {
     table.appendChild(header);
     for (let i = 0; i<7; i++) {
       const day = document.createElement("th");
-      const dayName = document.createTextNode(this.days[i]);
+      const dayName = document.createTextNode(this.shortDays[i]);
       day.appendChild(dayName);
       header.appendChild(day);
     }
@@ -336,5 +330,20 @@ class widgetCalendar {
       default:
         alert(`Error: ${this.mode} is not a valid calendar mode (should be day, week, month or year)`);
     }
+  }
+
+  showDetails(button) {
+    const row = app.domFunctions.getChildByIdr(this.widgetDOM, 'calendarRow');
+    const detailsCell = row.insertCell(-1);
+    new widgetDetails('calendar', detailsCell, this.calendarID);
+    button.value = "Hide Details";
+    button.setAttribute("onclick", "app.widget('hideDetails', this)");
+  }
+
+  hideDetails(button) {
+    const row = app.domFunctions.getChildByIdr(this.widgetDOM, 'calendarRow');
+    row.deleteCell(-1);
+    button.value = "Show Details";
+    button.setAttribute("onclick", "app.widget('showDetails', this)");
   }
 }

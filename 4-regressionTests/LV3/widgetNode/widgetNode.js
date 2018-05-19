@@ -99,7 +99,6 @@ buildEnd() {
 buildWidget() { // public - build table header
   let id=null;  // assume add mode
   let name = "New Node";
-  let otherButtonHTML = "";
 
   if (this.dataNode) {
     // we are edit mode
@@ -107,19 +106,10 @@ buildWidget() { // public - build table header
     name = this.dataNode.properties.name
   }
 
-  // Adding buttons specific to certain labels
-  if (this.label == "graphic") {
-    otherButtonHTML = `<input idr="showButton" type="button" onclick="new widgetSVG(this, ${id})" value="Show graphic">`;
-  }
-
-  if (this.label == "calendar") {
-    otherButtonHTML = `<input idr="showButton" type="button" onclick="new widgetCalendar(this, ${id})" value="Show calendar">`
-  }
-
   const html = app.widgetHeader() + `<b idr="nodeLabel">${this.label}#${id}: ${name}</b></div><table><tbody><tr>
   <td idr="end"></td>
   <td>
-    <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">${otherButtonHTML}</div>
+    <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)"></div>
     <table idr = "nodeTable"></table>
   </td>
   <td idr="start"></td>

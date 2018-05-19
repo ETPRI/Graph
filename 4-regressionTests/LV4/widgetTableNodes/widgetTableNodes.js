@@ -26,13 +26,11 @@ class widgetTableNodes {
     this.search();       // do search with no criteria
   }
 
-
   ////////////////////////////////////////////////////////////////////
   search() { // public - call when data changes
     this.db.setQuery(this.buildQuery());
     this.db.runQuery(this,"buildData");
   }
-
 
   buildQuery() { // public - called when search criteria change
     // init cypherQuery data
@@ -55,7 +53,6 @@ class widgetTableNodes {
 
     return(query);
   }
-
 
   buildWhere() {
     /*   output - nameLast =~"(?i)Bol.*"
@@ -86,14 +83,11 @@ class widgetTableNodes {
       return (where.substr(0, where.length-5)) ;
   }
 
-
-
   getSearchNumber(inputDOM, searchType) {
     // n.born <= 1958   match (n:Person) where n.name=~"(?i)ton.*" return n order by n.nameLast  limit 9
     const w = "n."+ this.getAtt(inputDOM,"fieldName") +searchType + inputDOM.value +' and ';
     return(w);
   }
-
 
   getSearchString(inputDOM, searchType) {
     const w = "n."+ this.getAtt(inputDOM,"fieldName") +'=~"(?i)#s#' + inputDOM.value +'#E#" and ';
@@ -114,7 +108,6 @@ class widgetTableNodes {
     return(w1);
   }
 
-
   getAtt(element,attName) { // private -----------
   	/*
     input - element - is DOM input Object
@@ -124,7 +117,6 @@ class widgetTableNodes {
     const ret = element.getAttribute("db").split(attName+":")[1].split(";")[0].trim();
   	return(ret);
   }
-
 
   ////////////////////////////////////////////////////////////////////
   buildHeader() {
@@ -198,7 +190,6 @@ class widgetTableNodes {
     parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
     newWidget.outerHTML = html5; // replace placeholder with the div that was just written
   }
-
 
   buildData(data) {  // build dynamic part of table
     this.queryData = data; // only one row should have been returned
@@ -346,6 +337,17 @@ class widgetTableNodes {
     data.name = name;
     data.type = type;
     data.nodeID = ID;
+    data.details = [];
+    for (let i = 0; i< this.fieldsDisplayed.length; i++) { // For every displayed field...
+      const cell = nodeRow.children[i+2]; // Remember that the first two cells aren't displayed fields
+      const fieldName = this.fieldsDisplayed[i];
+      if (fieldName != "name") { // skip the name...
+        const detailObj = {};
+        detailObj.field = fieldName;
+        detailObj.value = cell.textContent;
+        data.details.push(detailObj);
+      }
+    }
     data.sourceID = app.domFunctions.widgetGetId(input);
     data.sourceType = "widgetTableNodes";
     data.sourceTag = input.tagName;
@@ -367,16 +369,22 @@ getatt(fieldName) {
   }
 }
 
-
+// I'm almost certain this isn't.
 relationAdd(element) {
   alert(element.previousElementSibling.textContent)
 }
 
-
 edit(element){
     const id = element.innerHTML;
-    new widgetNode(this.queryObject.nodeLabel, id);
-
+    if (this.queryObject.nodeLabel == 'mindmap') {
+      new widgetSVG(id);
+    }
+    else if (this.queryObject.nodeLabel == "calendar") {
+      new widgetCalendar(id);
+    }
+    else {
+      new widgetNode(this.queryObject.nodeLabel, id);
+    }
     // log
     const obj = {};
     obj.id = app.domFunctions.widgetGetId(element);
@@ -389,7 +397,15 @@ edit(element){
 
   // open add widget
   addNode(element){
-    new widgetNode(this.queryObject.nodeLabel);
+    if (this.queryObject.nodeLabel == 'mindmap') {
+      new widgetSVG();
+    }
+    else if (this.queryObject.nodeLabel == "calendar") {
+      new widgetCalendar();
+    }
+    else {
+      new widgetNode(this.queryObject.nodeLabel);
+    }
 
     // log
     const obj = {};

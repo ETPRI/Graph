@@ -1,12 +1,20 @@
+// This class handles basic dragging and dropping.
 class dragDrop {
+  // containerIDR: The idr of the element which will contain the rows
+  // buttonIDR: // The idr of the show/hide button
+  // row: // The number of rows that already exist (start numbering from here)
+  // content: The number of existing items that can be interacted with and need idrs
+  // (start numbering them from here)
   constructor(containerIDR, buttonIDR, row, content) {
 
     this.activeNode = null; // node which is being dragged
     this.domFunctions 	= new domFunctions();
-    this.id = app.idCounter;
-    this.domElement = document.getElementById(this.id);
 
+    // add to app.widgets
+    this.id = app.idCounter;
     app.widgets[app.idCounter++] = this;
+
+    this.domElement = document.getElementById(this.id);
 
     // Set up Show/Hide button
     this.showHide = this.domFunctions.getChildByIdr(this.domElement, buttonIDR);
