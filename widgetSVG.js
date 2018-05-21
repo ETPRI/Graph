@@ -711,14 +711,6 @@ class widgetSVG {
         .attr("transform", function(d, i) {return `translate(-170 ${20 -30*i})`});
 
       texts.text(function(d) {return `${d.field}: ${d.value}`});
-
-        // // Update text
-        // d3.selectAll(".node").each(function(d) { // For each node
-        //   d3.select(this).select('.nodeText')  // Should select the text of the node
-        //   .text(function(d) {return d.data.name}); // Should update the text
-        // });
-
-
       texts.exit().remove();
     }
 
@@ -917,6 +909,12 @@ class widgetSVG {
     // Look for an existing popup for this node (there should be one). If found, just make it visible and update its location.
     let popup = app.domFunctions.getChildByIdr(group, `popupGroup${ID}`);
     if (popup) {
+      const node = popup.parentElement;
+      const tree = node.parentElement;
+      node.appendChild(popup); // Make the popup top in its node group...
+      tree.appendChild(node); // and the node top in its tree...
+      this.SVG_DOM.appendChild(tree); // and the tree top in the SVG.
+
       popup.setAttribute("class", "detailPopupVisible");
     }
   }

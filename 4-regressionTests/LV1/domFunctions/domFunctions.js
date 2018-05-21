@@ -22,7 +22,7 @@ class domFunctions {
   // If the element is part of nested widgets, returns the inner one. If it's not part of any widget,
   // produces an error message and returns null.
   widgetGetId(domElement) {
-  	if (domElement.getAttribute("class") == "widget") {
+  	if (domElement.classList.contains("widget")) {
   		// found start of widget
   		return(domElement.getAttribute("id"));
   	}

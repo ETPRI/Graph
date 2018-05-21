@@ -298,7 +298,8 @@ widgetHeader(tag){
 		tag = "div";
 	}
 	return(`
-	<${tag} id="${this.idCounter++}" class="widget" ondrop="app.drop(this, event)" ondragover="app.allowDrop(this, event)">
+	<${tag} id="${this.idCounter++}" class="widget" ondrop="app.drop(this, event)"
+				ondragover="app.allowDrop(this, event)" onmousedown="app.setActiveWidget(this)">
 	<hr>
 	<div idr="header" draggable="true" ondragstart="app.drag(this, event)">
 	<input type="button" value="X" idr="closeButton" onclick="app.widgetClose(this)">
@@ -452,6 +453,14 @@ drop(widget, evnt) {
 		this.regression.log(JSON.stringify(obj));
 		this.regression.record(obj);
 	}
+}
+
+setActiveWidget(widget) {
+	if (this.activeWidget) {
+		this.activeWidget.classList.remove("activeWidget");
+	}
+	this.activeWidget = widget;
+	widget.classList.add("activeWidget");
 }
 
 // Check for support of JS version 6

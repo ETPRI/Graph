@@ -177,7 +177,10 @@ class widgetTableNodes {
     let f="";
     for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
         const fieldName =this.fieldsDisplayed[i];
-        f += "<th onClick='app.widgetSort(this)'>"+ this.fields[fieldName].label + "</th>" ;
+        //f += "<th onClick='app.widgetSort(this)'>"+ this.fields[fieldName].label + "</th>" ;
+        // The original version of this line called a method that doesn't exist yet.
+        // If we build that method eventually, we can put the old version of the line back.
+        f += "<th>"+ this.fields[fieldName].label + "</th>" ; 
     }
     const html5 = html4.replace('#header#',f);
 
