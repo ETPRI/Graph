@@ -768,12 +768,13 @@ class widgetSVG {
       .attr("idr", function(d) {return `detail${d.data.id}`})
       .attr("transform", `translate(-${this.getAttribute("detailWidth")} 0)`)
       .attr("onmouseover", "app.widget('openDetailPopup', this)")
-      .attr("onmouseout", "app.widget('closeDetailPopup', this)")
+      .attr("onmouseout", "app.widget('closeDetailPopup', this, event)")
       .attr("class", "detailsRect");
 
     nodeEnter.append("g") // Create a detail popup group with a rectangle in it
       .attr("idr", function(d) {return `popupGroup${d.data.id}`})
       .attr("class", "detailPopupHidden")
+      .attr("onmouseout", "app.widget('closeDetailPopup', this, event)")
       .append("rect")
         .attr("idr", function(d) {return`popupRect${d.data.id}`})
         .attr("class", "detailPopup")
@@ -932,13 +933,35 @@ class widgetSVG {
     }
   }
 
-  closeDetailPopup(button) {
-    const group = button.parentElement;
-    const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-    const obj = this.getObjFromID(ID);
-    const popup = app.domFunctions.getChildByIdr(this.SVG_DOM, `popupGroup${obj.id}`);
-    if (popup) {
-      popup.setAttribute("class", "detailPopupHidden");
+  closeDetailPopup(element, evnt) { // The element triggering this will be either the popup itself, or the popup rectangle.
+    const x = evnt.clientX;
+    const y = evnt.clientY;
+
+    let ID = "";
+    if (element.classList.contains("detailsRect")) { // If the triggering element was the popup rectangle...
+      const group = element.parentElement;
+      ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+      const obj = this.getObjFromID(ID);
+      const popup = app.domFunctions.getChildByIdr(this.SVG_DOM, `popupGroup${obj.id}`);
+      const popupBound = popup.getBoundingClientRect();
+      const inPopup = popupBound.left <= x && x <= popupBound.right && popupBound.top <= y && y <= popupBound.bottom;
+      if (!inPopup) {
+        popup.setAttribute("class", "detailPopupHidden");
+      }
+    }
+    else { // If the triggering event was the popup
+      ID = element.getAttribute("idr").slice(10); // A popup's IDR is like popupGroupxxx.
+      const obj = this.getObjFromID(ID);
+      const button = app.domFunctions.getChildByIdr(this.SVG_DOM, `detail${obj.id}`);
+      const buttonBound = button.getBoundingClientRect();
+      const inButton = buttonBound.left <= x && x <= buttonBound.right && buttonBound.top <= y && y <= buttonBound.bottom;
+
+      // Apparently, mousing over stuff IN the popup counts as mousing OUT of the popup, so I need to verify that hasn't happened.
+      const popupBound = element.getBoundingClientRect();
+      const inPopup = popupBound.left < x && x < popupBound.right && popupBound.top < y && y < popupBound.bottom;
+      if (!inButton && !inPopup) {
+        element.setAttribute("class", "detailPopupHidden");
+      }
     }
   }
 }
