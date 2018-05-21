@@ -356,6 +356,13 @@ class widgetView {
       row.classList.add("newData");
       tbody.insertBefore(row, inputRow);
 
+      if (app.activeWidget) {
+        app.activeWidget.classList.remove("activeWidget");
+      }
+      app.activeWidget = this.containerDOM;
+      this.containerDOM.classList.add("activeWidget");
+
+
       //log
       const obj = {};
       obj.id = app.domFunctions.widgetGetId(viewName);

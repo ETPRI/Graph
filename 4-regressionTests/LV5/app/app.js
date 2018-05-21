@@ -119,12 +119,25 @@ widget(method, widgetElement, ...args) { // args takes all the remaining argumen
 	// Get the ID of the widget that the DOM element is inside.
 	const id = this.domFunctions.widgetGetId(widgetElement);
 
-	// If that ID is associated with a widget object which contains the given method...
-	if (id && this.widgets[id] && this.widgets[id][method]) {
-		this.widgets[id][method](widgetElement, ...args); //  Call the method, and pass in widgetElement and any extra args
-	} else {
-     // Create an error message. This could stand to be more informative, but I'm not sure how best to write it.
-		 alert(`App.widget: Error, method: ${method}`);
+	if (method=="allowDrop") {
+		// If that ID is associated with a widget object which contains the given method...
+		if (id && this.widgets[id] && this.widgets[id][method]) {
+			this.widgets[id][method](widgetElement, ...args); //  Call the method, and pass in widgetElement and any extra args
+		} else {
+	     // Create an error message. This could stand to be more informative, but I'm not sure how best to write it.
+			 alert(`App.widget: Error, method: ${method}`);
+		}
+	}
+
+
+	else {
+		// If that ID is associated with a widget object which contains the given method...
+		if (id && this.widgets[id] && this.widgets[id][method]) {
+			this.widgets[id][method](widgetElement, ...args); //  Call the method, and pass in widgetElement and any extra args
+		} else {
+			 // Create an error message. This could stand to be more informative, but I'm not sure how best to write it.
+			 alert(`App.widget: Error, method: ${method}`);
+		}
 	}
 }
 
@@ -154,7 +167,7 @@ createDebug() {
 
 		const select = document.createElement('select');
 		select.setAttribute('id', 'metaData');
-		select.setAttribute('onclick', 'app.menuDBstats', this);
+		select.setAttribute('onclick', 'app.menuDBstats(this)');
 		header.appendChild(select);
 
 		const opt1 = document.createElement('option');

@@ -300,6 +300,13 @@ createDragDrop(widgetRel) {
           // and that will always make a new row, not change an existing one.
         } // end if (relation ID appears in existing relations)
 
+        // Make this the active widget
+        if (app.activeWidget) {
+          app.activeWidget.classList.remove("activeWidget");
+        }
+        app.activeWidget = this.domElement;
+        this.domElement.classList.add("activeWidget");
+
         //log
         const obj = {};
         obj.id = app.domFunctions.widgetGetId(input);

@@ -133,8 +133,13 @@ createDragDrop(widgetRel) {
           } else {
             typeCell.classList.remove("changedData");
           }
-        } // end if (relation ID appears in existing relations)
-      } // end if (cell is not in template row)
+        } // end if (relation ID appears in existing relations; check for changed data)
+        if (app.activeWidget) {
+          app.activeWidget.classList.remove("activeWidget");
+        }
+        app.activeWidget = this.domElement;
+        this.domElement.classList.add("activeWidget");
+      } // end if (cell is not in template row; add data)
     } // end else (there was data; dragDrop and not drop was the appropriate function)
   } // end dragDrop.dropData function
 }

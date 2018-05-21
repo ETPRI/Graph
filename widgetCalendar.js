@@ -48,6 +48,13 @@ class widgetCalendar {
     newWidget.outerHTML = html; // replace placeholder with the div that was just written
     this.calendarDOM = document.getElementById(`calendar${this.widgetID}`);
     this.widgetDOM = document.getElementById(`${this.widgetID}`);
+
+    if (app.activeWidget) {
+      app.activeWidget.classList.remove("activeWidget");
+    }
+    app.activeWidget = this.widgetDOM;
+    this.widgetDOM.classList.add("activeWidget");
+
     this.buildDay(this.day);
   }
 

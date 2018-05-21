@@ -65,6 +65,12 @@ class widgetSVG {
     this.SVG_DOM = document.getElementById(`svg${this.widgetID}`);
     this.widgetDOM = document.getElementById(`${this.widgetID}`);
 
+    if (app.activeWidget) {
+      app.activeWidget.classList.remove("activeWidget");
+    }
+    app.activeWidget = this.widgetDOM;
+    this.widgetDOM.classList.add("activeWidget");
+
     this.editDOM = document.createElement("input");
     this.editDOM.setAttribute("type", "text");
     this.editDOM.setAttribute("onblur", "app.widget('saveInput', this)");
@@ -165,6 +171,13 @@ class widgetSVG {
         this.newObject = newObj;
         this.update();
       }
+
+      // Make this the active widget
+      if (app.activeWidget) {
+        app.activeWidget.classList.remove("activeWidget");
+      }
+      app.activeWidget = this.widgetDOM;
+      this.widgetDOM.classList.add("activeWidget");
     }
   }
 
@@ -918,6 +931,7 @@ class widgetSVG {
       popup.setAttribute("class", "detailPopupVisible");
     }
   }
+
   closeDetailPopup(button) {
     const group = button.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx

@@ -23,6 +23,12 @@ class widgetTableNodes {
     this.buildHeader();  //  show table header on screen
     this.widget = document.getElementById(this.idWidget);
 
+    if (app.activeWidget) {
+      app.activeWidget.classList.remove("activeWidget");
+    }
+    app.activeWidget = this.widget;
+    this.widget.classList.add("activeWidget");
+
     this.search();       // do search with no criteria
   }
 
@@ -180,7 +186,7 @@ class widgetTableNodes {
         //f += "<th onClick='app.widgetSort(this)'>"+ this.fields[fieldName].label + "</th>" ;
         // The original version of this line called a method that doesn't exist yet.
         // If we build that method eventually, we can put the old version of the line back.
-        f += "<th>"+ this.fields[fieldName].label + "</th>" ; 
+        f += "<th>"+ this.fields[fieldName].label + "</th>" ;
     }
     const html5 = html4.replace('#header#',f);
 

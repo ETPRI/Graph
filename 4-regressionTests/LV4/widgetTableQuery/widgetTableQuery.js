@@ -17,6 +17,7 @@ constructor (nameQueryObject, id) {
   this.fields          = this.queryObj.fields;
   this.tableName = nameQueryObject;
   this.dropdownId = id;
+  this.widgetID = app.idCounter;
 
   this.db        = new db();   // create object to make query
   this.db.setQuery(this.queryObj.query);
@@ -39,6 +40,12 @@ queryComplete(data) {
   const newWidget = document.createElement('div'); // create placeholder div
   parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
   newWidget.outerHTML = this.html; // replace placeholder with the div that was just written
+
+  if (app.activeWidget) {
+    app.activeWidget.classList.remove("activeWidget");
+  }
+  app.activeWidget = document.getElementById(this.widgetID);
+  document.getElementById(this.widgetID).classList.add("activeWidget");
 
   // log
   const obj = {};

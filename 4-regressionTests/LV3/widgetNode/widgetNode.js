@@ -103,7 +103,7 @@ buildWidget() { // public - build table header
   if (this.dataNode) {
     // we are edit mode
     id = this.dataNode.identity;
-    name = this.dataNode.properties.name
+    name = this.dataNode.properties.name;
   }
 
   const html = app.widgetHeader() + `<b idr="nodeLabel">${this.label}#${id}: ${name}</b></div><table><tbody><tr>
@@ -127,6 +127,13 @@ buildWidget() { // public - build table header
   // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
   const widget = document.getElementById(this.idWidget);
   this.widgetDOM  = widget;
+
+  if (app.activeWidget) {
+    app.activeWidget.classList.remove("activeWidget");
+  }
+  app.activeWidget = this.widgetDOM;
+  this.widgetDOM.classList.add("activeWidget");
+
   this.addSaveDOM = app.domFunctions.getChildByIdr(widget, "addSaveButton");
   this.tableDOM   = app.domFunctions.getChildByIdr(widget, "nodeTable");
   this.endDOM     = app.domFunctions.getChildByIdr(widget, "end");
