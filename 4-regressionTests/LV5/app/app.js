@@ -43,6 +43,7 @@ buildApp() {
 	obj.method = 'clearWidgets';
 	obj.args = [];
 	this.login.doOnLogout.push(obj);
+	document.addEventListener("keydown", this.keyPressed.bind(this));
 
 	// Check the brower capabilities and, if applicable, report that it definitely won't work or that it's not tested
 	this.supportsES6();
@@ -61,6 +62,16 @@ buildApp() {
 
 	// Run any test code currently in app
 	this.test();
+}
+
+keyPressed(evnt) {
+	if (this.activeWidget) {
+		const widgetID = this.activeWidget.getAttribute("id");
+		const widgetObj = this.widgets[widgetID];
+		if (widgetObj.keyPressed) {
+			widgetObj.keyPressed(evnt);
+		}
+	}
 }
 
 // Makes the debug header visible, and changes the button used to show it into a "Hide Debug" button

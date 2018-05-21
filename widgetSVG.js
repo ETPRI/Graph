@@ -256,6 +256,10 @@ class widgetSVG {
     return nodeObj;
   }
 
+  keyPressed(evnt) {
+    alert ("Key pressed!");
+  }
+
   dropConnect(node, childObj) { // Creates a link between the node being dragged and the node it was dropped onto
     // Get object representing parent node (object representing child node was already found)
     const nodeID = node.getAttribute("idr").slice(5); // the IDR will be like groupxxx
