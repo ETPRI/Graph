@@ -1,176 +1,287 @@
+// This class handles basic dragging and dropping.
 class dragDrop {
-  constructor(containerID, buttonID) {
-    var activeNode; // node which is being dragged
+  // containerIDR: The idr of the element which will contain the rows
+  // buttonIDR: // The idr of the show/hide button
+  // row: // The number of rows that already exist (start numbering from here)
+  // content: The number of existing items that can be interacted with and need idrs
+  // (start numbering them from here)
+  constructor(containerIDR, buttonIDR, row, content) {
+
+    this.activeNode = null; // node which is being dragged
+    this.domFunctions 	= new domFunctions();
+
+    // add to app.widgets
+    this.id = app.idCounter;
+    app.widgets[app.idCounter++] = this;
+
+    this.domElement = document.getElementById(this.id);
 
     // Set up Show/Hide button
-    this.showHide = document.getElementById(buttonID);
+    this.showHide = this.domFunctions.getChildByIdr(this.domElement, buttonIDR);
     this.showHide.value = "Hide Input";
-    this.showHide.setAttribute("onclick", "dragDrop.inputToggle(this)");
+    this.showHide.setAttribute("onclick", "app.widget('inputToggle', this)");
 
     // Set up edit input
-    let edit = document.createElement("input");
-    edit.setAttribute("type", "text");
-    edit.setAttribute("id", "edit");
-    edit.setAttribute("onblur", "dragDrop.save()");
-    edit.setAttribute("onkeydown", "dragDrop.LookForEnter(event, this)");
-    edit.setAttribute("hidden", "true");
-    document.body.appendChild(edit);           // move input field to end of body
+    this.editDOM = document.createElement("input");
+    this.editDOM.setAttribute("type", "text");
+    this.editDOM.setAttribute("onblur", "app.widget('save', this)");
+    this.editDOM.setAttribute("onkeydown", "app.widget('lookForEnter', this, event)");
+    this.editDOM.setAttribute("hidden", "true");
+    this.editDOM.setAttribute("idr", "edit");
+    this.domElement.appendChild(this.editDOM);           // move input field to end of DOM element representing the table
 
-    this.container = document.getElementById(containerID);
-    this.container.setAttribute("class", "widget");
+    this.container = this.domFunctions.getChildByIdr(this.domElement, containerIDR);
 
     // This is where we start building the insert line. insertContainer is the outermost template tag (the draggable one) (or the only one, if they're not nested)
-    this.insertContainer = this.container.firstElementChild;
-    this.insertContainer.setAttribute("ondrop", "dragDrop.drop(event)");
-    this.insertContainer.setAttribute("ondragover", "dragDrop.allowDrop(event)");
+    this.insertContainer = this.container.lastElementChild;
+    if (!this.insertContainer.hasAttribute("ondrop")) { // If there's already an ondrop event set up, don't replace it
+      this.insertContainer.setAttribute("ondrop", "app.widget('drop', this, event)");
+    }
+    if (!this.insertContainer.hasAttribute("ondragover")) { // Same goes for ondragover...
+      this.insertContainer.setAttribute("ondragover", "app.widget('allowDrop', this, event)");
+    }
     this.insertContainer.setAttribute("draggable", "true");
-    this.insertContainer.setAttribute("ondragstart", "dragDrop.drag(event)");
-
-    this.inputCount = 0;
-    this.createInputs(this.insertContainer);
-    this.contentCount = 0;
-
-    // Make this.input the first input field
-    this.input = this.insertContainer;
-    while(this.input.hasChildNodes()) {
-      this.input = this.input.firstElementChild;
+    if (!this.insertContainer.hasAttribute("ondragstart")) { // and ondragstart.
+      this.insertContainer.setAttribute("ondragstart", "app.widget('drag', this, event)");
     }
 
-    this.itemCount = 0; // number of finished items that have been added; also used for top-level idrs
+    if (row) {
+      this.itemCount = row; // Number of finished rows which have been added
+    }
+    else {
+      this.itemCount = 0;
+    }
+
+    this.inputCount = 0; // number of input fields in the input element
+    this.otherCount = 0; // number of non-input fields
+    this.createInputs(this.insertContainer);
+    this.insertContainer.setAttribute("idr", "insertContainer");
+
+    if (content) { // existing is an optional value recording the number of rows that are already in the table.
+      this.contentCount = content;
+    }
+    else {
+      this.contentCount = 0;
+    }
+
+
+
+    // I liked this, but I always had trouble getting the focus to go where I wanted it,
+    // and when it also started to be difficult to FIND the first input, I decided to comment it out for now.
+
+    // Make this.input the first input field
+    // this.input = this.insertContainer;
+    // while(this.input.hasChildNodes()) {
+    //   this.input = this.input.firstElementChild;
+    // }
   }
 
   createInputs(element) { // To support nested tags
-    if (element.hasChildNodes()) { // If this is not a leaf, don't add an input, but do process its children.
-      let children = element.children;
+    if (element.hasChildNodes()) { // If this is not a leaf, process its children.
+      const children = element.children;
       for (let child of children) {
-        this.createInputs(child); // calls this recursively to assign inputs to all leaves
+        this.createInputs(child); // calls this recursively to process all leaves
       }
     }
-    else { // Create inputs for each leaf node
-      let input = document.createElement("input");
-      input.setAttribute("onchange", "dragDrop.recordText(this)");
-      input.setAttribute("onkeydown", "dragDrop.addOnEnter(event, this)");
+    if (element.hasAttribute("editable")) { // Create inputs for each editable node
+      const input = document.createElement("input");
+      input.setAttribute("onchange", "app.widget('recordText', this)");
+      input.setAttribute("onkeydown", "app.widget('addOnEnter', this, event)");
       input.setAttribute("idr", `input${this.inputCount++}`);
-      element.appendChild(input);
+      element.insertBefore(input, element.firstChild);
+    }
+    else {
+      element.setAttribute("idr", `inputOther${this.otherCount++}`);
     }
   }
 
-  drag(evnt){ // sets value of activeNode
+  drag(input, evnt){ // sets value of activeNode and data
     this.activeNode = evnt.target;
-    let obj = {};
-    obj.id = app.domFunctions.widgetGetId(evnt.target);
+
+    const data = {};
+    data.sourceID = app.domFunctions.widgetGetId(input);
+    data.sourceType = "dragDrop";
+    data.sourceTag = input.tagName;
+    evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
+
+    const obj = {};
+    obj.id = this.domFunctions.widgetGetId(evnt.target);
     obj.idr = event.target.getAttribute("idr");
     obj.action = "dragstart";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
-  allowDrop(evnt){ // the event doesn't take its default action
+  allowDrop(input, evnt){ // the event doesn't take its default action
   	evnt.preventDefault();
   }
 
-  drop(evnt) { // drops the dwb node above or below the target. evnt is the drop event and its target is what's being dropped onto
+  drop(input, evnt) { // drops the active node above or below the target. evnt is the drop event and its target is what's being dropped onto.
   	evnt.preventDefault();
-    let target = evnt.target;
-    while (target.draggable == false) { // Also for nested tags
-      target = target.parentNode;
+
+    const dataText = evnt.dataTransfer.getData("text/plain");
+    const data = JSON.parse(dataText);
+
+    if (data.sourceType == "dragDrop" && data.sourceTag == "TR" && data.sourceID == this.id) { // Make sure the data comes from this table
+      let target = evnt.target;
+      while (target.draggable == false) { // Also for nested tags
+        target = target.parentNode;
+      }
+      if (this.activeNode) { // If activeNode exists
+      	if (this.activeNode.offsetTop < target.offsetTop) {  // drag down
+      		target.parentNode.insertBefore(this.activeNode, target.nextSibling); // Insert after target
+      	}
+        else { // drag up
+      		target.parentNode.insertBefore(this.activeNode, target); // Insert before target
+      	}
+      }
+
+      this.activeNode = null;
+      const obj = {};
+      obj.id = this.domFunctions.widgetGetId(evnt.target);
+      obj.idr = target.getAttribute("idr");
+      obj.action = "drop";
+      this.log(JSON.stringify(obj));
+      app.regression.log(JSON.stringify(obj));
+      app.regression.record(obj);
     }
-
-  	if (this.activeNode.offsetTop < target.offsetTop) {  // drag down
-  		target.parentNode.insertBefore(this.activeNode, target.nextSibling); // Insert after target
-  	}
-    else { // drag up
-  		target.parentNode.insertBefore(this.activeNode, target); // Insert before target
-  	}
-    let obj = {};
-    obj.id = app.domFunctions.widgetGetId(evnt.target);
-    obj.idr = target.getAttribute("idr");
-    obj.action = "drop";
-    this.log(JSON.stringify(obj));
-    this.regression.record(obj);
   }
 
-  LookForEnter(evnt, input) { // Makes hitting enter do the same thing as blurring (inserting a new node or changing an existing one)
+  lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (inserting a new node or changing an existing one)
     if (evnt.keyCode === 13) {
       input.onblur();
     }
   }
 
   insertElement(element) { // Element is all or part of insertContainer
-    let newEl = document.createElement(element.tagName);
-    if (element.firstElementChild.tagName == "INPUT") { // If this is a "leaf"
-      let input = element.firstElementChild; // Get the input inside it
-      let text = input.value;
-      newEl.appendChild(document.createTextNode(text));
-      newEl.setAttribute("ondblclick"    ,"dragDrop.edit(event)"  ); // leaf nodes are editable
-      newEl.setAttribute("idr", `content${this.contentCount++}`);
-      input.value = ""; // erase input
-    }
-    else { // If this is a "branch"
-      let children = element.children;
-      for (let i=0; i<children.length; i++) {
-        let childEl = this.insertElement(children[i]);
-        newEl.appendChild(childEl);
+    const newEl = element.cloneNode(false);
+
+    if (element.hasChildNodes()) { // If this element has any children (may be inputs or nested elements)
+      if (element.firstElementChild.tagName == "INPUT") { // If this element has an input child
+        const input = element.firstElementChild; // Get the input inside it
+        const text = input.value;
+        newEl.appendChild(document.createTextNode(text)); // Copy text to the new node
+        newEl.setAttribute("ondblclick", "app.widget('edit', this, event)"); // make new node editable
+        input.value = ""; // erase input
       }
-    }
+      const children = element.children;
+      for (let i=0; i<children.length; i++) {
+        if (children[i].tagName !== "INPUT") { // Don't duplicate the input itself
+          const childEl = this.insertElement(children[i]);
+          newEl.appendChild(childEl);
+        }
+      }
+    } // end if (element has children). No else - a node with no input and no child elements doesn't need special processing.
+    newEl.setAttribute("idr", `content${this.contentCount++}`); // Set the idr of the new node
     return newEl;
   }
 
-  insert(input) { // Insert a new node
-    let obj = {};
-    obj.value = input.value;
+  insert(input, row) { // Insert a new node. Default position is just before the insert row. Can pass in a different row to insert just before that row.
+    if (input) {
+      // Log first so input hasn't been deleted yet. Log only if insert was triggered by an input - if it's triggered by something else, the other thing will log it.
+      const obj = {};
+      obj.value = input.value;
+      obj.id = this.domFunctions.widgetGetId(input);
+      obj.idr = input.getAttribute("idr");
+      obj.action = "keydown";
+      obj.key = "Enter";
+      this.log(JSON.stringify(obj));
+      app.regression.log(JSON.stringify(obj));
+      app.regression.record(obj);
+    }
 
     const newEl = this.insertElement(this.insertContainer); // Should create an appropriately nested element with data in leaves
 
-    // Insert the new element before the input
-    this.container.insertBefore(newEl, this.insertContainer);
-    this.activeNode = newEl; // remember item that we are editing
+    if (row) {
+      // Insert the new element before the given row
+      this.container.insertBefore(newEl, row);
+
+    }
+    else {
+      // Insert the new element before the input
+      this.container.insertBefore(newEl, this.insertContainer);
+    }
+    // this.activeNode = newEl; // remember item that we are editing
 
     // set all the draggable functions
-    newEl.setAttribute("ondrop"        ,"dragDrop.drop(event)"     );
-    newEl.setAttribute("ondragover"    ,"dragDrop.allowDrop(event)");
-    newEl.setAttribute("ondragstart"   ,"dragDrop.drag(event)"     );
-    newEl.draggable  = true;
-    newEl.setAttribute("idr", `item${this.itemCount}`);
+    if (!newEl.hasAttribute("ondrop")) { // If there's already an ondrop event set up, don't replace it
+      newEl.setAttribute("ondrop", "app.widget('drop', this, event)");
+    }
+    if (!newEl.hasAttribute("ondragover")) { // Same goes for ondragover...
+      newEl.setAttribute("ondragover", "app.widget('allowDrop', this, event)");
+    }
+    newEl.setAttribute("draggable", "true");
+    if (!newEl.hasAttribute("ondragstart")) { // and ondragstart.
+      newEl.setAttribute("ondragstart", "app.widget('drag', this, event)");
+    }
 
-    let button = document.createElement("button");
-    let text = document.createTextNode("X");
+    // newEl.setAttribute("ondrop"        ,"app.widget('drop', this, event)"     );
+    // newEl.setAttribute("ondragover"    ,"app.widget('allowDrop', this, event)");
+    // newEl.setAttribute("ondragstart"   ,"app.widget('drag', this, event)"     );
+    // newEl.draggable  = true;
+    newEl.setAttribute("idr", `item${this.itemCount}`);
+    newEl.setAttribute("class", "newData");
+
+    this.contentCount--; // The outer, draggable element was originally given an idr of content{this.contentCount++}, but it doesn't keep that idr. Decrement contentCount so that idr can be used again.
+
+    this.createDelete(newEl);
+
+    return newEl;
+    // this.input.focus();
+  }
+
+  createDelete(line) {
+    const button = document.createElement("button");
+    const text = document.createTextNode("Delete");
     button.appendChild(text);
     button.setAttribute("idr", `delete${this.itemCount++}`);
-    button.setAttribute("onclick", "dragDrop.delete(this)");
-    newEl.appendChild(button);
-
-    // logging
-    obj.id = app.domFunctions.widgetGetId(input);
-    obj.idr = input.getAttribute("idr");
-    obj.action = "keydown";
-    obj.key = "Enter";
-    this.log(JSON.stringify(obj));
-    this.regression.record(obj);
-
-    this.input.focus();
+    button.setAttribute("onclick", "app.widget('delete', this)");
+    line.appendChild(button);
   }
 
   delete(button) {
     // logging
-    let obj = {};
-    obj.id = app.domFunctions.widgetGetId(button);
+    const obj = {};
+    obj.id = this.domFunctions.widgetGetId(button);
     obj.idr = button.getAttribute("idr");
     obj.action = "click";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
 
-    let line = button.parentNode;
+    const line = button.parentNode;
     line.parentNode.removeChild(line);
   }
 
-  edit(evnt) { // edit an existing node
+  markForDeletion(button) {
+    // logging
+    const obj = {};
+    obj.id = this.domFunctions.widgetGetId(button);
+    obj.idr = button.getAttribute("idr");
+    obj.action = "click";
+    this.log(JSON.stringify(obj));
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+
+    const line = button.parentNode.parentNode;
+    if (line.classList.contains("deletedData")) {
+      line.classList.remove("deletedData");
+      button.textContent = "Delete";
+    }
+    else {
+      line.classList.add("deletedData");
+      button.textContent = "Restore";
+    }
+  }
+
+  edit(input, evnt) { // edit an existing node
     this.activeNode = evnt.target;  // remember item that we are editing
-    var closeButton;
-    var hasClose = false;
+    let closeButton;
+    let hasClose = false;
 
     // This is a kludge! Fix if possible
-    if (this.activeNode.children.length > 0) { // since only leaves are editable, this should be true ONLY if there's a close button attached
+    if (this.activeNode.children.length > 0) { // since only leaves are editable, this.activeNode has no children other than possibly a close button.
       closeButton = this.activeNode.firstElementChild;
       this.activeNode.removeChild(closeButton); // Temporarily remove the close button so it won't get caught up in textContent.
       closeButton.hidden = true;  // Also, hide it because clicking it while editing doesn't work
@@ -178,7 +289,7 @@ class dragDrop {
     }
 
     // make input element visible
-    var el = document.getElementById("edit");
+    const el = this.domFunctions.getChildByIdr(this.domElement, "edit");
     el.value = evnt.target.textContent;  // init value of input
     el.hidden = false;      // make input visible
 
@@ -195,41 +306,47 @@ class dragDrop {
     }
 
     // Log
-    let obj = {};
-    obj.id = app.domFunctions.widgetGetId(evnt.target);
+    const obj = {};
+    obj.id = this.domFunctions.widgetGetId(evnt.target);
     obj.idr = event.target.getAttribute("idr");
     obj.action = "dblclick";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
-save(evnt){ // Save changes to a node
-  var el = document.getElementById("edit");  // get input element
-  el.hidden=true; 		 // hide input element
-  let text = document.createTextNode(el.value);
-  this.activeNode.insertBefore(text, el); // Add the input text to the selected node
-  document.body.appendChild(el);           // move input field to end of body
-  if (this.activeNode.children.length > 0) { // since only leaves are editable, this should be true ONLY if there's a close button attached
-    let closeButton = this.activeNode.firstElementChild;
-    closeButton.hidden = false;
+  save(evnt){ // Save changes to a node
+    const el = this.domFunctions.getChildByIdr(this.domElement, "edit");
+    el.hidden=true; 		 // hide input element
+    const text = document.createTextNode(el.value);
+    this.activeNode.insertBefore(text, el); // Add the input text to the selected node
+    this.domElement.appendChild(el);           // move input field to end of DOM element representing the table
+    if (this.activeNode.children.length > 0) { // since only leaves are editable, this should be true ONLY if there's a close button attached
+      const closeButton = this.activeNode.firstElementChild;
+      closeButton.hidden = false;
+    }
+    this.activeNode = null;
+
+    // Log
+    const obj = {};
+    obj.id = this.domFunctions.widgetGetId(el);
+    obj.idr = el.getAttribute("idr");
+    obj.value = el.value;
+    obj.action = "blur";
+    this.log(JSON.stringify(obj));
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+
+    // this.input.focus(); // return focus to input
   }
 
-  // Log
-  let obj = {};
-  obj.id = el.id;
-  obj.value = el.value;
-  obj.action = "blur";
-  this.log(JSON.stringify(obj));
-  this.regression.record(obj);
-
-  this.input.focus(); // return focus to input
-}
-
-log(text) { // Add a message to the eventLog
-    // var ul = document.getElementById("eventLog");
-    // var li = document.createElement("li");
-    // li.appendChild(document.createTextNode(text));
-    // ul.appendChild(li);
+  log(text) { // Add a message to the eventLog
+    const ul = document.getElementById("eventLog");
+    if (ul) {
+      const li = document.createElement("li");
+      li.appendChild(document.createTextNode(text));
+      ul.appendChild(li);
+    }
   }
 
   inputToggle(button) { // Toggles visibility of the input text box and value of the Show/Hide button.
@@ -239,34 +356,38 @@ log(text) { // Add a message to the eventLog
     }
     else {
       button.value = "Hide input";
-      this.input.focus();
+      // this.input.focus();
     }
 
     // log
-    let obj = {};
-    obj.id = button.id;
+    const obj = {};
+    obj.id = this.domFunctions.widgetGetId(button);
+    obj.idr = button.getAttribute("idr");
     obj.action = "click";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
-  addOnEnter(evnt, input) {
+  addOnEnter(input, evnt) {
     if (evnt.key == "Enter") {
       this.insert(input);
     }
   }
 
   recordText(input) {
-    let obj = {};
-    obj.id = app.domFunctions.widgetGetId(input);
+    const obj = {};
+    obj.id = this.domFunctions.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.value = input.value;
     obj.action = "change";
     this.log(JSON.stringify(obj));
-    this.regression.record(obj);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
   }
 
   test() { // This is where I put code I'm testing and want to be able to fire at will. There's a test button on 1-drag.html to fire it.
+    const evnt = new Event("dragstart");
+    this.insertContainer.dispatchEvent(evnt);
   }
-
 }

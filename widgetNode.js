@@ -16,156 +16,268 @@ input: label
 
 
 class widgetNode {
-constructor(label, data) {
-  // data to be displayed
-  this.dataNode    = data; // is db identifier, not defined means add
-  this.relationsFrom = {}; // place holder for relations ->(n)
-  this.relationsTo   = {}; // place holder for relations   (n)->
-  this.label       = label;
-  this.idWidget    = app.idCounter;
-
+constructor(label, id) {
   // DOM pointers to data that will change, just make place holders
   this.widgetDOM   = {};
+  this.relationsFrom = {}; // place holder for relations ->(n)
+  this.relationsTo   = {}; // place holder for relations   (n)->
   this.addSaveDOM  = {};
   this.tableDOM    = {};
-  this.fromDOM     = {};
-  this.toDOM       = {};
+  this.fromDOM     = {}; // Is this ever used?
+  this.toDOM       = {}; // Is this ever used?
   this.endDOM      = {}; // sub widget
   this.startDOM    = {}; // sub widget
 
+  this.label       = label;
   this.queryObject = app.metaData.getNode(label);
   this.fields      = this.queryObject.fields;
-  this.db          = new db() ; // placeholder for add
+
+  this.idWidget = app.idCounter;
+  app.widgets[app.idCounter] = this; // Add to app.widgets
+  this.containedWidgets = [];
+
+  this.db          = new db();
+
+  // If we're editing, then the ID for the node was passed in.
+  if (id) {
+    if (app.login.userID) {
+      this.db.setQuery(`match (n) where ID(n)=${id} match (a) where ID(a)=${app.login.userID}
+                        optional match (a)-[r:Trash]->(n)
+                        return n, r.reason as reason`);
+    }
+    else {
+      this.db.setQuery(`match (n) where ID(n) = ${id} return n`);
+    }
+    this.db.runQuery(this, 'finishConstructor');
+  } else {
+     this.finishConstructor();
+   }
+}
+
+finishConstructor(data) {
+  if (data) { // If data were passed in, add them to the table
+    this.dataNode = data[0].n;
+
+    const obj = {};
+    obj.data = JSON.parse(JSON.stringify(data));
+    app.stripIDs(obj.data);
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+  }
 
   this.buildWidget();
   this.buildDataNode();
-  this.relationStart = new widgetRelations(this.startDOM, this.dataNode.identity, "start");  // not sure this needs to be saved;
 
-//  this.buildRelationsEnd(); // runsbuildRelationsStart();
+  if (data) { // I hate to do this twice, but I have to create dataNode before I can call buildWidget or buildDataNode, and I have to call buildWidget before changing and using DOM elements.
+    if (data[0].reason) { // If a reason for trashing was returned (meaning that the node was already trashed by this user)...
+      this.dataNode.properties.trash=true;
+      this.dataNode.properties.reason = data[0].reason;                                                // Record in the dataNode that it was trashed already...
+      const trashCheck = app.domFunctions.getChildByIdr(this.widgetDOM, "trashCheck");
+      trashCheck.checked=true;
+
+      const reason = app.domFunctions.getChildByIdr(this.widgetDOM, 'trashReason');
+      const reasonText = app.domFunctions.getChildByIdr(this.widgetDOM, 'reasonText');      // Show the reason prompt and textbox...
+      reason.removeAttribute("hidden");
+      reasonText.removeAttribute("hidden");
+      reason.setAttribute("value", data[0].reason);                                    // And prefill that textbox with the reason.
+    }
+
+    this.buildStart();
+  }
 }
 
+buildStart() {
+  this.containedWidgets.push(app.idCounter);
+  new widgetView(this.startDOM, this.dataNode.identity, "start", this, 'buildEnd');
+}
+
+buildEnd() {
+  this.containedWidgets.push(app.idCounter);
+  new widgetView(this.endDOM, this.dataNode.identity, "end");
+}
 
 buildWidget() { // public - build table header
-  let id="";  // assume add mode
+  let id=null;  // assume add mode
+  let name = "New Node";
+
   if (this.dataNode) {
     // we are edit mode
     id = this.dataNode.identity;
+    name = this.dataNode.properties.name;
   }
-  const html = app.widgetHeader() +`
-  <table>
-    <tbody>
-      <tr>
-        <td idr="end"></td>
-        <td><b>${this.label}#${id}</b>
-          <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)">
-          <table idr = "nodeTable"></table>
-        </td>
-        <td idr="start"></td>
-</tr></tbody></table></div>
-`
 
-// Took these out of the const string above, but couldn't just comment them out there. It's the td with the dragDrop table.
-// <td>
-//   <table>
-//     <thead>
-//       <tr id = "template"><th>Column 1</th><th db="input">Column 2</th></tr>
-//     </thead>
-//     <tbody id = "container">
-//     </tbody>
-//   </table>
-// </td>
-
-
+  const html = app.widgetHeader() + `<b idr="nodeLabel">${this.label}#${id}: ${name}</b></div><table><tbody><tr>
+  <td idr="end"></td>
+  <td>
+    <input idr = "addSaveButton" type="button" onclick="app.widget('saveAdd',this)"></div>
+    <table idr = "nodeTable"></table>
+  </td>
+  <td idr="start"></td>
+  </tr></tbody></table></div>
+  `
   /*
   Create new element, append to the widgets div in front of existing widgets
   */
-  let parent = document.getElementById('widgets');
-  let child = parent.firstElementChild;
-  let newWidget = document.createElement('div'); // create placeholder div
+  const parent = document.getElementById('widgets');
+  const child = parent.firstElementChild;
+  const newWidget = document.createElement('div'); // create placeholder div
   parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
   newWidget.outerHTML = html; // replace placeholder with the div that was just written
 
   // By this point, the new widget div has been created by buildHeader() and added to the page by the above line
-  let widget = document.getElementById(this.idWidget);
+  const widget = document.getElementById(this.idWidget);
   this.widgetDOM  = widget;
+
+  if (app.activeWidget) {
+    app.activeWidget.classList.remove("activeWidget");
+  }
+  app.activeWidget = this.widgetDOM;
+  this.widgetDOM.classList.add("activeWidget");
+
   this.addSaveDOM = app.domFunctions.getChildByIdr(widget, "addSaveButton");
   this.tableDOM   = app.domFunctions.getChildByIdr(widget, "nodeTable");
   this.endDOM     = app.domFunctions.getChildByIdr(widget, "end");
   this.startDOM   = app.domFunctions.getChildByIdr(widget, "start");
-
-  // this.dragDrop = new dragDropTable("template", "container");    // new global variable, this needs to go // Changed it to belong to this widget
-  // this.dragDrop.regression = app.regression;  // needs to be moved to dragDropConstrutor, loging needs to be turned of log element is not there // Shouldn't it just use app's?
 }
 
 
 buildDataNode() {   // put in one field label and input row for each field
   let fieldCount = 0;
-  var value = "";
+  let value = "";
 
   // Clear any existing data
   while (this.tableDOM.hasChildNodes()) {
     this.tableDOM.removeChild(this.tableDOM.firstChild);
   }
 
-  for (var fieldName in this.fields) {
-/* old david code
-    let value="";   // assume add
-    if (this.dataNode) {
-      // this is an edit,
-      value = this.dataNode.properties[fieldName];
-    }
-    //    <input db="name" idr="input0" onchange="app.widget('changed',this)" value="">
-    html +=  `<tr><th>${this.fields[fieldName].label}</th><td><input db="${fieldName}"
-    idr="input${fieldCount++}" onChange="app.widget('changed',this)" value="${value}"</td></tr>`
-*/
+  for (let fieldName in this.fields) {
     // Create a table row
-    let row = document.createElement('tr');
+    const row = document.createElement('tr');
     this.tableDOM.appendChild(row);
 
     // Create the first cell, a th cell containing the label as text
-    let header = document.createElement('th');
+    const header = document.createElement('th');
     row.appendChild(header);
-    let labelText = document.createTextNode(this.fields[fieldName].label);
+    const labelText = document.createTextNode(this.fields[fieldName].label);
     header.appendChild(labelText);
 
     // Create the second cell, a td cell containing an input which has an idr, an onChange event, and a value which may be an empty string
     if (this.dataNode) {
-      let d=this.dataNode.properties;
+      const d=this.dataNode.properties;
       value = d[fieldName];
+      if (value) { // No need to sanitize data that don't exist, and this can avoid errors when a value is undefined during testing
+        value = value.replace(/"/g, "&quot;");
+      }
     }
 
-    let dataField = document.createElement('td');
+    const dataField = document.createElement('td');
     row.appendChild(dataField);
-    let input = document.createElement('input');
+    const input = document.createElement('input');
     dataField.appendChild(input);
-    input.outerHTML = `<input db = ${fieldName} idr = "input${fieldCount++}" onChange = "app.widget('changed',this)" value = "${value}">`
-//  input.outerHTML = `<input db = ${fieldName} idr = "input${fieldCount++}" onChange = "app.widget('changed',this)" value = ${value}>`
+    input.outerHTML = `<input type = "text" db = ${fieldName} idr = "input${fieldCount++}" onChange = "app.widget('changed',this)" value = "${value}">`
   }
+
+  // Create div for the "trash" checkbox and reason
+  const trashRow = document.createElement('tr');
+  const trash = document.createElement('td');
+  trashRow.appendChild(trash);
+  const trashInput = document.createElement('td');
+  trashRow.appendChild(trashInput);
+
+  const trashTextSection = document.createElement('b');
+  const trashText = document.createTextNode("Trash Node");
+  trashTextSection.appendChild(trashText);
+  trash.appendChild(trashTextSection);
+
+  const checkbox = document.createElement('input');
+  checkbox.setAttribute("type", "checkbox");
+  checkbox.setAttribute("onclick", "app.widget('toggleReason', this)");
+  checkbox.setAttribute("idr", "trashCheck");
+  trash.appendChild(checkbox);
+
+  const reasonTextSection = document.createElement('b');
+  const reasonText = document.createTextNode("Reason: ");
+  reasonTextSection.appendChild(reasonText);
+  reasonTextSection.setAttribute("idr", "reasonText");
+  reasonTextSection.setAttribute("hidden", true);
+  trash.appendChild(reasonTextSection);
+
+  const reason = document.createElement("input");
+  reason.setAttribute("hidden", true);
+  reason.setAttribute("onblur", "app.widget('changed', this)");
+  reason.setAttribute("idr", "trashReason");
+  reason.setAttribute("db", "reason");
+  trashInput.appendChild(reason);
+
+  if (!app.login.userID) { // If no user is logged in
+    trashRow.setAttribute("hidden", "true");
+  }
+  this.tableDOM.appendChild(trashRow);
+  app.login.viewLoggedIn.push(trashRow);
 
   // set the button to be save or added
   if (this.dataNode) {this.addSaveDOM.value = "Save";
   } else {this.addSaveDOM.value = "Add";}
 }
 
-
 saveAdd(widgetElement) { // Saves changes or adds a new node
   // director function
   if (widgetElement.value === "Save") {
-    this.save(widgetElement);
+    const checkbox = app.domFunctions.getChildByIdr(this.widgetDOM, "trashCheck");
+    if (this.dataNode.properties.trash === true && checkbox.checked === false && app.login.userID) { // If the node was trashed and now shouldn't be
+      this.untrashNode(widgetElement);
+    }
+    else if (!(this.dataNode.properties.trash === true) && checkbox.checked === true && app.login.userID) { // If the node was not trashed and now should be
+      this.trashNode(widgetElement);
+    }
+    else if (this.dataNode.properties.trash === true && app.domFunctions.getChildByIdr(this.widgetDOM, 'trashReason').classList.contains("changedData") && app.login.userID) { // If the node was and should stay trashed, but the reason has changed
+      this.updateReason(widgetElement);
+    }
+    else { // If the node's trash status isn't changing, only the data, go straight to save().
+      this.save(widgetElement);
+    }
   } else {
     this.add(widgetElement);
   }
-
-  // // log
-  // let obj = {};
-  // obj.id = app.domFunctions.widgetGetId(widgetElement);
-  // obj.idr = widgetElement.getAttribute("idr");
-  // obj.value = widgetElement.value;
-  // obj.action = "click";
-  // app.log(JSON.stringify(obj));
-  // app.record(obj);
 }
 
+trashNode(widgetElement) {
+  this.dataNode.properties.trash = true;
+  const user = app.login.userID;
+  const node = this.dataNode.identity;
+  const reasonInp = app.domFunctions.getChildByIdr(this.widgetDOM, 'trashReason');
+  const reason = reasonInp.value;
+  reasonInp.setAttribute("class",""); // remove changedData class from reason
+
+  const query = `match (user), (node) where ID(user)=${user} and ID(node)=${node} merge (user)-[tRel:Trash {reason:"${app.stringEscape(reason)}"}]->(node)`
+  this.db.setQuery(query);
+  this.db.runQuery(this, "trashUntrash", widgetElement);
+}
+
+updateReason(widgetElement) {
+  const user = app.login.userID;
+  const node = this.dataNode.identity;
+  const reasonInp = app.domFunctions.getChildByIdr(this.widgetDOM, 'trashReason');
+  const reason = reasonInp.value;
+  this.dataNode.properties.reason = reason;
+  reasonInp.setAttribute("class","");
+  const query = `match (user)-[rel:Trash]->(node) where ID(user) = ${user} and ID(node) = ${node} set rel.reason = "${reason}"`;
+  this.db.setQuery(query);
+  this.db.runQuery(this, "trashUntrash", widgetElement);
+}
+
+untrashNode(widgetElement) {
+  this.dataNode.properties.trash = false;
+  const user = app.login.userID;
+  const node = this.dataNode.identity;
+  const query = `match (user)-[rel:Trash]->(node) where ID(user)=${user} and ID(node)=${node} delete rel`;
+  this.db.setQuery(query);
+  this.db.runQuery(this, "trashUntrash", widgetElement);
+}
+
+trashUntrash(data, widgetElement) {
+  this.save(widgetElement, data);
+}
 
 ////////////////////////////////////////////////////////////////////
 add(widgetElement) { // Builds a query to add a new node, then runs it and passes the result to addComplete
@@ -176,37 +288,44 @@ add(widgetElement) { // Builds a query to add a new node, then runs it and passe
   const create = "create (n:"+ this.label+" {#data#}) return n";
   let data="";
   while (tr) {
-    let inp = tr.lastElementChild.firstElementChild;
+    const inp = tr.lastElementChild.firstElementChild;
 
-    data += inp.getAttribute("db") +":'" + inp.value +"', ";
+    if (inp && inp.hasAttribute("db")) { // Only process input rows with a db value - not the trash div; that's done separately
+      data += inp.getAttribute("db") +':"' + app.stringEscape(inp.value) +'", ';
+    }
     tr=tr.nextElementSibling;
   }
 
 
   const query = create.replace("#data#", data.substr(0,data.length-2) );
-//  this.db = new db();
   this.db.setQuery(query);
   this.db.runQuery(this,"addComplete");
 }
 
 
 addComplete(data) { // Refreshes the node table and logs that addSave was clicked
-  //this.data = data[0].n // takes single node
-  this.dataNode = data[0].n // takes single nodes
-  this.buildDataNode();
-  // log
-  let obj = {};
+  this.dataNode = data[0].n; // takes single nodes
+  const id = this.dataNode.identity;
+  const nodeLabel = app.domFunctions.getChildByIdr(this.widgetDOM, "nodeLabel");
+  nodeLabel.textContent=`${this.label}#${id}`;
+
+  const obj = {};
   obj.id = this.idWidget;
   obj.idr = "addSaveButton";
   obj.action = "click";
+  obj.data = JSON.parse(JSON.stringify(data));
+  app.stripIDs(obj.data);
   app.regression.log(JSON.stringify(obj));
   app.regression.record(obj);
+
+  this.buildDataNode();
+  this.buildStart();
 }
 
 
 changed(input) { // Logs changes to fields, and highlights when they are different from saved fields
   if (!this.dataNode) {
-    let obj = {};
+    const obj = {};
     obj.id = app.domFunctions.widgetGetId(input);
     obj.idr = input.getAttribute("idr");
     obj.value = input.value;
@@ -223,7 +342,7 @@ changed(input) { // Logs changes to fields, and highlights when they are differe
   }
 
   // log
-  let obj = {};
+  const obj = {};
   obj.id = app.domFunctions.widgetGetId(input);
   obj.idr = input.getAttribute("idr");
   obj.value = input.value;
@@ -233,28 +352,29 @@ changed(input) { // Logs changes to fields, and highlights when they are differe
 }
 
 
-save(widgetElement) { // Builds query to update a node, runs it and passes the results to saveData()
-/*
-  MATCH (n)
-  WHERE id(n)= 146
-  SET n.born = 2003  // loop changed
-  RETURN n
-*/
-
+save(widgetElement, trashUntrash) { // Builds query to update a node, runs it and passes the results to saveData()
+  /*
+    MATCH (n)
+    WHERE id(n)= 146
+    SET n.born = 2003  // loop changed
+    RETURN n
+  */
   let tr = this.tableDOM.firstElementChild;
 
   let data="";
   while (tr) {
-    let inp = tr.lastElementChild.firstElementChild;  // find <input> element
+    const inp = tr.lastElementChild.firstElementChild;  // find <input> element
     if(inp.getAttribute("class") === "changedData") {
       // create a set for this field
-      let fieldName = inp.getAttribute("db");
-      let d1 = "n."+ fieldName +"=#value#, ";
+      const fieldName = inp.getAttribute("db");
+      const d1 = "n."+ fieldName +"=#value#, ";
       let d2 = "";
-      if (this.fields[fieldName].type === "number") {
-        d2 = inp.value;  // number
-      } else {
-        d2 = '"' + inp.value + '"';  // assume string
+      if (fieldName in this.fields) {
+        if (this.fields[fieldName].type === "number") {
+          d2 = inp.value;  // number
+        } else {
+          d2 = '"' + app.stringEscape(inp.value) + '"';  // assume string
+        }
       }
       data += d1.replace('#value#',d2)
     }
@@ -262,7 +382,16 @@ save(widgetElement) { // Builds query to update a node, runs it and passes the r
   }
 
   if (data==="") {
+    if (trashUntrash) { // If the node was trashed or untrashed, but no other changes need to be made, don't bother to run an empty query or refresh the widget, but do log the fact that addSave was clicked.
+      const obj = {};
+      obj.id = this.idWidget;
+      obj.idr = "addSaveButton";
+      obj.action = "click";
+      app.regression.log(JSON.stringify(obj));
+      app.regression.record(obj);
+    } else { // If the node was NOT trashed or untrashed AND there were no changes to fields, just alert that there were no changes. No need to log in this case.
     alert("no changes to save")
+    }
   } else {
     this.db.setQuery( `match (n) where id(n)=${this.dataNode.identity} set ${data.substr(0,data.length-2)} return n` );
     this.db.runQuery(this,"saveData");
@@ -271,17 +400,32 @@ save(widgetElement) { // Builds query to update a node, runs it and passes the r
 saveData(data) { // Refreshes the node table and logs that addSave was clicked
   // redo from as edit now that data is saved
   // alert(JSON.stringify(data));
-  //this.data = data[0].n;
   this.dataNode = data[0].n;
   this.buildDataNode();
 
   // log
-  let obj = {};
+  const obj = {};
   obj.id = this.idWidget;
   obj.idr = "addSaveButton";
   obj.action = "click";
+  obj.data = JSON.parse(JSON.stringify(data));
+  app.stripIDs(obj.data);
   app.regression.log(JSON.stringify(obj));
   app.regression.record(obj);
 }
 
+toggleReason(checkBox) {
+  const trashRow = checkBox.parentElement.parentElement;
+  const reason = app.domFunctions.getChildByIdr(trashRow, 'trashReason');
+  const reasonText = app.domFunctions.getChildByIdr(trashRow, 'reasonText');
+
+  if (checkBox.checked) {
+    reason.removeAttribute("hidden");
+    reasonText.removeAttribute("hidden");
+  }
+  else {
+    reason.setAttribute("hidden", true);
+    reasonText.setAttribute("hidden", true);
+  }
+}
 } ///////////////////// endclass

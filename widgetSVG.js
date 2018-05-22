@@ -16,6 +16,7 @@ class widgetSVG {
     this.nodeHeight = 30;
     this.toggleWidth = 20;
     this.detailWidth = 20;
+    this.popupWidth = 360;
 
     // variables for dragging and creating new nodes
     this.currentX=0;
@@ -159,6 +160,18 @@ class widgetSVG {
       newObj.details = data.details;
       newObj.parent = "null";
       newObj.children = [];
+      // Trying to get reference to this class instance into the data, where anonymous functions can use it
+      const instanceVars = {};
+      instanceVars.nodeWidth = this.nodeWidth;
+      instanceVars.nodeHeight = this.nodeHeight;
+      instanceVars.toggleWidth = this.toggleWidth;
+      instanceVars.detailWidth = this.detailWidth;
+      instanceVars.popupWidth = this.popupWidth;
+
+      newObj.instance = instanceVars;
+      for (let i = 0; i < newObj.details.length; i++) {
+        newObj.details[i].instance = instanceVars;
+      }
 
       // Right here, I should check whether I dropped ONTO something. If so, instead of adding the new node as a root, I should call connectNode.
       const group = this.checkDrop(null, x, y);
@@ -858,6 +871,7 @@ class widgetSVG {
           .attr("nodeHeight", this.nodeHeight)
           .attr("toggleWidth", this.toggleWidth)
           .attr("detailWidth", this.detailWidth)
+          .attr("popupWidth", this.popupWidth)
           .attr("transform", function(d) {return "translate(" + d.x + " " + d.y + ")";} )
       newTrees.each(this.buildTree);
     }
@@ -903,7 +917,8 @@ class widgetSVG {
       texts.enter().append("text")
         .attr("class", "detailText")
         .text(function(d) {return `${d.field}: ${d.value}`})
-        .attr("transform", function(d, i) {return `translate(-170 ${20 -30*i})`});
+        .attr("transform", function(d, i) {return `translate(-${d.instance.detailWidth + d.instance.popupWidth/2}
+                                                              ${20 -d.instance.nodeHeight*i})`})
 
       texts.text(function(d) {return `${d.field}: ${d.value}`});
       texts.exit().remove();
@@ -957,18 +972,24 @@ class widgetSVG {
       .attr("idr", function(d) {return `popupGroup${d.data.id}`})
       .attr("class", "detailPopupHidden")
       .attr("onmouseout", "app.widget('closeDetailPopup', this, event)")
-      .append("rect")
+      .append("rect")                                             // Large popup rectangle...
         .attr("idr", function(d) {return`popupRect${d.data.id}`})
         .attr("class", "detailPopup")
       .select(function() { return this.parentNode; })
-        .append("rect")
+        .append("rect")                                           // Header rectangle
         .attr("idr", function (d) {return `detailHeader${d.data.id}`})
         .attr("class", "detailHeader")
         .attr("height", this.getAttribute("nodeHeight"))
-        .attr("width", this.getAttribute("nodeWidth")*2)
+        .attr("width", this.getAttribute("popupWidth"))
+      .select(function() { return this.parentNode; })
+        .append("rect")                                           // disassociate button
+        .attr("idr", function(d) {return `disassociate${d.data.id}`})
+        .attr("class", "disassociateButton")
+        .attr("height", this.getAttribute("nodeHeight"))
+        .attr("width", this.getAttribute("nodeHeight"))
       .select(function() {return this.parentNode; })
-        .append("text")
-        .attr("dx", this.getAttribute("nodeWidth") - 320)
+        .append("text")                                           // Text in header
+        .attr("dx", function(d) {return `-${d.data.instance.popupWidth/2 + d.data.instance.detailWidth}`;})
         .attr("class", "detailHeaderText unselectable")
         .attr("idr", function(d) {return `detailHeaderText${d.data.id}`})
       	.text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; });
@@ -992,21 +1013,29 @@ class widgetSVG {
       .classed("detailNoNode", function(d) {if (d.data.nodeID) return false; else return true;})
 
     nodeEnter.selectAll(".detailPopup")
-      .attr("width", this.getAttribute("nodeWidth") * 2)
+      .attr("width", this.getAttribute("popupWidth"))
       // This is fairly complicated. It allots one line (of height nodeHeight) for each entry in the details object,
       // plus an additional line for the node's name and type.
-      .attr("height", function(d) {return (d.data.details.length + 1) * 30;})
-      .attr("transform", function(d) {return `translate(-320 -${d.data.details.length * 30})`;});
+      .attr("height", function(d) {return (d.data.details.length + 1) * d.data.instance.nodeHeight;})
+      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
+                                                        -${d.data.details.length * d.data.instance.nodeHeight})`;});
 
     nodeEnter.selectAll(".detailHeader")
-      .attr("transform", function(d) {return `translate(-320 -${d.data.details.length * 30})`});
+      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
+                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
+
+    nodeEnter.selectAll(".disassociateButton")
+      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
+                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
+
 
     nodeEnter.selectAll(".detailHeaderText")
       .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; })
-      .attr("dy", function(d) {return -30.0 * (d.data.details.length - 0.5) + 6});
+      .attr("dy", function(d) {return -d.data.instance.nodeHeight * (d.data.details.length - 0.5) + 6});
 
-    if (node._enter)
-    nodeEnter.each(buildPopup);
+    if (node._enter) {
+      nodeEnter.each(buildPopup);
+    }
 
     node.selectAll(".toggleRect") // For each toggle rectangle in old nodes (may need updating)
       .classed("childrenVisibleToggle", function(d) {if (d.data.children && d.data.children.length>0) return true; else return false;}) // Set the appropriate class
@@ -1020,18 +1049,25 @@ class widgetSVG {
       .classed("detailNoNode", function(d) {if (d.data.nodeID) return false; else return true;})
 
     node.selectAll(".detailPopup")
-      .attr("width", this.getAttribute("nodeWidth") * 2)
+      .attr("width", this.getAttribute("popupWidth"))
       // This is fairly complicated. It allots one line (of height nodeHeight) for each entry in the details object,
       // plus an additional line for the node's name and type.
-      .attr("height", function(d) {return (d.data.details.length + 1) * 30;})
-      .attr("transform", function(d) {return `translate(-320 -${d.data.details.length * 30})`;});
+      .attr("height", function(d) {return (d.data.details.length + 1) * d.data.instance.nodeHeight;})
+      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
+                                                        -${d.data.details.length * d.data.instance.nodeHeight})`;});
 
     node.selectAll(".detailHeader")
-      .attr("transform", function(d) {return `translate(-320 -${d.data.details.length * 30})`});
+      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
+                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
+
+    node.selectAll(".disassociateButton")
+      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
+                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
+
 
     node.selectAll(".detailHeaderText")
       .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; })
-      .attr("dy", function(d) {return -30.0 * (d.data.details.length - 0.5) + 6});
+      .attr("dy", function(d) {return -d.data.instance.nodeHeight * (d.data.details.length - 0.5) + 6});
 
     node.each(buildPopup);
 

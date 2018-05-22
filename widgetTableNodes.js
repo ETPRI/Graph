@@ -23,9 +23,14 @@ class widgetTableNodes {
     this.buildHeader();  //  show table header on screen
     this.widget = document.getElementById(this.idWidget);
 
+    if (app.activeWidget) {
+      app.activeWidget.classList.remove("activeWidget");
+    }
+    app.activeWidget = this.widget;
+    this.widget.classList.add("activeWidget");
+
     this.search();       // do search with no criteria
   }
-
 
   ////////////////////////////////////////////////////////////////////
   search() { // public - call when data changes
@@ -33,18 +38,21 @@ class widgetTableNodes {
     this.db.runQuery(this,"buildData");
   }
 
-
   buildQuery() { // public - called when search criteria change
     // init cypherQuery data
-    let match    = "(n:" +this.queryObject.nodeLabel+ ")";
-    let where    = this.buildWhere();
-    let orderBy  = this.queryObject.orderBy;
-    let limit    = app.domFunctions.getChildByIdr(this.widget, "limit").value;
+    let match    = `(n:${this.queryObject.nodeLabel})`;
+    if (app.login.userID) {
+      match += `, (a)`;
+    }
+    const where    = this.buildWhere();
+    const orderBy  = this.queryObject.orderBy;
+    const limit    = app.domFunctions.getChildByIdr(this.widget, "limit").value;
+    const type = this.queryObjectName;
 
-    let query =
+    const query =
   	    "match " + match
   		+ (function(w){if(0<w.length) return " where "  + w + " "; else return " ";})(where)
-  		+ "return n "
+  		+ (function(t){if(t=="people") return "optional match (n)-[:Permissions]->(perm:LoginTable) return n, perm.name as permissions"; else return "return n";})(type)
   		+ (function(o){if(0<o.length) return " order by "+ o + " "; else return " ";}) (orderBy)
   		+ (function(l){if (l.trim === "") return ""; else return " limit " + l}) (limit)
   		;
@@ -52,21 +60,23 @@ class widgetTableNodes {
     return(query);
   }
 
-
   buildWhere() {
     /*   output - nameLast =~"(?i)Bol.*"
     */  // <tr><th><input>  must go up 2 levels to get to tr
     const th  = app.domFunctions.getChildByIdr(this.widget, "header").firstElementChild.children; // get collection of th
 
-    let where = "n._trash = '' and ";
+    let where = " ";
+    if (app.login.userID) {
+      where = `ID(a)=${app.login.userID} and not (a)-[:Trash]->(n) and `;
+    }
     // iterate siblings of input
 
     for(let i=2; i<th.length; i++) {
-      let inputDOM = th[i].firstElementChild;  // <input>  tag
-      let dropDown = inputDOM.nextElementSibling;
+      const inputDOM = th[i].firstElementChild;  // <input>  tag
+      const dropDown = inputDOM.nextElementSibling;
       if (0 < inputDOM.value.length) {
         // get value of search type
-        let searchType = dropDown.options[dropDown.selectedIndex].value;
+        const searchType = dropDown.options[dropDown.selectedIndex].value;
         let w1 = "";
         if (dropDown.options[0].value === "S") {
           w1 = this.getSearchString(inputDOM, searchType);  // assume a string search
@@ -79,14 +89,11 @@ class widgetTableNodes {
       return (where.substr(0, where.length-5)) ;
   }
 
-
-
   getSearchNumber(inputDOM, searchType) {
     // n.born <= 1958   match (n:Person) where n.name=~"(?i)ton.*" return n order by n.nameLast  limit 9
     const w = "n."+ this.getAtt(inputDOM,"fieldName") +searchType + inputDOM.value +' and ';
     return(w);
   }
-
 
   getSearchString(inputDOM, searchType) {
     const w = "n."+ this.getAtt(inputDOM,"fieldName") +'=~"(?i)#s#' + inputDOM.value +'#E#" and ';
@@ -107,7 +114,6 @@ class widgetTableNodes {
     return(w1);
   }
 
-
   getAtt(element,attName) { // private -----------
   	/*
     input - element - is DOM input Object
@@ -118,7 +124,6 @@ class widgetTableNodes {
   	return(ret);
   }
 
-
   ////////////////////////////////////////////////////////////////////
   buildHeader() {
     // build header
@@ -127,6 +132,7 @@ class widgetTableNodes {
     <input type="button" value="Add" idr = "addButton" onclick="app.widget('addNode',this)">
     <input type="button" value="Search" idr = "searchButton" onclick="app.widgetSearch(this)">
     limit <input value ="9" idr = "limit" style="width: 20px;" onblur = "app.regression.logText(this)">
+    </div>
 
     <table>
       <thead idr = "header">
@@ -156,13 +162,10 @@ class widgetTableNodes {
     <option value="<">&lt;</option>
     </select></th>`
 
-  //  const html2 = app.idReplace(html,1);  // replace relative ids with absolute ids
-  //  const html3 = html.replace('#tableName#',this.tableName); // This variable doesn't seem to exist
-
     // build search part of buildHeader
     let s="";
     for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
-        let fieldName =this.fieldsDisplayed[i];
+        const fieldName =this.fieldsDisplayed[i];
         let s1 = `<th><input idr = "text` + i + `" db="fieldName: #1" size="7" onblur="app.regression.logText(this)">`
         if (this.fields[fieldName].type === "number") {
           // number search
@@ -173,36 +176,39 @@ class widgetTableNodes {
         }
         s += s1.replace('#1',fieldName)
     }
+
     const html4 = html.replace('#headerSearch#',s)
 
     // build field name part of header
     let f="";
     for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
-        let fieldName =this.fieldsDisplayed[i];
-        f += "<th onClick='app.widgetSort(this)'>"+ this.fields[fieldName].label + "</th>" ;
+        const fieldName =this.fieldsDisplayed[i];
+        //f += "<th onClick='app.widgetSort(this)'>"+ this.fields[fieldName].label + "</th>" ;
+        // The original version of this line called a method that doesn't exist yet.
+        // If we build that method eventually, we can put the old version of the line back.
+        f += "<th>"+ this.fields[fieldName].label + "</th>" ;
     }
     const html5 = html4.replace('#header#',f);
 
     /*
     Create new element, append to the widgets div in front of existing widgets
     */
-    let parent = document.getElementById('widgets');
-    let child = parent.firstElementChild;
-    let newWidget = document.createElement('div'); // create placeholder div
+    const parent = document.getElementById('widgets');
+    const child = parent.firstElementChild;
+    const newWidget = document.createElement('div'); // create placeholder div
     parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
     newWidget.outerHTML = html5; // replace placeholder with the div that was just written
   }
-
 
   buildData(data) {  // build dynamic part of table
     this.queryData = data; // only one row should have been returned
     let html = "";
     const r = data;
     let rowCount = 1;
-    var cell; // the cell currently being built
-    var row; // the row currently being built
-    var text; // the text to go in the cell
-    var table = app.domFunctions.getChildByIdr(this.widget, "data");
+    let cell; // the cell currently being built
+    let row; // the row currently being built
+    let text; // the text to go in the cell
+    const table = app.domFunctions.getChildByIdr(this.widget, "data");
 
     // Delete what's already in the table
     while (table.hasChildNodes()) {
@@ -222,15 +228,78 @@ class widgetTableNodes {
       // Create a cell for ID and append it
       cell = document.createElement('td');
       row.appendChild(cell);
-      cell.outerHTML = `<td idr = "edit${i}" onClick="app.widget('edit',this)">${r[i]["n"].identity}</td>`;
+      cell.outerHTML = `<td idr = "edit${i}" onClick="app.widget('edit',this)" draggable="true" ondragstart="app.widget('drag', this, event)">${r[i]["n"].identity}</td>`;
 
       // For each display field, create a cell and append it
       for (let j=0; j<this.fieldsDisplayed.length; j++) {
         cell = document.createElement('td');
-        let fieldName = this.fieldsDisplayed[j];
+        const fieldName = this.fieldsDisplayed[j];
+        if (this.fieldsDisplayed[j] == 'name') { // Make the name cell draggable
+          cell.setAttribute("draggable", "true");
+          cell.setAttribute("ondragstart", "app.widget('drag', this, event)");
+          cell.setAttribute("idr", `name${i}`);
+        }
         text = document.createTextNode(r[i]["n"].properties[fieldName]);
         cell.appendChild(text);
         row.appendChild(cell);
+      }
+
+      // IF this is a people table...
+      if (this.queryObjectName == "people") {
+        let permissions = "None";
+        if (r[i].permissions) {
+          permissions = r[i].permissions;
+        }
+        cell = document.createElement('td');          // Make a cell showing their permissions...
+        text = document.createTextNode(permissions);
+        cell.appendChild(text);
+        row.appendChild(cell);
+
+        cell = document.createElement('td');          // and one with a button to add/remove User status...
+        const userButton = document.createElement('input');
+        userButton.setAttribute("type", "button");
+        userButton.setAttribute("idr", "changeUser");
+        cell.appendChild(userButton);
+        row.appendChild(cell);
+
+        if (app.login.permissions != "Admin") {
+          cell.setAttribute("hidden", "true");
+        }
+        app.login.viewAdmin.push(cell);
+
+        cell = document.createElement('td');          // and one with a button to add/remove Admin status
+        const adminButton = document.createElement('input');
+        adminButton.setAttribute("type", "button");
+        adminButton.setAttribute("idr", "changeAdmin");
+        cell.appendChild(adminButton);
+        row.appendChild(cell);
+
+        if (app.login.permissions != "Admin") {
+          cell.setAttribute("hidden", "true");
+        }
+        app.login.viewAdmin.push(cell);
+
+        if (permissions == "None") {
+          userButton.setAttribute("value", "Make User");
+          userButton.setAttribute("onclick", "app.widget('makeUser', this)");
+
+          adminButton.setAttribute("value", "Make Admin");
+          adminButton.setAttribute("onclick", "app.widget('makeAdmin', this)");
+        }
+        else if (permissions == "User") {
+          userButton.setAttribute("value", "Remove User");
+          userButton.setAttribute("onclick", "app.widget('removeUser', this)");
+
+          adminButton.setAttribute("value", "Make Admin");
+          adminButton.setAttribute("onclick", "app.widget('makeAdmin', this)");
+        }
+        else if (permissions == "Admin") {
+          userButton.setAttribute("value", "Remove User");
+          userButton.setAttribute("onclick", "app.widget('removeUser', this)");
+
+          adminButton.setAttribute("value", "Remove Admin");
+          adminButton.setAttribute("onclick", "app.widget('removeAdmin', this)");
+        }
       }
 
       // Append the whole row to the data table
@@ -238,14 +307,14 @@ class widgetTableNodes {
     }
 
     // New code for creating a JSON object
-    let obj = {};
+    const obj = {};
     obj.id = this.searchTrigger;
     if (obj.id == this.idWidget) { // If the call for the search came from this widget, then record the idr of the search button and that it was clicked.
       obj.idr = "searchButton";
       obj.action = "click";
     }
     if (obj.id == "menuNodes") { // If the call came from the menuNodes dropdown, then record the value of the dropDown and that it was selected.
-      let dropDown = document.getElementById('menuNodes');
+      const dropDown = document.getElementById('menuNodes');
     	obj.value = dropDown.options[dropDown.selectedIndex].value;
       obj.action = "click";
     }
@@ -254,14 +323,54 @@ class widgetTableNodes {
     }
 
     obj.data = JSON.parse(JSON.stringify(data)); // This should make a COPY of data, so deleting its identity won't affect the original.
-    for (var i = 0; i< obj.data.length; i++) { // Trying to remove the IDs from the log - they're not particularly useful, and can cause problems because they rarely match
+    for (let i = 0; i< obj.data.length; i++) { // Trying to remove the IDs from the log - they're not particularly useful, and can cause problems because they rarely match
       delete obj.data[i].n.identity;
     }
     app.regression.log(JSON.stringify(obj));
     app.regression.record(obj);
   }
 
+  drag(input, evnt){ // stores information about a node in the drag event. input is the thing being dragged.
+    const nodeRow = input.parentElement;
+    const nameColumn = this.fieldsDisplayed.indexOf('name') + 2; // The first two cells in the table aren't included in fieldsDisplayed
+    let name = "";
+    if (nameColumn > 1) { // If that call to indexOf didn't return -1 (-1 would mean there isn't actually a name field in this table)
+      const nameCell = nodeRow.children[nameColumn];
+      name = nameCell.textContent;
+    }
+    const IDcell = nodeRow.children[1]; // The ID will always be the second cell in the table, after the number
+    const ID = IDcell.textContent;
+    const type = this.queryObject.nodeLabel;
 
+    const data = {};
+    data.name = name;
+    data.type = type;
+    data.nodeID = ID;
+    data.details = [];
+    for (let i = 0; i< this.fieldsDisplayed.length; i++) { // For every displayed field...
+      const cell = nodeRow.children[i+2]; // Remember that the first two cells aren't displayed fields
+      const fieldName = this.fieldsDisplayed[i];
+      if (fieldName != "name") { // skip the name...
+        const detailObj = {};
+        detailObj.field = fieldName;
+        detailObj.value = cell.textContent;
+        data.details.push(detailObj);
+      }
+    }
+    data.sourceID = app.domFunctions.widgetGetId(input);
+    data.sourceType = "widgetTableNodes";
+    data.sourceTag = input.tagName;
+    evnt.dataTransfer.setData("text/plain", JSON.stringify(data));
+
+    const obj = {};
+    obj.id = app.domFunctions.widgetGetId(evnt.target);
+    obj.idr = event.target.getAttribute("idr");
+    obj.action = "dragstart";
+    app.regression.log(JSON.stringify(obj));
+    app.regression.record(obj);
+  }
+
+// I'm not sure this is ever used.
 getatt(fieldName) {
   let ret = this.fields[fieldName].att
   if (!ret) {
@@ -269,22 +378,24 @@ getatt(fieldName) {
   }
 }
 
-
+// I'm almost certain this isn't.
 relationAdd(element) {
   alert(element.previousElementSibling.textContent)
 }
 
-
 edit(element){
-  //  this.data.filter(o => o.n.identity===23)
-    let id = element.innerHTML;
-    let data = this.queryData;
-    let n = data.filter(o => o.n.identity.toString() === id);
-
-    app.widgetNodeNew(this.queryObject.nodeLabel,n[0].n);
-
+    const id = element.innerHTML;
+    if (this.queryObject.nodeLabel == 'mindmap') {
+      new widgetSVG(id);
+    }
+    else if (this.queryObject.nodeLabel == "calendar") {
+      new widgetCalendar(id);
+    }
+    else {
+      new widgetNode(this.queryObject.nodeLabel, id);
+    }
     // log
-    let obj = {};
+    const obj = {};
     obj.id = app.domFunctions.widgetGetId(element);
     obj.idr = element.getAttribute("idr");
     obj.action = "click";
@@ -295,14 +406,97 @@ edit(element){
 
   // open add widget
   addNode(element){
-    app.widgetNodeNew(this.queryObject.nodeLabel);
+    if (this.queryObject.nodeLabel == 'mindmap') {
+      new widgetSVG();
+    }
+    else if (this.queryObject.nodeLabel == "calendar") {
+      new widgetCalendar();
+    }
+    else {
+      new widgetNode(this.queryObject.nodeLabel);
+    }
 
     // log
-    let obj = {};
+    const obj = {};
     obj.id = app.domFunctions.widgetGetId(element);
     obj.idr = element.getAttribute("idr");
     obj.action = "click";
     app.regression.log(JSON.stringify(obj));
     app.regression.record(obj);
+  }
+
+  makeUser(button) {
+    // Get ID of the person to promote
+    const row = button.parentElement.parentElement;
+    const ID = row.children[1].textContent;
+    // Get username and password
+    let password;
+    const username = prompt("Enter the username:", "");
+    if (username) {
+      password = prompt("Enter the password:", "");
+    }
+
+    // If they entered data, create a link from them to the User table
+    if (username && password) {
+      this.db.setQuery(`match (user:people), (permTable:LoginTable) where ID(user) = ${ID} and permTable.name = "User"
+                        create (user)-[:Permissions {username:"${username}", password:"${password}"}]->(permTable)`);
+      this.db.runQuery(this, 'search'); // Create the link and refresh the table
+    }
+  }
+
+  makeAdmin(button) {
+    // Get ID of the person to promote
+    const row = button.parentElement.parentElement;
+    const ID = row.children[1].textContent;
+
+    // Check if they are already a user
+    this.db.setQuery(`match (user:people)-[rel:Permissions]-(permTable:LoginTable {name:"User"}) where ID(user) = ${ID} return rel.username as name, rel.password as password`);
+    this.db.runQuery(this, 'finishAdmin', ID);
+  }
+
+  finishAdmin(data, ID) {
+    if (data.length > 0 && data[0].name && data[0].password) { // If a link between the person and the User table was found, remove it, and add a link to the Admin table
+      this.db.setQuery(`match (user:people)-[relUser:Permissions]-(userTable:LoginTable {name:"User"}) where ID(user) = ${ID}
+                        delete relUser
+                        with user match (adminTable:LoginTable{name:"Admin"})
+                        create (user)-[:Permissions {username:"${data[0].name}", password:"${data[0].password}"}]->(adminTable)`)
+      this.db.runQuery(this, 'search');
+    }
+    else { // If they weren't a user already...
+      let password;
+      const username = prompt("Enter the username:", "");
+      if (username) {
+        password = prompt("Enter the password:", "");
+      }
+
+      // If they entered data, create a link from them to the Admin table
+      if (username && password) {
+        this.db.setQuery(`match (user:people), (permTable:LoginTable) where ID(user) = ${ID} and permTable.name = "Admin"
+                          create (user)-[:Permissions {username:"${username}", password:"${password}"}]->(permTable)`);
+        this.db.runQuery(this, 'search'); // Create the link and refresh the table
+      }
+    }
+  }
+
+  removeUser(button) {
+    // Get ID of the person to demote
+    const row = button.parentElement.parentElement;
+    const ID = row.children[1].textContent;
+
+    this.db.setQuery(`match (user)-[rel:Permissions]->(permTable:LoginTable) where ID(user) = ${ID} delete rel`); // Delete the connection to either the User or Admin table
+    this.db.runQuery(this, 'search'); // Create the link and refresh the table
+
+  }
+
+  removeAdmin(button) {
+    const row = button.parentElement.parentElement;
+    const ID = row.children[1].textContent;
+
+    // Delete the connection to the admin table; replace with one to the User table.
+    this.db.setQuery(`match (user)-[rel:Permissions]->(permTable:LoginTable {name:"Admin"}) where ID(user) = ${ID}
+                      with user, rel
+                      match (permTable:LoginTable {name:"User"})
+                      create (user)-[:Permissions {username:rel.username, password:rel.password}]->(permTable) delete rel`);
+    this.db.runQuery(this, 'search'); // Create the link and refresh the table
   }
 } ////////////////////////////////////////////////////// end class widgetTableNodes

@@ -151,6 +151,10 @@ text {
 	fill: #999;
 }
 
+.disassociateButton {
+	fill:blue;
+}
+
 .detailPopupHidden {
 	display: none;
 }

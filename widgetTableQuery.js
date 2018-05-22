@@ -17,6 +17,7 @@ constructor (nameQueryObject, id) {
   this.fields          = this.queryObj.fields;
   this.tableName = nameQueryObject;
   this.dropdownId = id;
+  this.widgetID = app.idCounter;
 
   this.db        = new db();   // create object to make query
   this.db.setQuery(this.queryObj.query);
@@ -34,18 +35,34 @@ queryComplete(data) {
   this.buildData();    // add to this.html
 
   // add
-  let parent = document.getElementById('widgets');
-  let child = parent.firstElementChild;
-  let newWidget = document.createElement('div'); // create placeholder div
+  const parent = document.getElementById('widgets');
+  const child = parent.firstElementChild;
+  const newWidget = document.createElement('div'); // create placeholder div
   parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
   newWidget.outerHTML = this.html; // replace placeholder with the div that was just written
 
+  if (app.activeWidget) {
+    app.activeWidget.classList.remove("activeWidget");
+  }
+  app.activeWidget = document.getElementById(this.widgetID);
+  document.getElementById(this.widgetID).classList.add("activeWidget");
+
   // log
-  let obj = {};
+  const obj = {};
   obj.id = this.dropdownId;
   obj.value = this.queryObjectName;
   obj.action = "click";
   obj.data = data;
+  app.stripIDs(obj.data);
+
+  // I want to do this part here, rather than adding it to stripIDs, because while a NODE's "identity" field is pretty much always going to be its Neo4j ID,
+  // I worry that a field we specifically asked to have returned, and which we happened to name "ID", might at some point be something we want to record.
+  // I think that may be better to remove on a case-by-case basis.
+  for (let i = 0; i < obj.data.length; i++) {
+    if ('id' in obj.data[i]) {
+      delete obj.data[i].id;
+    }
+  }
   app.regression.log(JSON.stringify(obj));
   app.regression.record(obj);
 }
@@ -55,7 +72,7 @@ queryComplete(data) {
 buildHeader() {
   // build header
 
-  const html =app.widgetHeader() +'<b> '+ this.tableName +` </b>
+  const html =app.widgetHeader() +'<b> '+ this.tableName +` </b></div>
 
   <table>
     <thead>#header#</thead>
@@ -69,11 +86,11 @@ buildHeader() {
   // create html for header
   (function(fields) {
   	// build search part of buildHeader
-    let r="<tr>#fields#</tr>"
+    const r="<tr>#fields#</tr>"
 
     // append label part of the header
     let f="";
-    for (var propt in fields){
+    for (let propt in fields){
         f += "<th onClick='app.widgetSort(this)'>"+ fields[propt].label + "</th>" ;
   	}
     return r.replace('#fields#',f);
@@ -91,7 +108,7 @@ buildData() {
   for (let i=0; i<r.length; i++) {
     html += '<tr>'
     for (let fieldName in this.fields) {
-      //  html += '<td ' + this.getatt(fieldName) +'>'+ r[i][fieldName] +"</td>" ;
+      // html += '<td ' + this.getatt(fieldName) +'>'+ r[i][fieldName] +"</td>" ;
       html += `<td ${this.getatt(fieldName)}idr="${fieldName}${i}">${r[i][fieldName]}</td>`;
     }
     html += "</tr>"
@@ -151,29 +168,64 @@ this.queryObjects.keysRelation = {
    }}
 
 
-this.queryObjects.trash = {
-   nameTable: "trash"
-   ,query: "match (n) where not n._trash = '' return id(n) as id, labels(n) as labels, n._trash as trash, n"
+this.queryObjects.myTrash = {
+   nameTable: "myTrash"
+   ,query: `match (user)-[rel:Trash]->(node) where ID(user)=${app.login.userID} return id(node) as id, node.name as name, labels(node) as labels, rel.reason as reason, node`
    ,fields: {
        "id":     {label: "ID",   att: `onclick="app.widget('edit',this)"`}
+     ,"name":   {label:"Name"}
    	 ,"labels": {label: "Labels"}
-   	 ,"trash":  {label: "Trash"   }
+   	 ,"reason":  {label: "Reason"}
     }}
 
+this.queryObjects.allTrash = {
+   nameTable: "allTrash"
+   ,query: `match ()-[rel:Trash]->(node) return ID(node) as id, node.name as name, count(rel) as times`
+   ,fields: {
+       "id":     {label: "ID",   att: `onclick="app.widget('showReasons',this)"`}
+     ,"name":   {label:"Name"}
+   	 ,"times": {label: "Times trashed"}
+    }}
 } /// end method
 
 edit(element){
-// this.queryData[0].id.toString() === id
-  let id = element.innerHTML;
-  let n = this.queryData.filter(o => o.id.toString() === id);
+  const id = element.innerHTML;
+  new widgetNode(element.nextElementSibling.nextElementSibling.innerText, id);
 
-  app.widgetNodeNew(element.nextElementSibling.innerText, n[0].n);
-
-  let obj={};
+  const obj={};
   obj.id=app.domFunctions.widgetGetId(element);
   obj.idr=element.getAttribute("idr");
   obj.action="click";
   app.regression.log(JSON.stringify(obj));
   app.regression.record(obj);
+}
+
+showReasons(element) {
+  const id = element.innerHTML;
+  const query = `match (user)-[rel:Trash]->(node) where ID(node) = ${id} return user.name as userName, ID(user) as userID, rel.reason as reason, node.name as nodeName, ID(node) as nodeID`;
+  this.db.setQuery(query);
+  this.db.runQuery(this, "buildReasons");
+}
+
+buildReasons(data) {
+  if (data) { // assuming some trash relations were found
+    let html = app.widgetHeader();
+    html += `<table><thead>
+    <tr><th colspan=3>${data[0].nodeName} (node#${data[0].nodeID})</th></tr>
+    <tr><th>UserID</th><th>User Name</th><th>Reason for trashing</th></tr></thead><tbody>`
+
+    for (let i=0; i<data.length; i++) {
+      html += `<tr><td>${data[i].userID}</td><td>${data[i].userName}</td><td>${data[i].reason}</td></tr>`
+    }
+
+    html+='</tbody></table></div>';
+
+    // add
+    const parent = document.getElementById('widgets');
+    const child = parent.firstElementChild;
+    const newWidget = document.createElement('div'); // create placeholder div
+    parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
+    newWidget.outerHTML = html; // replace placeholder with the div that was just written
+  }
 }
 } ////////////////////////////////////////////////// end class
