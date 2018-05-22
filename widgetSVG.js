@@ -533,22 +533,24 @@ class widgetSVG {
     } // End if (both objects found)
   }
 
-  selectNode(element, evnt) { // When a group is clicked, records the current mouse position and the group's transformation, and sets onmousemove, onmouseup and onmouseout methods for dragging.
+  selectNode(element, evnt) { // When a rectangle is clicked, records the current mouse position and the group's transformation, and sets onmousemove, onmouseup and onmouseout methods for dragging.
     // Because THIS is the closest SVG gets to a goddamn "Bring to front" command!
     // It just draws everything in whatever order it's listed in the DOM,
     // so to move something to the front you have to actually move the HTML that generates it forward!
-    this.SVG_DOM.appendChild(element.parentElement);
-    element.parentElement.appendChild(element);
+    const group = element.parentElement;
+    const tree = group.parentElement;
+    this.SVG_DOM.appendChild(tree);
+    tree.appendChild(group);
 
     this.currentX = evnt.clientX; // get mouse position
     this.currentY = evnt.clientY;
 
-    if (element.__data__.data.parent == "null") { // If the element being dragged is a root, drag the whole group it's part of
-      this.elemsToMove = [element.parentElement];
+    if (group.__data__.data.parent == "null") { // If the element being dragged is a root, drag the whole group it's part of
+      this.elemsToMove = [tree];
     }
     else { // Otherwise, get its descendants and the lines linking it to them using the getSubtree method. Also, mark its current parent.
-      this.getSubtree(element);
-      const parentID = element.__data__.data.parent;
+      this.getSubtree(group);
+      const parentID = group.__data__.data.parent;
       this.currentParent = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${parentID}`);
       this.currentParent.classList.add("currentParent");
     }
@@ -563,7 +565,7 @@ class widgetSVG {
     if (this.selectedNode) {
       this.selectedNode.classList.remove("selected");
     }
-    this.selectedNode = element;
+    this.selectedNode = group;
     this.selectedNode.classList.add("selected");
   }
 
@@ -612,7 +614,7 @@ class widgetSVG {
   // Acknowledges a doubleclick and resets listeners.
   doubleClick(element) {
     // Check whether the doubleclicked label has a node attached
-    const id = element.getAttribute("idr").slice(5); // The idr will look like "groupxxx"
+    const id = element.getAttribute("idr").slice(4); // The idr will look like "nodexxx"
     const obj = this.getObjFromID(id);
     if (obj.nodeID == null) { // If this label has no node attached
       this.newNode = id; // Set the doubleclicked element as the new node, so it will be edited
@@ -651,7 +653,7 @@ class widgetSVG {
       this.elemsToMove[i].setAttribute("transform", newTransform);
     }
 
-    this.highlightParent(evnt.clientX, evnt.clientY, element);
+    this.highlightParent(evnt.clientX, evnt.clientY, element.parentElement);
   }
 
   highlightParent(x, y, element) {
@@ -698,7 +700,7 @@ class widgetSVG {
 
   releaseNode(element) { // Removes all the onmousemove, onmouseup and onmouseout events which were set when the node was selected.
     if (this.parentNode) { // If we dropped element (the node being moved) onto that group, we should connect them.
-      const newChild = element;
+      const newChild = element.parentElement;
       const childID = newChild.getAttribute("idr").slice(5); // this IDR will be like groupxxx
 
       // Get object representing child node
@@ -952,14 +954,14 @@ class widgetSVG {
     const nodeEnter = node.enter().append("g") // Append a "g" for each new node
   	  .attr("class", "node")
   	  .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; })
-      .attr("idr", function (d) {return `group${d.data.id}`; })
-      .attr("onmousedown", "app.widget('selectNode', this, event)");
+      .attr("idr", function (d) {return `group${d.data.id}`; });
 
     nodeEnter.append("rect")
       .attr("width", this.getAttribute("nodeWidth"))
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function (d) {return `node${d.data.id}`; })
-      .attr("class", "nodeRect");
+      .attr("class", "nodeRect")
+      .attr("onmousedown", "app.widget('selectNode', this, event)");
 
     nodeEnter.append("rect")
       .attr("width", this.getAttribute("toggleWidth"))
@@ -997,6 +999,26 @@ class widgetSVG {
         .attr("class", "disassociateButton")
         .attr("height", this.getAttribute("nodeHeight"))
         .attr("width", this.getAttribute("nodeHeight"))
+        .attr("onmousedown", "app.widget('disassociate', this)")
+      .select(function() { return this.parentNode; })             // disassociate text
+        .append("text")
+        .attr("dx", function(d) {return `-${d.data.instance.detailWidth + d.data.instance.popupWidth - d.data.instance.nodeHeight/2}`;})
+        .attr("idr", function(d) {return `disassociateText${d.data.id}`;})
+        .attr("class", "disassociateText unselectable")
+        .text("X")
+      .select(function() { return this.parentNode; })
+        .append("rect")                                           // Show Node button
+        .attr("idr", function(d) {return `showNode${d.data.id}`})
+        .attr("class", "showNodeButton")
+        .attr("height", this.getAttribute("nodeHeight"))
+        .attr("width", this.getAttribute("nodeHeight"))
+        .attr("onmousedown", "app.widget('showNode', this)")
+      .select(function() { return this.parentNode; })             // Show Node text
+        .append("text")
+        .attr("dx", function(d) {return `-${d.data.instance.detailWidth + d.data.instance.nodeHeight/2}`;})
+        .attr("idr", function(d) {return `showNodeText${d.data.id}`;})
+        .attr("class", "showNodeText unselectable")
+        .text("+")
       .select(function() {return this.parentNode; })
         .append("text")                                           // Text in header
         .attr("dx", function(d) {return `-${d.data.instance.popupWidth/2 + d.data.instance.detailWidth}`;})
@@ -1038,6 +1060,13 @@ class widgetSVG {
       .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
                                                         -${d.data.details.length * d.data.instance.nodeHeight})`});
 
+    nodeEnter.selectAll(".disassociateText").attr("dy", function(d) {return `-${(d.data.details.length) * d.data.instance.nodeHeight - 20}`;});
+
+    nodeEnter.selectAll(".showNodeButton")
+      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.nodeHeight}
+                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
+
+    nodeEnter.selectAll(".showNodeText").attr("dy", function(d) {return `-${(d.data.details.length) * d.data.instance.nodeHeight - 20}`;});
 
     nodeEnter.selectAll(".detailHeaderText")
       .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; })
@@ -1058,6 +1087,9 @@ class widgetSVG {
       .classed("detailWithNode", function(d) {if (d.data.nodeID) return true; else return false;}) // Set the appropriate class
       .classed("detailNoNode", function(d) {if (d.data.nodeID) return false; else return true;})
 
+    node.selectAll(".detailPopupVisible")
+      .attr("class", "detailPopupHidden"); // If any popup happened to still be visible, hide it on the update
+
     node.selectAll(".detailPopup")
       .attr("width", this.getAttribute("popupWidth"))
       // This is fairly complicated. It allots one line (of height nodeHeight) for each entry in the details object,
@@ -1074,6 +1106,13 @@ class widgetSVG {
       .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
                                                         -${d.data.details.length * d.data.instance.nodeHeight})`});
 
+    node.selectAll(".disassociateText").attr("dy", function(d) {return `-${d.data.details.length * d.data.instance.nodeHeight - 20}`;});
+
+    node.selectAll(".showNodeButton")
+      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.nodeHeight}
+                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
+
+    nodeEnter.selectAll(".showNodeText").attr("dy", function(d) {return `-${(d.data.details.length) * d.data.instance.nodeHeight - 20}`;});
 
     node.selectAll(".detailHeaderText")
       .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; })
@@ -1191,5 +1230,24 @@ class widgetSVG {
         element.setAttribute("class", "detailPopupHidden");
       }
     }
+  }
+
+  showNode(button) {
+    const data = button.parentElement.parentElement.__data__.data;
+    const id = data.nodeID;
+    const type = data.type;
+    new widgetNode(type, id);
+  }
+
+  disassociate(button) {
+    // Get object
+    const ID = button.getAttribute("idr").slice(12); // This IDR will be like "disassociatexxx"
+    const obj = this.getObjFromID(ID);
+    // reset node ID, type and details
+    obj.nodeID = null;
+    obj.type = "";
+    obj.details = [];
+
+    this.update();
   }
 }
