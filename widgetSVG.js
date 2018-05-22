@@ -822,7 +822,6 @@ class widgetSVG {
   }
 
   save (button) { // Saves the current state of the graph to the database.
-//    let name = this.nameCell.firstElementChild.value;
     let name = this.name;
     const id = this.mapID;
     if (name == "Untitled mind map" || !id || button.getAttribute("idr") == "saveAs") {  // If the mind map doesn't have a name or doesn't have an ID (indicating that it hasn't been saved),
@@ -894,7 +893,6 @@ class widgetSVG {
 
   // Builds an individual tree, given the data to build it from and the group to build it in.
   // Only called by update, which passes in the appropriate values for each tree.
-
   // NOTE: I don't know why yet, but it seems that when building a group for each tree, data is stored in d.
   // When building a node for each leaf WITHIN a tree (in buildTree), data is stored in d.data.
   buildTree(datum, index, group) {

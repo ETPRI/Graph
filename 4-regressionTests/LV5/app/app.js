@@ -178,7 +178,7 @@ createDebug() {
 
 		const select = document.createElement('select');
 		select.setAttribute('id', 'metaData');
-		select.setAttribute('onclick', 'app.menuDBstats(this)');
+		select.setAttribute('onchange', 'app.menuDBstats(this); this.selectedIndex = 0');
 		header.appendChild(select);
 
 		const opt1 = document.createElement('option');
@@ -491,13 +491,17 @@ setActiveWidget(widget) {
 supportsES6() {
   try {
     new Function("(a = 0) => a");
-		if (navigator.userAgent != "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15") {
-			alert ("While this browser may suppoer JS v6, it has not been tested with this website, and may not work.");
+		const workingBrowsers = [
+			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36",
+			"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15"
+		]
+		if (workingBrowsers.indexOf(navigator.userAgent) == -1) {
+			alert (`While this browser may support JS v6, it has not been tested with this website, and may not work.`);
 		}
     return true;
   }
   catch (err) {
-		alert ("This browser doesn't support JS v6, and you will likely have some problems running this website. Try using Safari.");
+		alert (`This browser doesn't support JS v6, and you will likely have some problems running this website. Try using an up-to-date version of Safari or Chrome.`);
     return false;
   }
 }

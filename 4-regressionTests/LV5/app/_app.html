@@ -30,7 +30,7 @@
     <div id="regressionHeader"></div>
     <div id="debugHeader"></div>
     <div id="workSpace">
-      <select id="menuNodes" onclick="app.menuNodes(this)">
+      <select id="menuNodes" onchange="app.menuNodes(this); this.selectedIndex = 0">
         <option value="">-- Nodes --</option>
       </select>
       <input  type="button" value="New" onclick="app.menuNodes(this)">
@@ -44,14 +44,4 @@
 <script type="text/javascript">
   app = new app();  // only global variable
   app.buildApp();
-  // app.supportsES6();
-  // app.test();
-  // checkEmpty = new checkEmpty();
-  // // build node menu
-  // app.menuNodesInit();
-  // // create preset calendar options
-  // app.presetCalendars();
-  // // create temp admin account if a real one doesn't yet exist; delete it if a real one does exist
-  // app.login.checkAdminTable();
-  // app.createDebug();
 </script>
