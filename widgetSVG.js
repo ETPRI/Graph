@@ -217,7 +217,7 @@ class widgetSVG {
 
     // verify that the user doubleclicked on an EMPTY spot
     if (this.checkDrop(null, x, y) == null) {
-      newObj = this.newObj();
+      const newObj = this.newObj();
       newObj.x = relX;
       newObj.y = relY;
       this.roots.push(newObj);
@@ -235,6 +235,16 @@ class widgetSVG {
     newObj.parent = "null";
     newObj.children = [];
     newObj.details = [];
+
+    const instanceVars = {};
+    instanceVars.nodeWidth = this.nodeWidth;
+    instanceVars.nodeHeight = this.nodeHeight;
+    instanceVars.toggleWidth = this.toggleWidth;
+    instanceVars.detailWidth = this.detailWidth;
+    instanceVars.popupWidth = this.popupWidth;
+
+    newObj.instance = instanceVars;
+
 
     // Remember which node to edit
     this.newNode = newObj.id;
