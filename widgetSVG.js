@@ -944,9 +944,9 @@ class widgetSVG {
     //Truncate label names that are too long
     const texts = document.getElementsByClassName("nodeText");
     for (let i = 0; i < texts.length; i++) {
-      if (texts[i].clientWidth > this.nodeWidth - 10) { // Allow a 5-px cushion
+      if (texts[i].getComputedTextLength() > this.nodeWidth - 10) { // Allow a 5-px cushion
         texts[i].innerHTML += "...";
-        while (texts[i].clientWidth > this.nodeWidth - 10) { // Remove one character at a time, keeping the ellipsis
+        while (texts[i].getComputedTextLength() > this.nodeWidth - 10) { // Remove one character at a time, keeping the ellipsis
           texts[i].innerHTML = texts[i].innerHTML.substring(0, texts[i].innerHTML.length-4) + "...";
         }
       }
@@ -955,9 +955,9 @@ class widgetSVG {
     // Same for detailText
     const detailTexts = document.getElementsByClassName("detailText");
     for (let i = 0; i < detailTexts.length; i++) {
-      if (detailTexts[i].clientWidth > this.popupWidth - 10) { // Allow a 5-px cushion
+      if (detailTexts[i].getComputedTextLength() > this.popupWidth - 10) { // Allow a 5-px cushion
         detailTexts[i].innerHTML += "...";
-        while (detailTexts[i].clientWidth > this.popupWidth - 10) { // Remove one character at a time, keeping the ellipsis
+        while (detailTexts[i].getComputedTextLength() > this.popupWidth - 10) { // Remove one character at a time, keeping the ellipsis
           detailTexts[i].innerHTML = detailTexts[i].innerHTML.substring(0, detailTexts[i].innerHTML.length-4) + "...";
         }
       }
@@ -969,9 +969,9 @@ class widgetSVG {
     // If I start trimming just before " Type: ", some damn fool is sure to put that in someone's name.
     const detailHeaders = document.getElementsByClassName("detailHeaderText");
     for (let i = 0; i < detailHeaders.length; i++) {
-      if (detailHeaders[i].clientWidth > this.popupWidth - (2*this.nodeHeight + 10)) { // Allow a 5-px cushion; leave room for buttons
+      if (detailHeaders[i].getComputedTextLength() > this.popupWidth - (2*this.nodeHeight + 10)) { // Allow a 5-px cushion; leave room for buttons
         detailHeaders[i].innerHTML += "...";
-        while (detailHeaders[i].clientWidth > this.popupWidth - (2*this.nodeHeight + 10)) { // Remove one character at a time, keeping the ellipsis
+        while (detailHeaders[i].getComputedTextLength() > this.popupWidth - (2*this.nodeHeight + 10)) { // Remove one character at a time, keeping the ellipsis
           detailHeaders[i].innerHTML = detailHeaders[i].innerHTML.substring(0, detailHeaders[i].innerHTML.length-4) + "...";
         }
       }
@@ -1145,13 +1145,13 @@ class widgetSVG {
       .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
                                                         -${d.data.details.length * d.data.instance.nodeHeight})`});
 
-    nodeEnter.selectAll(".disassociateText").attr("dy", function(d) {return `-${(d.data.details.length) * d.data.instance.nodeHeight - 20}`;});
+    nodeEnter.selectAll(".disassociateText").attr("dy", function(d) {return -1*(d.data.details.length * d.data.instance.nodeHeight - 20);});
 
     nodeEnter.selectAll(".showNodeButton")
       .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.nodeHeight}
                                                         -${d.data.details.length * d.data.instance.nodeHeight})`});
 
-    nodeEnter.selectAll(".showNodeText").attr("dy", function(d) {return `-${(d.data.details.length) * d.data.instance.nodeHeight - 20}`;});
+    nodeEnter.selectAll(".showNodeText").attr("dy", function(d) {return -1*(d.data.details.length * d.data.instance.nodeHeight - 20);});
 
     nodeEnter.selectAll(".detailHeaderText")
       .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; })
@@ -1191,13 +1191,13 @@ class widgetSVG {
       .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
                                                         -${d.data.details.length * d.data.instance.nodeHeight})`});
 
-    node.selectAll(".disassociateText").attr("dy", function(d) {return `-${d.data.details.length * d.data.instance.nodeHeight - 20}`;});
+    node.selectAll(".disassociateText").attr("dy", function(d) {return -1*(d.data.details.length * d.data.instance.nodeHeight - 20);});
 
     node.selectAll(".showNodeButton")
       .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.nodeHeight}
                                                         -${d.data.details.length * d.data.instance.nodeHeight})`});
 
-    nodeEnter.selectAll(".showNodeText").attr("dy", function(d) {return `-${(d.data.details.length) * d.data.instance.nodeHeight - 20}`;});
+    nodeEnter.selectAll(".showNodeText").attr("dy", function(d) {return -1*((d.data.details.length) * d.data.instance.nodeHeight - 20);});
 
     node.selectAll(".detailHeaderText")
       .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; })
