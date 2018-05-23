@@ -729,7 +729,7 @@ class widgetSVG {
     const groupID = group.getAttribute("idr").slice(5); // this IDR will be like groupxxx
     const labelObj = this.getObjFromID(groupID);
     this.newObject = labelObj;
-    
+
     if (this.parentNode) { // If we dropped element (the node being moved) onto that group, we should connect them.
       if (labelObj == null) {
         alert("Error: The child object was not found.");
@@ -1219,7 +1219,29 @@ class widgetSVG {
   toggle(button) { // Toggle children.
     const node = button.parentElement;
     const d = node.__data__;
+
+
     if (d.data.children) {
+      // First, if the edit textbox is visible and attached to one of the node's children, blur it.
+      if (this.newNode) { // this.newNode is true when a node has just been created and the edit box hasn't been blurred yet
+        let label = this.getObjFromID(this.newNode);
+        let descendant = false;
+        while (label.parent != "null") {
+          if (d.data.children.indexOf(label) != -1) {
+            descendant = true;
+            break;
+          }
+          else {
+            const newID = label.parent;
+            label = this.getObjFromID(newID);
+          }
+        }
+        // descendant is now true if the new label is a descendant of the label being toggled
+        if (descendant) {
+          this.editDOM.blur();
+        }
+      }
+
   	  d.data._children = d.data.children;
   	  d.data.children = null;
     }
