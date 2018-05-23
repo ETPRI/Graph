@@ -48,6 +48,7 @@ class widgetCalendar {
     newWidget.outerHTML = html; // replace placeholder with the div that was just written
     this.calendarDOM = document.getElementById(`calendar${this.widgetID}`);
     this.widgetDOM = document.getElementById(`${this.widgetID}`);
+    this.widgetDOM.classList.add("resizeable");
 
     if (app.activeWidget) {
       app.activeWidget.classList.remove("activeWidget");

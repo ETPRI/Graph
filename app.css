@@ -186,23 +186,16 @@ text {
 [draggable=true] {
     cursor: move;
 }
-
-//  resizeable class, not being used right now
-.resizable {
+*/
+.resizeable {
 	overflow: scroll;
 	resize: both;
-	max-width: 300px;
-	max-height: 460px;
-position: absolute;
-left: 280px;
-top: 300px;
-background-color: #cc3300;
-padding: 10px;
-color: white;
+	width: 1000px;
+	height: 400px;
 z-index: 1;
 }
-
-// note being used
+/*
+// not being used
 textarea {
 	border-width: 0;
 	font: 15px "Courier New";

@@ -536,6 +536,7 @@ class widgetSVG {
   }
 
   selectNode(element, evnt) { // When a rectangle is clicked, records the current mouse position and the group's transformation, and sets onmousemove, onmouseup and onmouseout methods for dragging.
+    evnt.preventDefault();
     // Because THIS is the closest SVG gets to a goddamn "Bring to front" command!
     // It just draws everything in whatever order it's listed in the DOM,
     // so to move something to the front you have to actually move the HTML that generates it forward!
@@ -560,8 +561,8 @@ class widgetSVG {
     this.getTransforms();
 
     element.setAttribute("onmousemove", "app.widget('moveNode', this, event)");
-    element.setAttribute("onmouseout", "app.widget('releaseNode', this, event)");
-    element.setAttribute("onmouseup", "app.widget('singleClick', this, event)");
+    element.setAttribute("onmouseout", "app.widget('releaseNode', this)");
+    element.setAttribute("onmouseup", "app.widget('singleClick', this)");
     element.setAttribute("clickStage", "firstDown"); // Used to track single vs. double clicks
     setTimeout(this.noClick, 500, element);
 
