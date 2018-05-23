@@ -17,6 +17,7 @@ class widgetSVG {
     this.toggleWidth = 20;
     this.detailWidth = 20;
     this.popupWidth = 360;
+    this.detachDistance = 50;
 
     // variables for dragging and creating new nodes
     this.currentX=0;
@@ -28,6 +29,7 @@ class widgetSVG {
     this.prevSibling = null;
     this.currentParent = null;
     this.selectedNode = null;
+    this.currentPosition = null;
 
     // data for making trees. This will hold an array of objects.
     // each with a name, a parent (although the parent will be null), x and y coordinates and a children array, as well as other data not needed for a tree.
@@ -553,6 +555,7 @@ class widgetSVG {
       const parentID = group.__data__.data.parent;
       this.currentParent = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${parentID}`);
       this.currentParent.classList.add("currentParent");
+      this.initialPosition = [this.currentX, this.currentY];
     }
     this.getTransforms();
 
@@ -583,6 +586,7 @@ class widgetSVG {
     // If the mouse was released at all, ought to check for new parents/snapback
     this.releaseNode(element);
 
+
     if (element.getAttribute("clickStage") == "firstDown") { // verify that we are, in fact, waiting for a single click to finish
       element.setAttribute("onmousedown", "app.widget('secondDown', this, event)"); // Listen for a second click
       element.setAttribute("clickStage", "singleClick"); // Record that the element has been clicked
@@ -593,6 +597,11 @@ class widgetSVG {
   // Fires if the mouse is pressed again within 500 ms of a single click.
   // Sets mouse move, up and out like a normal click, and listens for a double click.
   secondDown(element) {
+    if (element.parentElement.__data__.data.parent != "null") {
+      const parentID = element.parentElement.__data__.data.parent;
+      this.currentParent = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${parentID}`);
+      this.currentParent.classList.add("currentParent");
+    }
     element.setAttribute("onmousemove", "app.widget('moveNode', this, event)");
     element.setAttribute("onmouseup", "app.widget('doubleClick', this, event)");
     element.setAttribute("onmouseout", "app.widget('releaseNode', this, event)");
@@ -610,17 +619,22 @@ class widgetSVG {
     }
   }
 
+  doubleClick(element) {
+    setTimeout(this.doubleClickProcess, 1, element, this)
+  }
+
   // Fires if the mouse is released within half a second of being pressed for the second time.
   // Acknowledges a doubleclick and resets listeners.
-  doubleClick(element) {
+  doubleClickProcess(element, instance) {
+    instance.releaseNode(element)
     // Check whether the doubleclicked label has a node attached
     const id = element.getAttribute("idr").slice(4); // The idr will look like "nodexxx"
-    const obj = this.getObjFromID(id);
+    const obj = instance.getObjFromID(id);
     if (obj.nodeID == null) { // If this label has no node attached
-      this.newNode = id; // Set the doubleclicked element as the new node, so it will be edited
-      this.editDOM.value = obj.name; // Fill the existing name in the edit textbox...
+      instance.newNode = id; // Set the doubleclicked element as the new node, so it will be edited
+      instance.editDOM.value = obj.name; // Fill the existing name in the edit textbox...
       obj.name = ""; // and remove it from the object (so it won't show up behind the textbox)
-      this.update(); // Finally, update the mind map, causing the text in the node to disappear and the edit box to appear.
+      instance.update(); // Finally, update the mind map, causing the text in the node to disappear and the edit box to appear.
     }
 
     element.removeAttribute("onmousemove");
@@ -651,6 +665,17 @@ class widgetSVG {
       this.transform[i][1] += dy;
       const newTransform = `translate(${this.transform[i][0]} ${this.transform[i][1]})`;
       this.elemsToMove[i].setAttribute("transform", newTransform);
+    }
+
+    // Highlight the prospective parent. Add/remove highlighting from current parent if needed.
+    if (this.currentParent) {
+      if (Math.abs(this.currentX - this.initialPosition[0]) < this.detachDistance
+      &&  Math.abs(this.currentY - this.initialPosition[1]) < this.detachDistance) {
+         this.currentParent.classList.add("currentParent");
+      }
+      else {
+        this.currentParent.classList.remove("currentParent");
+      }
     }
 
     this.highlightParent(evnt.clientX, evnt.clientY, element.parentElement);
@@ -699,19 +724,37 @@ class widgetSVG {
   }
 
   releaseNode(element) { // Removes all the onmousemove, onmouseup and onmouseout events which were set when the node was selected.
+    // Get object representing the label being dragged
+    const group = element.parentElement;
+    const groupID = group.getAttribute("idr").slice(5); // this IDR will be like groupxxx
+    const labelObj = this.getObjFromID(groupID);
     if (this.parentNode) { // If we dropped element (the node being moved) onto that group, we should connect them.
-      const newChild = element.parentElement;
-      const childID = newChild.getAttribute("idr").slice(5); // this IDR will be like groupxxx
-
-      // Get object representing child node
-      const childObj = this.getObjFromID(childID);
-      if (childObj == null) {
+      if (labelObj == null) {
         alert("Error: The child object was not found.");
       }
-      else this.dropConnect(this.parentNode, childObj);
+      else this.dropConnect(this.parentNode, labelObj);
     } // end if (the node was dragged onto another node)
 
-    else if (this.currentParent) { // if the node being dragged was a child, refresh the page so they snap back
+    else if (this.currentParent) { // if the node being dragged was a child, detach it if necessary.
+                                   // Then refresh the page so it will either snap back or become a new root
+
+      // Detach child if it's too far from parent. Since we're already tracking this with classes, why recalculate?
+      if (!this.currentParent.classList.contains("currentParent")) {
+        const parentID = this.currentParent.__data__.data.id;
+        const parent = this.getObjFromID(parentID);
+        const parentIndex = parent.children.indexOf(labelObj);
+        if(parentIndex != -1) {
+          parent.children.splice(parentIndex, 1);
+        }
+        labelObj.parent = "null";
+
+        // Get coordinates of label and store them
+        const labelRect = element.getBoundingClientRect();
+        const SVGrect = this.SVG_DOM.getBoundingClientRect();
+        labelObj.y = labelRect.y - SVGrect.y;
+        labelObj.x = labelRect.x - SVGrect.x;
+        this.roots.push(labelObj);
+      }
       this.update();
     }
 
