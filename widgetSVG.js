@@ -728,6 +728,8 @@ class widgetSVG {
     const group = element.parentElement;
     const groupID = group.getAttribute("idr").slice(5); // this IDR will be like groupxxx
     const labelObj = this.getObjFromID(groupID);
+    this.newObject = labelObj;
+    
     if (this.parentNode) { // If we dropped element (the node being moved) onto that group, we should connect them.
       if (labelObj == null) {
         alert("Error: The child object was not found.");
@@ -951,11 +953,13 @@ class widgetSVG {
     if (this.newObject) {
       const id = this.newObject.id;
       const select = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${id}`);
-      if (this.selectedNode) { // If there was already a selected node, deselect it.
-        this.selectedNode.classList.remove("selected");
+      if (select) {
+        if (this.selectedNode) { // If there was already a selected node, deselect it.
+          this.selectedNode.classList.remove("selected");
+        }
+        this.selectedNode = select;
+        this.selectedNode.classList.add("selected");
       }
-      this.selectedNode = select;
-      this.selectedNode.classList.add("selected");
       this.newObject = null;
     }
   }
