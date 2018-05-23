@@ -940,6 +940,43 @@ class widgetSVG {
       groups.exit().remove();
     }
 
+
+    //Truncate label names that are too long
+    const texts = document.getElementsByClassName("nodeText");
+    for (let i = 0; i < texts.length; i++) {
+      if (texts[i].clientWidth > this.nodeWidth - 10) { // Allow a 5-px cushion
+        texts[i].innerHTML += "...";
+        while (texts[i].clientWidth > this.nodeWidth - 10) { // Remove one character at a time, keeping the ellipsis
+          texts[i].innerHTML = texts[i].innerHTML.substring(0, texts[i].innerHTML.length-4) + "...";
+        }
+      }
+    }
+
+    // Same for detailText
+    const detailTexts = document.getElementsByClassName("detailText");
+    for (let i = 0; i < detailTexts.length; i++) {
+      if (detailTexts[i].clientWidth > this.popupWidth - 10) { // Allow a 5-px cushion
+        detailTexts[i].innerHTML += "...";
+        while (detailTexts[i].clientWidth > this.popupWidth - 10) { // Remove one character at a time, keeping the ellipsis
+          detailTexts[i].innerHTML = detailTexts[i].innerHTML.substring(0, detailTexts[i].innerHTML.length-4) + "...";
+        }
+      }
+    }
+
+    // Now the detail header. Tricky part here: There are two pieces of info, the name and type.
+    // I'm going to truncate this normally for now (hiding the type), and discuss later.
+    // Truncating just the name sounds better to me, but hard to make foolproof.
+    // If I start trimming just before " Type: ", some damn fool is sure to put that in someone's name.
+    const detailHeaders = document.getElementsByClassName("detailHeaderText");
+    for (let i = 0; i < detailHeaders.length; i++) {
+      if (detailHeaders[i].clientWidth > this.popupWidth - (2*this.nodeHeight + 10)) { // Allow a 5-px cushion; leave room for buttons
+        detailHeaders[i].innerHTML += "...";
+        while (detailHeaders[i].clientWidth > this.popupWidth - (2*this.nodeHeight + 10)) { // Remove one character at a time, keeping the ellipsis
+          detailHeaders[i].innerHTML = detailHeaders[i].innerHTML.substring(0, detailHeaders[i].innerHTML.length-4) + "...";
+        }
+      }
+    }
+
     // Finally, see if there's a new (blank) node. If so, append a text box to it to get the name,
     // then make it NOT the new node anymore. Similarly, check for a new object (whether attached to a blank node or not).
     // If there is one, make it the selected node.
