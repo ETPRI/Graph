@@ -215,7 +215,7 @@ textarea {
 	font: 15px "Courier New";
 	margin: 0;
 	width: 200px;
-	resize: vertical;
+	resize: both;
 	min-height: 36px;
 	height: 72px;
 	padding: 0;
