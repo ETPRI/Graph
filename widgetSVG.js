@@ -41,6 +41,7 @@ class widgetSVG {
     this.newObject = null;
     this.newNode = null;
     this.editDOM = null;
+    this.notesLabel = null;
 
     this.buildWidget();
   } // end constructor
@@ -59,6 +60,7 @@ class widgetSVG {
         ondblclick="app.widget('newBox', this, event)"
         ondragover="app.widget('allowDrop', this, event)"
         ondrop="app.widget('dropAdd', this, event)"
+        oncontextmenu="event.preventDefault()"
     </svg></td></tr></table></div></div>`;
 
     const parent = document.getElementById('widgets');
@@ -83,6 +85,13 @@ class widgetSVG {
     this.editDOM.setAttribute("idr", "edit");
     this.SVG_DOM.appendChild(this.editDOM);
 
+    this.notesText = document.createElement("textarea");
+    this.notesText.setAttribute("onblur", "app.widget('saveNotes', this)");
+    this.notesText.setAttribute("onkeydown", "app.widget('lookForEnter', this, event)");
+    this.notesText.setAttribute("hidden", "true");
+    this.notesText.setAttribute("idr", "notes");
+    this.notesText.setAttribute("oncontextmenu", "event.preventDefault()");
+    this.SVG_DOM.appendChild(this.notesText);
 
     if (this.mapID) {
       this.loadMap();
@@ -538,40 +547,45 @@ class widgetSVG {
 
   selectNode(element, evnt) { // When a rectangle is clicked, records the current mouse position and the group's transformation, and sets onmousemove, onmouseup and onmouseout methods for dragging.
     evnt.preventDefault();
-    // Because THIS is the closest SVG gets to a goddamn "Bring to front" command!
-    // It just draws everything in whatever order it's listed in the DOM,
-    // so to move something to the front you have to actually move the HTML that generates it forward!
-    const group = element.parentElement;
-    const tree = group.parentElement;
-    this.SVG_DOM.appendChild(tree);
-    tree.appendChild(group);
-
-    this.currentX = evnt.clientX; // get mouse position
-    this.currentY = evnt.clientY;
-
-    if (group.__data__.data.parent == "null") { // If the element being dragged is a root, drag the whole group it's part of
-      this.elemsToMove = [tree];
+    if (evnt.which == 3) {
+      this.showNotes(element); // On a right-click, show a notes popup instead
     }
-    else { // Otherwise, get its descendants and the lines linking it to them using the getSubtree method. Also, mark its current parent.
-      this.getSubtree(group);
-      const parentID = group.__data__.data.parent;
-      this.currentParent = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${parentID}`);
-      this.currentParent.classList.add("currentParent");
-      this.initialPosition = [this.currentX, this.currentY];
-    }
-    this.getTransforms();
+    else if (evnt.which == 1) {
+      // Because THIS is the closest SVG gets to a goddamn "Bring to front" command!
+      // It just draws everything in whatever order it's listed in the DOM,
+      // so to move something to the front you have to actually move the HTML that generates it forward!
+      const group = element.parentElement;
+      const tree = group.parentElement;
+      this.SVG_DOM.appendChild(tree);
+      tree.appendChild(group);
 
-    element.setAttribute("onmousemove", "app.widget('moveNode', this, event)");
-    element.setAttribute("onmouseout", "app.widget('releaseNode', this)");
-    element.setAttribute("onmouseup", "app.widget('singleClick', this)");
-    element.setAttribute("clickStage", "firstDown"); // Used to track single vs. double clicks
-    setTimeout(this.noClick, 500, element);
+      this.currentX = evnt.clientX; // get mouse position
+      this.currentY = evnt.clientY;
 
-    if (this.selectedNode) {
-      this.selectedNode.classList.remove("selected");
-    }
-    this.selectedNode = group;
-    this.selectedNode.classList.add("selected");
+      if (group.__data__.data.parent == "null") { // If the element being dragged is a root, drag the whole group it's part of
+        this.elemsToMove = [tree];
+      }
+      else { // Otherwise, get its descendants and the lines linking it to them using the getSubtree method. Also, mark its current parent.
+        this.getSubtree(group);
+        const parentID = group.__data__.data.parent;
+        this.currentParent = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${parentID}`);
+        this.currentParent.classList.add("currentParent");
+        this.initialPosition = [this.currentX, this.currentY];
+      }
+      this.getTransforms();
+
+      element.setAttribute("onmousemove", "app.widget('moveNode', this, event)");
+      element.setAttribute("onmouseout", "app.widget('releaseNode', this)");
+      element.setAttribute("onmouseup", "app.widget('singleClick', this)");
+      element.setAttribute("clickStage", "firstDown"); // Used to track single vs. double clicks
+      setTimeout(this.noClick, 500, element);
+
+      if (this.selectedNode) {
+        this.selectedNode.classList.remove("selected");
+      }
+      this.selectedNode = group;
+      this.selectedNode.classList.add("selected");
+    } // end if (left button)
   }
 
   // Fires half a second after the mouse has been pressed, and if the mouse hasn't been released, stops listening for a click.
@@ -893,6 +907,37 @@ class widgetSVG {
     }
   }
 
+  showNotes(element) { // element is the main rectangle for this label
+    this.SVG_DOM.parentElement.appendChild(this.notesText);
+    this.notesText.hidden=false;
+    const bounds = element.getBoundingClientRect();
+    // Makes the notes text area visible
+    this.notesText.setAttribute("style", `position:absolute; left:${bounds.left + window.scrollX}px; top:${bounds.top + window.scrollY}px`);
+
+    // Get the text to include, if any
+    const id = element.getAttribute("idr").slice(4); // The idr will be like nodexxx
+    const labelObj = this.getObjFromID(id);
+    if (labelObj.notes) {
+      this.notesText.value = labelObj.notes;
+    }
+
+    this.notesLabel = labelObj;
+    this.notesText.select();
+  }
+
+  saveNotes(textarea) {
+
+     if (this.notesLabel) { // This SHOULD always be true, but it doesn't hurt to check
+       this.notesLabel.notes = textarea.value;
+       this.notesLabel = null;
+    }
+    // Even if there is no object whose notes are being written, hide and move the notes text area
+    textarea.hidden = true;
+    textarea.value = "";
+    textarea.setAttribute("style", "position:static");
+    this.SVG_DOM.appendChild(textarea);
+  }
+
   save (button) { // Saves the current state of the graph to the database.
     let name = this.name;
     const id = this.mapID;
@@ -1042,14 +1087,14 @@ class widgetSVG {
   	  .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; })
       .attr("idr", function (d) {return `group${d.data.id}`; });
 
-    nodeEnter.append("rect")
+    nodeEnter.append("rect")  // Main rectangle
       .attr("width", this.getAttribute("nodeWidth"))
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function (d) {return `node${d.data.id}`; })
       .attr("class", "nodeRect")
       .attr("onmousedown", "app.widget('selectNode', this, event)");
 
-    nodeEnter.append("rect")
+    nodeEnter.append("rect")  // toggle rectangle
       .attr("width", this.getAttribute("toggleWidth"))
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function(d) {return `toggle${d.data.id}`})
@@ -1057,7 +1102,7 @@ class widgetSVG {
       .attr("onmouseover", "app.widget('toggle', this)")
       .attr("class", "toggleRect");
 
-    nodeEnter.append("rect")
+    nodeEnter.append("rect")  // Detail display rectangle
       .attr("width", this.getAttribute("detailWidth"))
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function(d) {return `detail${d.data.id}`})

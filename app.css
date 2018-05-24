@@ -200,17 +200,15 @@ z-index: 1;
 }
 */
 
-/*
-// not being used
 textarea {
 	border-width: 0;
 	font: 15px "Courier New";
 	margin: 0;
-	width: 100%;
+	width: 200px;
 	resize: vertical;
 	min-height: 36px;
 	height: 72px;
 	padding: 0;
-	background-color: skyblue;
+	background-color: white;
 	vertical-align: top;
-} */
+}
