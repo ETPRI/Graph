@@ -167,6 +167,16 @@ text {
 	fill: white;
 }
 
+.notesExist {
+	stroke:black;
+	stroke-width: 1px;
+	fill: white;
+}
+
+.noNotes {
+	display: none;
+}
+
 .detailPopupHidden {
 	display: none;
 }

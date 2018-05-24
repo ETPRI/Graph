@@ -936,6 +936,7 @@ class widgetSVG {
     textarea.value = "";
     textarea.setAttribute("style", "position:static");
     this.SVG_DOM.appendChild(textarea);
+    this.update();
   }
 
   save (button) { // Saves the current state of the graph to the database.
@@ -1087,6 +1088,13 @@ class widgetSVG {
   	  .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; })
       .attr("idr", function (d) {return `group${d.data.id}`; });
 
+    nodeEnter.append("rect")  // notes indicator rectangle. Appended first so it's behind the main rect
+      .attr("width", this.getAttribute("nodeHeight"))
+      .attr("height", this.getAttribute("nodeHeight"))
+      .attr("transform", `translate(${10 + parseInt(this.getAttribute("nodeWidth")) - parseInt(this.getAttribute("nodeHeight"))} -10)`)
+      .attr("idr", function(d) {return `notes${d.data.id}`; })
+      .attr("class", "notesRect noNotes"); // New nodes are always created without notes
+
     nodeEnter.append("rect")  // Main rectangle
       .attr("width", this.getAttribute("nodeWidth"))
       .attr("height", this.getAttribute("nodeHeight"))
@@ -1171,6 +1179,22 @@ class widgetSVG {
                                                 && (!d.data._children || d.data._children.length==0))
                                                 return true; else return false;});
 
+    nodeEnter.selectAll(".notesRect")
+      .classed("noNotes", function(d) {if (d.data.notes) return false; else return true;})
+      .classed("notesExist", function(d) {if (d.data.notes) return true; else return false;})
+      .attr("transform", function(d) {
+        let childBoxOffset = 0;
+        if ((d.data.children && d.data.children.length>0)
+        || (d.data._children && d.data._children.length>0)) {
+          childBoxOffset = d.data.instance.toggleWidth;
+        }
+        const transform = `translate(${10 + childBoxOffset
+                    + d.data.instance.nodeWidth
+                    - d.data.instance.nodeHeight
+        } -10)`
+        return transform;
+      });
+
     nodeEnter.selectAll(".detailsRect") // For each detail rectangle in new nodes...
       .classed("detailWithNode", function(d) {if (d.data.nodeID) return true; else return false;}) // Set the appropriate class
       .classed("detailNoNode", function(d) {if (d.data.nodeID) return false; else return true;})
@@ -1213,6 +1237,22 @@ class widgetSVG {
       .classed("noChildrenToggle", function(d) {if ((!d.data.children || d.data.children.length==0)
                                                 && (!d.data._children || d.data._children.length==0))
                                                 return true; else return false;});
+
+    node.selectAll(".notesRect")
+      .classed("noNotes", function(d) {if (d.data.notes) return false; else return true;})
+      .classed("notesExist", function(d) {if (d.data.notes) return true; else return false;})
+      .attr("transform", function(d) {
+        let childBoxOffset = 0;
+        if ((d.data.children && d.data.children.length>0)
+        || (d.data._children && d.data._children.length>0)) {
+          childBoxOffset = d.data.instance.toggleWidth;
+        }
+        const transform = `translate(${10 + childBoxOffset
+                    + d.data.instance.nodeWidth
+                    - d.data.instance.nodeHeight
+        } -10)`
+        return transform;
+      });
 
     node.selectAll(".detailsRect") // For each detail rectangle in old nodes (may need updating)...
       .classed("detailWithNode", function(d) {if (d.data.nodeID) return true; else return false;}) // Set the appropriate class
@@ -1280,7 +1320,7 @@ class widgetSVG {
       link.exit().remove();
   }
 
-  lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (inserting a new node or changing an existing one)
+  lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (e. g. inserting a new node or changing an existing one)
     if (evnt.keyCode === 13) {
       input.onblur();
     }
@@ -1306,10 +1346,12 @@ class widgetSVG {
 
 
     if (d.data.children) {
+      let label = null;
+      let descendant = false;
       // First, if the edit textbox is visible and attached to one of the node's children, blur it.
       if (this.newNode) { // this.newNode is true when a node has just been created and the edit box hasn't been blurred yet
-        let label = this.getObjFromID(this.newNode);
-        let descendant = false;
+        label = this.getObjFromID(this.newNode);
+        descendant = false;
         while (label.parent != "null") {
           if (d.data.children.indexOf(label) != -1) {
             descendant = true;
@@ -1323,6 +1365,26 @@ class widgetSVG {
         // descendant is now true if the new label is a descendant of the label being toggled
         if (descendant) {
           this.editDOM.blur();
+        }
+      }
+
+      // Now do the same for the notes textarea
+      if (this.notesLabel) { // this.notesLabel is true when a node's notes are being edited
+        label = this.notesLabel;
+        descendant = false;
+        while (label.parent != "null") {
+          if (d.data.children.indexOf(label) != -1) {
+            descendant = true;
+            break;
+          }
+          else {
+            const newID = label.parent;
+            label = this.getObjFromID(newID);
+          }
+        }
+        // descendant is now true if the label being edited is a descendant of the label being toggled
+        if (descendant) {
+          this.notesText.blur();
         }
       }
 
