@@ -182,11 +182,7 @@ text {
     user-select: none !important;
 		pointer-events: none !important;
 }
-/* // not being used
-[draggable=true] {
-    cursor: move;
-}
-*/
+
 .resizeable {
 	overflow: scroll;
 	resize: both;
@@ -194,6 +190,16 @@ text {
 	height: 400px;
 z-index: 1;
 }
+
+.widgetHeader {
+	position: sticky;
+}
+/* // not being used
+[draggable=true] {
+    cursor: move;
+}
+*/
+
 /*
 // not being used
 textarea {

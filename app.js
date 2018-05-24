@@ -325,7 +325,7 @@ widgetHeader(tag){
 	<${tag} id="${this.idCounter++}" class="widget" ondrop="app.drop(this, event)"
 				ondragover="app.allowDrop(this, event)" onmousedown="app.setActiveWidget(this)">
 	<hr>
-	<div idr="header" draggable="true" ondragstart="app.drag(this, event)">
+	<div idr="header" class="widgetHeader" draggable="true" ondragstart="app.drag(this, event)">
 	<input type="button" value="X" idr="closeButton" onclick="app.widgetClose(this)">
 	<input type="button" value="__" idr="expandCollapseButton" onclick="app.widgetCollapse(this)">
 		`)

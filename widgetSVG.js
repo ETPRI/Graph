@@ -919,7 +919,7 @@ class widgetSVG {
   }
 
   update() { // Creates a group for each item in the array of roots, then calls buildTree to make a tree for each group.
-    const groups = d3.select("svg").selectAll("g.tree")
+    const groups = d3.select(`#svg${this.widgetID}`).selectAll("g.tree")
       .data(this.roots, function(d) {return d.name;});
     if (groups._enter) {
       const newTrees = groups.enter()
