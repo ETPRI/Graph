@@ -148,62 +148,80 @@ class widgetSVG {
   }
 
   dropAdd (svg, evnt) { // Add node to the list of root nodes in the mind map and call update.
-    const dataText = evnt.dataTransfer.getData("text/plain");
-    const data = JSON.parse(dataText);
-
-    if (data.sourceType == "widgetTableNodes" && data.sourceTag == "TD") { // If the object being dragged is a node
-      const name = data.name;
-
-      const x = evnt.clientX;
-      const y = evnt.clientY;
-      const bound = svg.getBoundingClientRect();
-      const top = bound.top;
-      const left = bound.left;
-      const relX = x-left;
-      const relY = y-top;
-
-      const newObj = {};
-      newObj.x = relX;
-      newObj.y = relY;
-      newObj.nodeID = data.nodeID;
-      newObj.id = this.count++;
-      newObj.name = name;
-      newObj.type = data.type;
-      newObj.details = data.details;
-      newObj.parent = "null";
-      newObj.children = [];
-      // Trying to get reference to this class instance into the data, where anonymous functions can use it
-      const instanceVars = {};
-      instanceVars.nodeWidth = this.nodeWidth;
-      instanceVars.nodeHeight = this.nodeHeight;
-      instanceVars.toggleWidth = this.toggleWidth;
-      instanceVars.detailWidth = this.detailWidth;
-      instanceVars.popupWidth = this.popupWidth;
-
-      newObj.instance = instanceVars;
-      for (let i = 0; i < newObj.details.length; i++) {
-        newObj.details[i].instance = instanceVars;
-      }
-
-      // Right here, I should check whether I dropped ONTO something. If so, instead of adding the new node as a root, I should call connectNode.
-      const group = this.checkDrop(null, x, y);
-      if (group) {
-        this.connectNode(group, newObj);
-        this.update();
-      }
-      else {
-        this.roots.push(newObj);
-        this.newObject = newObj;
-        this.update();
-      }
-
-      // Make this the active widget
-      if (app.activeWidget) {
-        app.activeWidget.classList.remove("activeWidget");
-      }
-      app.activeWidget = this.widgetDOM;
-      this.widgetDOM.classList.add("activeWidget");
+    let data = {};
+    if (evnt.dataTransfer.getData("text/uri-list")) { // If the object being dragged is a link
+      data.name = evnt.dataTransfer.getData("text/uri-list");
+      data.nodeID = null;
+      data.type = "link";
+      const uri = {};
+      uri.field = "uri";
+      uri.value = evnt.dataTransfer.getData("text/uri-list");
+      data.details = [];
+      data.details.push(uri);
     }
+
+    else {
+      const dataText = evnt.dataTransfer.getData("text/plain");
+      if (dataText) {
+        data = JSON.parse(dataText);
+      }
+      // If the object being dragged is not a node
+      if (!data || data.sourceType != "widgetTableNodes" || data.sourceTag != "TD") {
+        return;
+      }
+    }
+
+    const name = data.name;
+
+    const x = evnt.clientX;
+    const y = evnt.clientY;
+    const bound = svg.getBoundingClientRect();
+    const top = bound.top;
+    const left = bound.left;
+    const relX = x-left;
+    const relY = y-top;
+
+    const newObj = {};
+    newObj.x = relX;
+    newObj.y = relY;
+    newObj.nodeID = data.nodeID;
+    newObj.id = this.count++;
+    newObj.name = name;
+    newObj.type = data.type;
+    newObj.details = data.details;
+    newObj.parent = "null";
+    newObj.children = [];
+    // Trying to get reference to this class instance into the data, where anonymous functions can use it
+    const instanceVars = {};
+    instanceVars.nodeWidth = this.nodeWidth;
+    instanceVars.nodeHeight = this.nodeHeight;
+    instanceVars.toggleWidth = this.toggleWidth;
+    instanceVars.detailWidth = this.detailWidth;
+    instanceVars.popupWidth = this.popupWidth;
+
+    newObj.instance = instanceVars;
+    for (let i = 0; i < newObj.details.length; i++) {
+      newObj.details[i].instance = instanceVars;
+    }
+
+    // Right here, I should check whether I dropped ONTO something. If so, instead of adding the new node as a root, I should call connectNode.
+    const group = this.checkDrop(null, x, y);
+    if (group) {
+      this.connectNode(group, newObj);
+      this.update();
+    }
+    else {
+      this.roots.push(newObj);
+      this.newObject = newObj;
+      this.update();
+    }
+
+    // Make this the active widget
+    if (app.activeWidget) {
+      app.activeWidget.classList.remove("activeWidget");
+    }
+    app.activeWidget = this.widgetDOM;
+    this.widgetDOM.classList.add("activeWidget");
   }
 
   connectNode(group, newObj) {
@@ -912,7 +930,9 @@ class widgetSVG {
     this.notesText.hidden=false;
     const bounds = element.getBoundingClientRect();
     // Makes the notes text area visible
-    this.notesText.setAttribute("style", `position:absolute; left:${bounds.left + window.scrollX}px; top:${bounds.top + window.scrollY}px`);
+    let leftPos = bounds.left + window.scrollX + this.nodeWidth;
+    let topPos = bounds.top + window.scrollY;
+    this.notesText.setAttribute("style", `position:absolute; left:${leftPos}px; top:${topPos}px`);
 
     // Get the text to include, if any
     const id = element.getAttribute("idr").slice(4); // The idr will be like nodexxx
@@ -1196,8 +1216,8 @@ class widgetSVG {
       });
 
     nodeEnter.selectAll(".detailsRect") // For each detail rectangle in new nodes...
-      .classed("detailWithNode", function(d) {if (d.data.nodeID) return true; else return false;}) // Set the appropriate class
-      .classed("detailNoNode", function(d) {if (d.data.nodeID) return false; else return true;})
+      .classed("detailWithNode", function(d) {if (d.data.nodeID || d.data.type == "link") return true; else return false;}) // Set the appropriate class
+      .classed("detailNoNode", function(d) {if (d.data.nodeID || d.data.type == "link") return false; else return true;})
 
     nodeEnter.selectAll(".detailPopup")
       .attr("width", this.getAttribute("popupWidth"))
@@ -1255,8 +1275,8 @@ class widgetSVG {
       });
 
     node.selectAll(".detailsRect") // For each detail rectangle in old nodes (may need updating)...
-      .classed("detailWithNode", function(d) {if (d.data.nodeID) return true; else return false;}) // Set the appropriate class
-      .classed("detailNoNode", function(d) {if (d.data.nodeID) return false; else return true;})
+      .classed("detailWithNode", function(d) {if (d.data.nodeID || d.data.type == "link") return true; else return false;}) // Set the appropriate class
+      .classed("detailNoNode", function(d) {if (d.data.nodeID || d.data.type == "link") return false; else return true;})
 
     node.selectAll(".detailPopupVisible")
       .attr("class", "detailPopupHidden"); // If any popup happened to still be visible, hide it on the update
@@ -1458,6 +1478,11 @@ class widgetSVG {
     else if (type == "calendar") {
       new widgetCalendar(this.widgetID, id);
     }
+
+    else if (type == "link") {
+      window.open(data.details[0].value); // For now, assume the uri is the first (and only) detail
+    }
+
     else {
       new widgetNode(this.widgetID, type, id);
     }

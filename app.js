@@ -450,7 +450,10 @@ drop(widget, evnt) {
 
 	// Get the data about the object being dragged
 	const dataText = evnt.dataTransfer.getData("text/plain");
-	const data = JSON.parse(dataText);
+	let data = {};
+	if (dataText) {
+	  data = JSON.parse(dataText);
+	}
 
 	if (data.sourceType == "widget" && data.sourceTag == "DIV") { // Make sure the object being dragged is a widget
 		let target = evnt.target;

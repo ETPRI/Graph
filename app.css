@@ -202,8 +202,12 @@ z-index: 1;
 }
 
 .widgetHeader {
-	position: sticky;
-}
+	position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  padding: 5px;
+  background-color: white;
+  border: 2px solid black;}
 /* // not being used
 [draggable=true] {
     cursor: move;
