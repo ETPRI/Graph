@@ -364,7 +364,7 @@ widgetClose(widgetElement) {
 
 	// delete javascript instance of widgetTable
 	let children = [];
-	if (this.widgets[id].containedWidgets) { // Get the IDs of all widgets contained within this one.
+	if (this.widgets[id] && this.widgets[id].containedWidgets) { // Get the IDs of all widgets contained within this one.
 		children = children.concat(this.widgets[id].containedWidgets)
 	}
 	delete this.widgets[id]; // Delete the original widget.

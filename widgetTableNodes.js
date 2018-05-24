@@ -386,13 +386,13 @@ relationAdd(element) {
 edit(element){
     const id = element.innerHTML;
     if (this.queryObject.nodeLabel == 'mindmap') {
-      new widgetSVG(id);
+      new widgetSVG(this.idWidget, id);
     }
     else if (this.queryObject.nodeLabel == "calendar") {
-      new widgetCalendar(id);
+      new widgetCalendar(this.idWidget, id);
     }
     else {
-      new widgetNode(this.queryObject.nodeLabel, id);
+      new widgetNode(this.idWidget, this.queryObject.nodeLabel, id);
     }
     // log
     const obj = {};
@@ -407,13 +407,13 @@ edit(element){
   // open add widget
   addNode(element){
     if (this.queryObject.nodeLabel == 'mindmap') {
-      new widgetSVG();
+      new widgetSVG(this.idWidget);
     }
     else if (this.queryObject.nodeLabel == "calendar") {
-      new widgetCalendar();
+      new widgetCalendar(this.idWidget);
     }
     else {
-      new widgetNode(this.queryObject.nodeLabel);
+      new widgetNode(this.idWidget, this.queryObject.nodeLabel);
     }
 
     // log

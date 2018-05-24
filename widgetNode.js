@@ -16,7 +16,7 @@ input: label
 
 
 class widgetNode {
-constructor(label, id) {
+constructor(callerID, label, id) {
   // DOM pointers to data that will change, just make place holders
   this.widgetDOM   = {};
   this.relationsFrom = {}; // place holder for relations ->(n)
@@ -35,6 +35,7 @@ constructor(label, id) {
   this.idWidget = app.idCounter;
   app.widgets[app.idCounter] = this; // Add to app.widgets
   this.containedWidgets = [];
+  this.callerID = callerID;
 
   this.db          = new db();
 
@@ -119,9 +120,9 @@ buildWidget() { // public - build table header
   Create new element, append to the widgets div in front of existing widgets
   */
   const parent = document.getElementById('widgets');
-  const child = parent.firstElementChild;
+  const caller = document.getElementById(this.callerID);
   const newWidget = document.createElement('div'); // create placeholder div
-  parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
+  parent.insertBefore(newWidget, caller); // Insert the new div before the widget that opened it
   newWidget.outerHTML = html; // replace placeholder with the div that was just written
 
   // By this point, the new widget div has been created by buildHeader() and added to the page by the above line

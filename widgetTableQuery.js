@@ -190,7 +190,7 @@ this.queryObjects.allTrash = {
 
 edit(element){
   const id = element.innerHTML;
-  new widgetNode(element.nextElementSibling.nextElementSibling.innerText, id);
+  new widgetNode(this.widgetID, element.nextElementSibling.nextElementSibling.innerText, id);
 
   const obj={};
   obj.id=app.domFunctions.widgetGetId(element);

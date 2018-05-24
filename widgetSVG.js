@@ -1,5 +1,5 @@
 class widgetSVG {
-  constructor (id) { // create variables, then call buildWidget()
+  constructor (callerID, id) { // create variables, then call buildWidget()
     this.widgetID = app.idCounter;
     this.mapID = id;
     this.SVG_DOM = null;
@@ -8,6 +8,7 @@ class widgetSVG {
     app.widgets[app.idCounter] = this;
     this.count = 0;
     this.containedWidgets = [];
+    this.callerID = callerID;
 
     // constants for drawing
     this.width = 1200; // Width of the SVG element
@@ -61,9 +62,9 @@ class widgetSVG {
     </svg></td></tr></table></div></div>`;
 
     const parent = document.getElementById('widgets');
-    const child = parent.firstElementChild;
+    const caller = document.getElementById(this.callerID);
     const newWidget = document.createElement('div'); // create placeholder div
-    parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
+    parent.insertBefore(newWidget, caller); // Insert the new div before the first existing one
     newWidget.outerHTML = html; // replace placeholder with the div that was just written
     this.SVG_DOM = document.getElementById(`svg${this.widgetID}`);
     this.widgetDOM = document.getElementById(`${this.widgetID}`);
@@ -1343,7 +1344,16 @@ class widgetSVG {
     const data = button.parentElement.parentElement.__data__.data;
     const id = data.nodeID;
     const type = data.type;
-    new widgetNode(type, id);
+
+    if (type == 'mindmap') {
+      new widgetSVG(this.widgetID, id);
+    }
+    else if (type == "calendar") {
+      new widgetCalendar(this.widgetID, id);
+    }
+    else {
+      new widgetNode(this.widgetID, type, id);
+    }
   }
 
   disassociate(button) {

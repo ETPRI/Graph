@@ -1,10 +1,11 @@
 class widgetCalendar {
-  constructor(id) {
+  constructor(callerID, id) {
     this.calendarID = id;
     this.widgetID = app.idCounter;
     app.widgets[app.idCounter] = this;
     this.calendarDOM = null;
     this.widgetDOM = null;
+    this.callerID = callerID;
 
     this.hourHeight = "30px";
     this.dayWidth = "600px";
@@ -42,9 +43,9 @@ class widgetCalendar {
                                        <div><table><tr idr="calendarRow"><td id="calendar${this.widgetID}"></td></tr></table></div></div>`;
 
     const parent = document.getElementById('widgets');
-    const child = parent.firstElementChild; // Find the first existing element in the widgets div
+    const caller = document.getElementById(this.callerID); // Find the first existing element in the widgets div
     const newWidget = document.createElement('div'); // create placeholder div
-    parent.insertBefore(newWidget, child); // Insert the new div before the first existing one
+    parent.insertBefore(newWidget, caller); // Insert the new div before the first existing one
     newWidget.outerHTML = html; // replace placeholder with the div that was just written
     this.calendarDOM = document.getElementById(`calendar${this.widgetID}`);
     this.widgetDOM = document.getElementById(`${this.widgetID}`);
