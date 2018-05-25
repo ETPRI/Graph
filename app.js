@@ -212,10 +212,16 @@ createDebug() {
 		select.appendChild(opt5);
 
 		const opt6 = document.createElement('option');
-		opt6.setAttribute('value', "allTrash");
-		const opt6text = document.createTextNode('All Trashed Nodes');
+		opt6.setAttribute('value', "dataBrowser");
+		const opt6text = document.createTextNode('Data Browser');
 		opt6.appendChild(opt6text);
 		select.appendChild(opt6);
+
+		const opt7 = document.createElement('option');
+		opt7.setAttribute('value', "allTrash");
+		const opt7text = document.createTextNode('All Trashed Nodes');
+		opt7.appendChild(opt7text);
+		select.appendChild(opt7);
 
 		const logButton = document.createElement('input');
 		logButton.setAttribute('type', 'button');
@@ -290,7 +296,14 @@ menuDBstats(dropDown){
 	const value = dropDown.options[dropDown.selectedIndex].value;
 	// If the value is blank (placeholder is selected) do nothing; else create a new widgetTableQuery and store in this.widgets.
 	if (value==="") return;
-	this.widgets[this.idCounter] = new widgetTableQuery(value, dropDown.id);
+
+	if (value ==="dataBrowser") {
+		new dataBrowser();
+	}
+
+	else {
+		this.widgets[this.idCounter] = new widgetTableQuery(value, dropDown.id);
+	}
 }
 
 // Runs when the page loads. Ensures all preset calendars exist in the database.

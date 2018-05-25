@@ -208,6 +208,7 @@ z-index: 1;
   padding: 5px;
   background-color: white;
   border: 2px solid black;}
+
 /* // not being used
 [draggable=true] {
     cursor: move;
@@ -225,4 +226,44 @@ textarea {
 	padding: 0;
 	background-color: white;
 	vertical-align: top;
+}
+
+.dataBrowserBlank {
+	width: 200px;
+	height: 300px;
+}
+
+.dataBrowserCell {
+	position: relative;
+}
+
+.dataBrowserDescription {
+	display:none;
+	margin:0px;
+	position:absolute;
+	left: 0px;
+	border:1px solid #000;
+	font-weight: none;
+	width:auto;
+	height:auto;
+	background-color:white;
+}
+
+.dataBrowserDescShow {
+	margin:0px;
+	position:absolute;
+	left: 0px;
+	border:1px solid #000;
+	font-weight: none;
+	width:auto;
+	height:auto;
+	background-color:white;
+	z-index: 1000;
+}
+
+.dataBrowserOpen {
+	color: green;
+	font-weight: bold;
+	font-size: 120%;
+	background-color: yellow;
 }
