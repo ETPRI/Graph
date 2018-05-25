@@ -1014,7 +1014,10 @@ class widgetSVG {
       if (texts[i].getComputedTextLength() > this.nodeWidth - 10) { // Allow a 5-px cushion
         texts[i].innerHTML += "...";
         while (texts[i].getComputedTextLength() > this.nodeWidth - 10) { // Remove one character at a time, keeping the ellipsis
-          texts[i].innerHTML = texts[i].innerHTML.substring(0, texts[i].innerHTML.length-4) + "...";
+          const text = texts[i];
+          const currentText = text.textContent;
+          const newText = currentText.substring(0, currentText.length-4) + "...";
+          texts[i].textContent = newText;
         }
       }
     }
@@ -1023,9 +1026,9 @@ class widgetSVG {
     const detailTexts = document.getElementsByClassName("detailText");
     for (let i = 0; i < detailTexts.length; i++) {
       if (detailTexts[i].getComputedTextLength() > this.popupWidth - 10) { // Allow a 5-px cushion
-        detailTexts[i].innerHTML += "...";
+        detailTexts[i].textContent += "...";
         while (detailTexts[i].getComputedTextLength() > this.popupWidth - 10) { // Remove one character at a time, keeping the ellipsis
-          detailTexts[i].innerHTML = detailTexts[i].innerHTML.substring(0, detailTexts[i].innerHTML.length-4) + "...";
+          detailTexts[i].textContent = detailTexts[i].textContent.substring(0, detailTexts[i].textContent.length-4) + "...";
         }
       }
     }
@@ -1037,9 +1040,9 @@ class widgetSVG {
     const detailHeaders = document.getElementsByClassName("detailHeaderText");
     for (let i = 0; i < detailHeaders.length; i++) {
       if (detailHeaders[i].getComputedTextLength() > this.popupWidth - (2*this.nodeHeight + 10)) { // Allow a 5-px cushion; leave room for buttons
-        detailHeaders[i].innerHTML += "...";
+        detailHeaders[i].textContent += "...";
         while (detailHeaders[i].getComputedTextLength() > this.popupWidth - (2*this.nodeHeight + 10)) { // Remove one character at a time, keeping the ellipsis
-          detailHeaders[i].innerHTML = detailHeaders[i].innerHTML.substring(0, detailHeaders[i].innerHTML.length-4) + "...";
+          detailHeaders[i].textContent = detailHeaders[i].textContent.substring(0, detailHeaders[i].textContent.length-4) + "...";
         }
       }
     }
