@@ -178,8 +178,9 @@ class widgetSVG {
     const bound = svg.getBoundingClientRect();
     const top = bound.top;
     const left = bound.left;
-    const relX = x-left;
-    const relY = y-top;
+    const viewBox = svg.getAttribute("viewBox").split(" ");
+    const relX = x - left + parseInt(viewBox[0]);
+    const relY = y - top + parseInt(viewBox[1]);
 
     const newObj = {};
     newObj.x = relX;
