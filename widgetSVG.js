@@ -87,7 +87,6 @@ class widgetSVG {
 
     this.notesText = document.createElement("textarea");
     this.notesText.setAttribute("onblur", "app.widget('saveNotes', this)");
-//    this.notesText.setAttribute("onkeydown", "app.widget('lookForEnter', this, event)");
     this.notesText.setAttribute("hidden", "true");
     this.notesText.setAttribute("idr", "notes");
     this.notesText.setAttribute("oncontextmenu", "event.preventDefault()");
@@ -928,27 +927,40 @@ class widgetSVG {
   showNotes(element) { // element is the main rectangle for this label
     this.SVG_DOM.parentElement.appendChild(this.notesText);
     this.notesText.hidden=false;
-    const bounds = element.getBoundingClientRect();
-    // Makes the notes text area visible
-    let leftPos = bounds.left + window.scrollX + this.nodeWidth;
-    let topPos = bounds.top + window.scrollY;
-    this.notesText.setAttribute("style", `position:absolute; left:${leftPos}px; top:${topPos}px`);
+    let heightString = "";
+    let widthString = "";
 
-    // Get the text to include, if any
+    // Get the object
     const id = element.getAttribute("idr").slice(4); // The idr will be like nodexxx
     const labelObj = this.getObjFromID(id);
     if (labelObj.notes) {
       this.notesText.value = labelObj.notes;
     }
 
+    if (labelObj.notesHeight) {
+      heightString = ` height:${labelObj.notesHeight}px;`;
+    }
+
+    if (labelObj.notesWidth) {
+      widthString = ` width:${labelObj.notesWidth}px;`;
+    }
+
+
+    const bounds = element.getBoundingClientRect();
+    // Makes the notes text area visible
+    let leftPos = bounds.left + window.scrollX + this.nodeWidth;
+    let topPos = bounds.top + window.scrollY;
+    this.notesText.setAttribute("style", `position:absolute; left:${leftPos}px; top:${topPos}px;${heightString}${widthString}`);
+
     this.notesLabel = labelObj;
     this.notesText.select();
   }
 
   saveNotes(textarea) {
-
-     if (this.notesLabel) { // This SHOULD always be true, but it doesn't hurt to check
+    if (this.notesLabel) { // This SHOULD always be true, but it doesn't hurt to check
        this.notesLabel.notes = textarea.value;
+       this.notesLabel.notesHeight = textarea.clientHeight;
+       this.notesLabel.notesWidth = textarea.clientWidth;
        this.notesLabel = null;
     }
     // Even if there is no object whose notes are being written, hide and move the notes text area
