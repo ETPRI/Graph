@@ -56,11 +56,12 @@ class widgetSVG {
       <input type="button" idr="details" value="Show Details" onclick="app.widget('showDetails', this)">
     </div>
     <div><table><tr idr="svgRow"><td>
-      <svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}"
+      <svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}" viewBox = "0 0 ${this.width} ${this.height}"
         ondblclick="app.widget('newBox', this, event)"
         ondragover="app.widget('allowDrop', this, event)"
         ondrop="app.widget('dropAdd', this, event)"
         oncontextmenu="event.preventDefault()"
+        onmousedown="app.widget('dragStart', this, event)"
     </svg></td></tr></table></div></div>`;
 
     const parent = document.getElementById('widgets');
@@ -491,7 +492,6 @@ class widgetSVG {
     }
   }
 
-
   dropConnect(node, childObj) { // Creates a link between the node being dragged and the node it was dropped onto
     // Get object representing parent node (object representing child node was already found)
     const nodeID = node.getAttribute("idr").slice(5); // the IDR will be like groupxxx
@@ -683,6 +683,32 @@ class widgetSVG {
       element.setAttribute("onmouseup", "app.widget('releaseNode', this, event)");
       element.removeAttribute("clickStage");
     }
+  }
+
+  dragStart(SVG, evnt) {
+    // Verify empty spot
+    if (this.checkDrop(null, evnt.clientX, evnt.clientY) == null) {
+      this.currentX = evnt.clientX; // get mouse position
+      this.currentY = evnt.clientY;
+      SVG.setAttribute("onmousemove", "app.widget('drag', this, event)");
+      SVG.setAttribute("onmouseup", "app.widget('stopDragging', this, event)");
+    }
+  }
+
+  drag(SVG, evnt) {
+    const dx = evnt.clientX - this.currentX;
+    const dy = evnt.clientY - this.currentY;
+    this.currentX = evnt.clientX;
+    this.currentY = evnt.clientY;
+    let viewBox = SVG.getAttribute("viewBox").split(" ");
+    viewBox[0] = parseInt(viewBox[0]) - dx;
+    viewBox[1] = parseInt(viewBox[1]) - dy;
+    SVG.setAttribute("viewBox", `${viewBox[0]} ${viewBox[1]} ${this.width} ${this.height}`)
+  }
+
+  stopDragging(SVG, evnt) {
+    SVG.removeAttribute("onmousemove");
+    SVG.removeAttribute("onmouseup");
   }
 
   moveNode (element, evnt) { // Compares current to previous mouse position to see how much the element should have moved, then moves it by that much and updates the mouse position.
