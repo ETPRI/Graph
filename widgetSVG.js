@@ -87,7 +87,7 @@ class widgetSVG {
 
     this.notesText = document.createElement("textarea");
     this.notesText.setAttribute("onblur", "app.widget('saveNotes', this)");
-    this.notesText.setAttribute("onkeydown", "app.widget('lookForEnter', this, event)");
+//    this.notesText.setAttribute("onkeydown", "app.widget('lookForEnter', this, event)");
     this.notesText.setAttribute("hidden", "true");
     this.notesText.setAttribute("idr", "notes");
     this.notesText.setAttribute("oncontextmenu", "event.preventDefault()");
