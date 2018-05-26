@@ -43,10 +43,18 @@ class widgetSVG {
     this.editDOM = null;
     this.notesLabel = null;
 
-    this.buildWidget();
+    if (this.mapID) {
+      const query = `match (mindmap:mindmap) where ID(mindmap) = ${this.mapID} return mindmap.roots as roots, mindmap.count as count, mindmap.name as name`;
+      app.db.setQuery(query);
+      app.db.runQuery(this, 'buildWidget');
+    }
+
+    else {
+      this.buildWidget();
+    }
   } // end constructor
 
-  buildWidget() { // create blank mind map, then if an ID was passed in, call loadMap
+  buildWidget(data) { // create blank mind map, then if an ID was passed in, call loadMap
     this.name = "Untitled mind map";  // The name starts off untitled; it can change later
 
     const html = app.widgetHeader() +
@@ -72,12 +80,6 @@ class widgetSVG {
     this.SVG_DOM = document.getElementById(`svg${this.widgetID}`);
     this.widgetDOM = document.getElementById(`${this.widgetID}`);
 
-    if (app.activeWidget) {
-      app.activeWidget.classList.remove("activeWidget");
-    }
-    app.activeWidget = this.widgetDOM;
-    this.widgetDOM.classList.add("activeWidget");
-
     this.editDOM = document.createElement("input");
     this.editDOM.setAttribute("type", "text");
     this.editDOM.setAttribute("onblur", "app.widget('saveInput', this)");
@@ -93,9 +95,19 @@ class widgetSVG {
     this.notesText.setAttribute("oncontextmenu", "event.preventDefault()");
     this.SVG_DOM.appendChild(this.notesText);
 
-    if (this.mapID) {
-      this.loadMap();
+    // if (this.mapID) {
+    //   this.loadMap();
+    // }
+
+    if (data) {
+      this.loadComplete(data);
     }
+
+    if (app.activeWidget) {
+      app.activeWidget.classList.remove("activeWidget");
+    }
+    app.activeWidget = this.widgetDOM;
+    this.widgetDOM.classList.add("activeWidget");
   } // end buildWidget
 
   showDetails(button) {
@@ -112,12 +124,6 @@ class widgetSVG {
     button.value = "Show Details";
     button.setAttribute("onclick", "app.widget('showDetails', this)");
   }
-
-  loadMap () { // Call database to get the trees for this mind map and their locations, then call loadComplete().
-    const query = `match (mindmap:mindmap) where ID(mindmap) = ${this.mapID} return mindmap.roots as roots, mindmap.count as count, mindmap.name as name`;
-    app.db.setQuery(query);
-    app.db.runQuery(this, 'loadComplete');
-  } // end load
 
   loadComplete(data) { // Sets the roots array for the mind map to match the data that was loaded, then calls update() to draw the mind map
     if (data.length == 0) {
@@ -593,8 +599,8 @@ class widgetSVG {
       this.getTransforms();
 
       element.setAttribute("onmousemove", "app.widget('moveNode', this, event)");
-      element.setAttribute("onmouseout", "app.widget('releaseNode', this)");
-      element.setAttribute("onmouseup", "app.widget('singleClick', this)");
+      element.setAttribute("onmouseout", "app.widget('releaseNode', this, event)");
+      element.setAttribute("onmouseup", "app.widget('singleClick', this, event)");
       element.setAttribute("clickStage", "firstDown"); // Used to track single vs. double clicks
       setTimeout(this.noClick, 500, element);
 
@@ -616,9 +622,9 @@ class widgetSVG {
 
   // Fires if the mouse is released less than half a second after being pressed, and NOT right after another click.
   // Registers a single click and listens for the mousedown that will start a double click.
-  singleClick(element) {
+  singleClick(element, evnt) {
     // If the mouse was released at all, ought to check for new parents/snapback
-    this.releaseNode(element);
+    this.releaseNode(element, evnt);
 
 
     if (element.getAttribute("clickStage") == "firstDown") { // verify that we are, in fact, waiting for a single click to finish
@@ -783,7 +789,7 @@ class widgetSVG {
     }
   }
 
-  releaseNode(element) { // Removes all the onmousemove, onmouseup and onmouseout events which were set when the node was selected.
+  releaseNode(element, evnt) { // Removes all the onmousemove, onmouseup and onmouseout events which were set when the node was selected.
     // Get object representing the label being dragged
     const group = element.parentElement;
     const groupID = group.getAttribute("idr").slice(5); // this IDR will be like groupxxx
@@ -1518,7 +1524,8 @@ class widgetSVG {
       new widgetSVG(this.widgetID, id);
     }
     else if (type == "calendar") {
-      new widgetCalendar(this.widgetID, id);
+      setTimeout(this.showCalendar, 1, this.widgetID, id);
+      // new widgetCalendar(this.widgetID, id);
     }
 
     else if (type == "link") {
@@ -1528,6 +1535,10 @@ class widgetSVG {
     else {
       new widgetNode(this.widgetID, type, id);
     }
+  }
+
+  showCalendar(widgetID, id) {
+    new widgetCalendar(widgetID, id);
   }
 
   disassociate(button) {
