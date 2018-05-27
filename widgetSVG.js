@@ -41,6 +41,7 @@ class widgetSVG {
     this.newObject = null;
     this.newNode = null;
     this.editDOM = null;
+    this.notesText = null;
     this.notesLabel = null;
 
     if (this.mapID) {
@@ -89,7 +90,6 @@ class widgetSVG {
     this.SVG_DOM.appendChild(this.editDOM);
 
     this.notesText = document.createElement("textarea");
-    this.notesText.setAttribute("onblur", "app.widget('saveNotes', this)");
     this.notesText.setAttribute("hidden", "true");
     this.notesText.setAttribute("idr", "notes");
     this.notesText.setAttribute("oncontextmenu", "event.preventDefault()");
@@ -203,7 +203,6 @@ class widgetSVG {
     instanceVars.nodeWidth = this.nodeWidth;
     instanceVars.nodeHeight = this.nodeHeight;
     instanceVars.toggleWidth = this.toggleWidth;
-    instanceVars.detailWidth = this.detailWidth;
     instanceVars.popupWidth = this.popupWidth;
 
     newObj.instance = instanceVars;
@@ -435,9 +434,7 @@ class widgetSVG {
       const parentID = nodeObj.parent;
       if (parentID != "null") { // If the object has a parent, select the parent
         const parentGroup = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${parentID}`);
-        this.selectedNode.classList.remove("selected");
-        this.selectedNode = parentGroup;
-        parentGroup.classList.add("selected");
+        this.makeSelectedNode(parentGroup);
         this.update();
       }
     }
@@ -458,9 +455,7 @@ class widgetSVG {
         const childObj = nodeObj.children[0];
         const childID = childObj.id;
         const childGroup = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${childID}`);
-        this.selectedNode.classList.remove("selected");
-        this.selectedNode = childGroup;
-        childGroup.classList.add("selected");
+        this.makeSelectedNode(childGroup);
         this.update();
       }
     }
@@ -491,9 +486,7 @@ class widgetSVG {
         const siblingID = siblingObj.id;
         const siblingGroup = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${siblingID}`);
 
-        this.selectedNode.classList.remove("selected");
-        this.selectedNode = siblingGroup;
-        siblingGroup.classList.add("selected");
+        this.makeSelectedNode(siblingGroup);
       }
       this.update();
     }
@@ -604,11 +597,7 @@ class widgetSVG {
       element.setAttribute("clickStage", "firstDown"); // Used to track single vs. double clicks
       setTimeout(this.noClick, 500, element);
 
-      if (this.selectedNode) {
-        this.selectedNode.classList.remove("selected");
-      }
-      this.selectedNode = group;
-      this.selectedNode.classList.add("selected");
+      this.makeSelectedNode(group);
     } // end if (left button)
   }
 
@@ -790,6 +779,19 @@ class widgetSVG {
   }
 
   releaseNode(element, evnt) { // Removes all the onmousemove, onmouseup and onmouseout events which were set when the node was selected.
+    // Reset mouse methods and ensure all drag variables are null
+    element.removeAttribute("onmousemove");
+    element.removeAttribute("onmouseup");
+    // If a child became a root or vice versa
+    if (this.currentParent && !this.currentParent.classList.contains("currentParent") && !this.parentNode
+    || !this.currentParent && this.parentNode) {
+        element.removeAttribute("onmouseout")
+    }
+    else {
+      element.setAttribute("onmouseout", "app.widget('checkHideButtons', this, event)");
+    }
+    element.setAttribute("onmousedown", "app.widget('selectNode', this, event)");
+
     // Get object representing the label being dragged
     const group = element.parentElement;
     const groupID = group.getAttribute("idr").slice(5); // this IDR will be like groupxxx
@@ -826,11 +828,6 @@ class widgetSVG {
       this.update();
     }
 
-    // Reset mouse methods and ensure all drag variables are null
-    element.removeAttribute("onmousemove");
-    element.removeAttribute("onmouseup");
-    element.removeAttribute("onmouseout");
-    element.setAttribute("onmousedown", "app.widget('selectNode', this, event)");
     this.parent = null;
     this.nextSibling = null;
     this.prevSibling = null;
@@ -957,52 +954,54 @@ class widgetSVG {
     }
   }
 
-  showNotes(element) { // element is the main rectangle for this label
-    this.SVG_DOM.parentElement.appendChild(this.notesText);
-    this.notesText.hidden=false;
-    let heightString = "";
-    let widthString = "";
-
-    // Get the object
-    const id = element.getAttribute("idr").slice(4); // The idr will be like nodexxx
-    const labelObj = this.getObjFromID(id);
-    if (labelObj.notes) {
-      this.notesText.value = labelObj.notes;
-    }
-
-    if (labelObj.notesHeight) {
-      heightString = ` height:${labelObj.notesHeight}px;`;
-    }
-
-    if (labelObj.notesWidth) {
-      widthString = ` width:${labelObj.notesWidth}px;`;
-    }
-
-
-    const bounds = element.getBoundingClientRect();
-    // Makes the notes text area visible
-    let leftPos = bounds.left + window.scrollX + this.nodeWidth;
-    let topPos = bounds.top + window.scrollY;
-    this.notesText.setAttribute("style", `position:absolute; left:${leftPos}px; top:${topPos}px;${heightString}${widthString}`);
-
-    this.notesLabel = labelObj;
-    this.notesText.select();
-  }
-
-  saveNotes(textarea) {
-    if (this.notesLabel) { // This SHOULD always be true, but it doesn't hurt to check
-       this.notesLabel.notes = textarea.value;
-       this.notesLabel.notesHeight = textarea.clientHeight;
-       this.notesLabel.notesWidth = textarea.clientWidth;
-       this.notesLabel = null;
-    }
-    // Even if there is no object whose notes are being written, hide and move the notes text area
-    textarea.hidden = true;
-    textarea.value = "";
-    textarea.setAttribute("style", "position:static");
-    this.SVG_DOM.appendChild(textarea);
-    this.update();
-  }
+  // showNotes(element) { // element is the main rectangle for this label
+  //   this.SVG_DOM.parentElement.appendChild(this.notesText);
+  //   this.notesText.hidden=false;
+  //   let heightString = "";
+  //   let widthString = "";
+  //
+  //   // Get the object
+  //   const id = element.getAttribute("idr").slice(4); // The idr will be like nodexxx
+  //   const labelObj = this.getObjFromID(id);
+  //   if (labelObj.notes) {
+  //     this.notesText.value = labelObj.notes;
+  //   }
+  //
+  //   if (labelObj.notesHeight) {
+  //     heightString = ` height:${labelObj.notesHeight}px;`;
+  //   }
+  //
+  //   if (labelObj.notesWidth) {
+  //     widthString = ` width:${labelObj.notesWidth}px;`;
+  //   }
+  //
+  //
+  //   const bounds = element.getBoundingClientRect();
+  //   // Makes the notes text area visible
+  //   let leftPos = bounds.left + window.scrollX + this.nodeWidth;
+  //   let topPos = bounds.top + window.scrollY;
+  //   this.notesText.setAttribute("style", `position:absolute; left:${leftPos}px; top:${topPos}px;${heightString}${widthString}`);
+  //
+  //   this.notesLabel = labelObj;
+  //   this.notesText.select();
+  //
+  //   this.makeSelectedNode(element.parentElement);
+  // }
+  //
+  // saveNotes(textarea) {
+  //   if (this.notesLabel) { // This SHOULD always be true, but it doesn't hurt to check
+  //      this.notesLabel.notes = textarea.value;
+  //      this.notesLabel.notesHeight = textarea.clientHeight;
+  //      this.notesLabel.notesWidth = textarea.clientWidth;
+  //      this.notesLabel = null;
+  //   }
+  //   // Even if there is no object whose notes are being written, hide and move the notes text area
+  //   textarea.hidden = true;
+  //   textarea.value = "";
+  //   textarea.setAttribute("style", "position:static");
+  //   this.SVG_DOM.appendChild(textarea);
+  //   this.update();
+  // }
 
   save (button) { // Saves the current state of the graph to the database.
     let name = this.name;
@@ -1032,26 +1031,24 @@ class widgetSVG {
   update() { // Creates a group for each item in the array of roots, then calls buildTree to make a tree for each group.
     const groups = d3.select(`#svg${this.widgetID}`).selectAll("g.tree")
       .data(this.roots, function(d) {return d.name;});
-    if (groups._enter) {
-      const newTrees = groups.enter()
-        .append("g")
-          .attr("class", "tree")
-          .attr("idr", function(d) {return `tree${d.id}`})
-          .attr("nodeWidth", this.nodeWidth)
-          .attr("nodeHeight", this.nodeHeight)
-          .attr("toggleWidth", this.toggleWidth)
-          .attr("detailWidth", this.detailWidth)
-          .attr("popupWidth", this.popupWidth)
-          .attr("transform", function(d) {return "translate(" + d.x + " " + d.y + ")";} )
-      newTrees.each(this.buildTree);
-    }
-    if (groups._groups) {
-      groups.each(this.buildTree);
-    }
+
+    const newTrees = groups.enter()
+      .append("g")
+        .attr("class", "tree")
+        .attr("idr", function(d) {return `tree${d.id}`})
+        .attr("nodeWidth", this.nodeWidth)
+        .attr("nodeHeight", this.nodeHeight)
+        .attr("toggleWidth", this.toggleWidth)
+        .attr("detailWidth", this.detailWidth)
+        .attr("popupWidth", this.popupWidth)
+        .attr("transform", function(d) {return "translate(" + d.x + " " + d.y + ")";} )
+
+    const allTrees = newTrees.merge(groups);
+    allTrees.each(this.buildTree);
+
     if (groups._exit) {
       groups.exit().remove();
     }
-
 
     //Truncate label names that are too long
     const texts = document.getElementsByClassName("nodeText");
@@ -1107,11 +1104,7 @@ class widgetSVG {
       const id = this.newObject.id;
       const select = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${id}`);
       if (select) {
-        if (this.selectedNode) { // If there was already a selected node, deselect it.
-          this.selectedNode.classList.remove("selected");
-        }
-        this.selectedNode = select;
-        this.selectedNode.classList.add("selected");
+        this.makeSelectedNode(select);
       }
       this.newObject = null;
     }
@@ -1123,13 +1116,13 @@ class widgetSVG {
   // When building a node for each leaf WITHIN a tree (in buildTree), data is stored in d.data.
   buildTree(datum, index, group) {
     const buildPopup = function(datum, index, group) {
-      const texts = d3.select(this).select(".detailPopupHidden").selectAll(".detailText")
+      const texts = d3.select(this).select(".detailPopupVisible").selectAll(".detailText")
         .data(datum.data.details, function(d) {return d.field});
 
       texts.enter().append("text")
         .attr("class", "detailText")
         .text(function(d) {return `${d.field}: ${d.value}`})
-        .attr("transform", function(d, i) {return `translate(-${d.instance.detailWidth + d.instance.popupWidth/2}
+        .attr("transform", function(d, i) {return `translate(-${d.instance.popupWidth/2}
                                                               ${20 -d.instance.nodeHeight*i})`})
 
       texts.text(function(d) {return `${d.field}: ${d.value}`});
@@ -1137,7 +1130,7 @@ class widgetSVG {
     }
 
     const tree = d3.tree()
-    	.nodeSize([50, 200]);
+    	.nodeSize([100, 200]);
 
     const root = d3.hierarchy(datum);
     const nodes = root.descendants();
@@ -1161,36 +1154,98 @@ class widgetSVG {
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("transform", `translate(${10 + parseInt(this.getAttribute("nodeWidth")) - parseInt(this.getAttribute("nodeHeight"))} -10)`)
       .attr("idr", function(d) {return `notes${d.data.id}`; })
-      .attr("class", "notesRect noNotes"); // New nodes are always created without notes
+      .attr("class", "notesRect");
 
     nodeEnter.append("rect")  // Main rectangle
       .attr("width", this.getAttribute("nodeWidth"))
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function (d) {return `node${d.data.id}`; })
       .attr("class", "nodeRect")
+      .attr("onmouseover", "app.widget('showButtons', this)")
+      .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
       .attr("onmousedown", "app.widget('selectNode', this, event)");
 
     nodeEnter.append("rect")  // toggle rectangle
-      .attr("width", this.getAttribute("toggleWidth"))
+      .attr("width", this.getAttribute("nodeWidth")/3)
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function(d) {return `toggle${d.data.id}`})
-      .attr("transform", `translate(${this.getAttribute("nodeWidth")} 0)`)
-      .attr("onmouseover", "app.widget('toggle', this)")
-      .attr("class", "toggleRect");
+      .attr("transform", `translate(${this.getAttribute("nodeWidth")*2/3} ${this.getAttribute("nodeHeight")*-1})`)
+      .attr("onmouseup", "app.widget('toggle', this)")
+      .attr("onmouseover", "app.widget('toggleExplain', this)")
+      .attr("onmouseout", "app.widget('hideToggleExplain', this); app.widget('checkHideButtons', this, event)")
+      .attr("class", "toggleRect hidden");
+
+    nodeEnter.append("text")
+      .attr("idr", function(d) {return `toggleText1${d.data.id}`})
+      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
+      .attr("class", "toggleButtonText unselectable hidden")
+      .text("Toggle");
+
+    nodeEnter.append("text")
+      .attr("idr", function(d) {return `toggleText2${d.data.id}`})
+      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} -4)`)
+      .attr("class", "toggleButtonText unselectable hidden")
+      .text("Children");
+
+    nodeEnter.append("text")
+      .attr("idr", function(d) {return `toggleExpln${d.data.id}`;})
+      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} ${this.getAttribute("nodeHeight") *-1.5})`)
+      .attr("class", "toggleExpln unselectable hidden")
+      .text("Children can only be toggled when they exist. This node has no children.");
+
+    nodeEnter.append("rect")  // Show Notes rectangle
+      .attr("width", this.getAttribute("nodeWidth")/3)
+      .attr("height", this.getAttribute("nodeHeight"))
+      .attr("idr", function(d) {return `note${d.data.id}`})
+      .attr("transform", `translate(${this.getAttribute("nodeWidth")*1/3} ${this.getAttribute("nodeHeight")*-1})`)
+      .attr("onmouseup", "app.widget('toggleNotes', this)")
+      .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
+      .attr("class", "showNotesRect hidden");
+
+      nodeEnter.append("text")
+        .attr("idr", function(d) {return `showNotesText1${d.data.id}`})
+        .attr("transform", `translate (${this.getAttribute("nodeWidth")/2} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
+        .attr("class", "notesButtonText unselectable hidden")
+        .text("Show");
+
+      nodeEnter.append("text")
+        .attr("idr", function(d) {return `showNotesText2${d.data.id}`})
+        .attr("transform", `translate (${this.getAttribute("nodeWidth")/2} -4)`)
+        .attr("class", "notesButtonText unselectable hidden")
+        .text("Notes");
 
     nodeEnter.append("rect")  // Detail display rectangle
-      .attr("width", this.getAttribute("detailWidth"))
+      .attr("width", this.getAttribute("nodeWidth")/3)
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function(d) {return `detail${d.data.id}`})
-      .attr("transform", `translate(-${this.getAttribute("detailWidth")} 0)`)
-      .attr("onmouseover", "app.widget('openDetailPopup', this)")
-      .attr("onmouseout", "app.widget('closeDetailPopup', this, event)")
-      .attr("class", "detailsRect");
+      .attr("transform", `translate(0 ${this.getAttribute("nodeHeight")*-1})`)
+      .attr("onmouseover", "app.widget('detailExplain', this)")
+      .attr("onmouseout", "app.widget('hideDetailExplain', this, event); app.widget('checkHideButtons', this, event)")
+      .attr("onmouseup", "app.widget('toggleDetails', this)")
+      .attr("class", "detailsRect hidden");
+
+    nodeEnter.append("text")
+      .attr("idr", function(d) {return `showDetailsText1${d.data.id}`})
+      .attr("transform", `translate (${this.getAttribute("nodeWidth")/6} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
+      .attr("class", "detailButtonText unselectable hidden")
+      .text("Show");
+
+    nodeEnter.append("text")
+      .attr("idr", function(d) {return `showDetailsText2${d.data.id}`})
+      .attr("transform", `translate (${this.getAttribute("nodeWidth")/6} -4)`)
+      .attr("class", "detailButtonText unselectable hidden")
+      .text("Details");
+
+
+    nodeEnter.append("text")
+      .attr("idr", function(d) {return `detailExpln${d.data.id}`;})
+      .attr("transform", `translate (${this.getAttribute("nodeWidth")*1/6} ${this.getAttribute("nodeHeight") *-1.5})`)
+      .attr("class", "detailExpln unselectable hidden")
+      .text("This label has no node or link attached, so there are no details to show.");
 
     nodeEnter.append("g") // Create a detail popup group with a rectangle in it
       .attr("idr", function(d) {return `popupGroup${d.data.id}`})
-      .attr("class", "detailPopupHidden")
-      .attr("onmouseout", "app.widget('closeDetailPopup', this, event)")
+      .attr("class", "detailPopupVisible hidden")
       .append("rect")                                             // Large popup rectangle...
         .attr("idr", function(d) {return`popupRect${d.data.id}`})
         .attr("class", "detailPopup")
@@ -1209,7 +1264,7 @@ class widgetSVG {
         .attr("onmousedown", "app.widget('disassociate', this)")
       .select(function() { return this.parentNode; })             // disassociate text
         .append("text")
-        .attr("dx", function(d) {return `-${d.data.instance.detailWidth + d.data.instance.popupWidth - d.data.instance.nodeHeight/2}`;})
+        .attr("dx", function(d) {return `-${d.data.instance.popupWidth - d.data.instance.nodeHeight/2}`;})
         .attr("idr", function(d) {return `disassociateText${d.data.id}`;})
         .attr("class", "disassociateText unselectable")
         .text("X")
@@ -1222,13 +1277,13 @@ class widgetSVG {
         .attr("onmousedown", "app.widget('showNode', this)")
       .select(function() { return this.parentNode; })             // Show Node text
         .append("text")
-        .attr("dx", function(d) {return `-${d.data.instance.detailWidth + d.data.instance.nodeHeight/2}`;})
+        .attr("dx", function(d) {return `-${d.data.instance.nodeHeight/2}`;})
         .attr("idr", function(d) {return `showNodeText${d.data.id}`;})
         .attr("class", "showNodeText unselectable")
         .text("+")
       .select(function() {return this.parentNode; })
         .append("text")                                           // Text in header
-        .attr("dx", function(d) {return `-${d.data.instance.popupWidth/2 + d.data.instance.detailWidth}`;})
+        .attr("dx", function(d) {return `-${d.data.instance.popupWidth/2}`;})
         .attr("class", "detailHeaderText unselectable")
         .attr("idr", function(d) {return `detailHeaderText${d.data.id}`})
       	.text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; });
@@ -1240,125 +1295,62 @@ class widgetSVG {
       .attr("idr", function(d) {return `text${d.data.id}`})
     	.text(function(d) { return d.data.name; });
 
-    nodeEnter.selectAll(".toggleRect") // For each toggle rectangle in new nodes...
-      .classed("childrenVisibleToggle", function(d) {if (d.data.children && d.data.children.length>0) return true; else return false;}) // Set the appropriate class
-      .classed("childrenHiddenToggle", function(d) {if (d.data._children && d.data._children.length>0) return true; else return false;})
-      .classed("noChildrenToggle", function(d) {if ((!d.data.children || d.data.children.length==0)
-                                                && (!d.data._children || d.data._children.length==0))
-                                                return true; else return false;});
+    const allNodes = nodeEnter.merge(node);
 
-    nodeEnter.selectAll(".notesRect")
+    allNodes.selectAll(".notesRect")
       .classed("noNotes", function(d) {if (d.data.notes) return false; else return true;})
-      .classed("notesExist", function(d) {if (d.data.notes) return true; else return false;})
-      .attr("transform", function(d) {
-        let childBoxOffset = 0;
-        if ((d.data.children && d.data.children.length>0)
-        || (d.data._children && d.data._children.length>0)) {
-          childBoxOffset = d.data.instance.toggleWidth;
-        }
-        const transform = `translate(${10 + childBoxOffset
-                    + d.data.instance.nodeWidth
-                    - d.data.instance.nodeHeight
-        } -10)`
-        return transform;
-      });
+      .classed("notesExist", function(d) {if (d.data.notes) return true; else return false;});
+      // .attr("transform", `${10 + this.getAttribute("nodeWidth") - this.getAttribute("nodeHeight")} -10`);
 
-    nodeEnter.selectAll(".detailsRect") // For each detail rectangle in new nodes...
-      .classed("detailWithNode", function(d) {if (d.data.nodeID || d.data.type == "link") return true; else return false;}) // Set the appropriate class
-      .classed("detailNoNode", function(d) {if (d.data.nodeID || d.data.type == "link") return false; else return true;})
+    allNodes.selectAll(".toggleRect")
+        .classed("inactive", function(d) {
+            if ((!d.data.children || d.data.children.length == 0)
+            && (!d.data._children || d.data._children.length == 0))
+              return true; else return false;
+          });
 
-    nodeEnter.selectAll(".detailPopup")
+    allNodes.selectAll(".toggleButtonText")
+      .classed("inactiveText", function(d) {
+          if ((!d.data.children || d.data.children.length == 0)
+          && (!d.data._children || d.data._children.length == 0))
+            return true; else return false;
+        });
+
+    allNodes.selectAll(".detailsRect")
+      .classed("inactive", function(d) {if (d.data.nodeID == null) return true; else return false});
+
+    allNodes.selectAll(".detailButtonText")
+      .classed("inactiveText", function(d) {if (d.data.nodeID == null) return true; else return false});
+
+    allNodes.selectAll(".detailPopup")
       .attr("width", this.getAttribute("popupWidth"))
       // This is fairly complicated. It allots one line (of height nodeHeight) for each entry in the details object,
       // plus an additional line for the node's name and type.
       .attr("height", function(d) {return (d.data.details.length + 1) * d.data.instance.nodeHeight;})
-      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
+      .attr("transform", function(d) {return `translate(-${d.data.instance.popupWidth}
                                                         -${d.data.details.length * d.data.instance.nodeHeight})`;});
 
-    nodeEnter.selectAll(".detailHeader")
-      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
+    allNodes.selectAll(".detailHeader")
+      .attr("transform", function(d) {return `translate(-${d.data.instance.popupWidth}
                                                         -${d.data.details.length * d.data.instance.nodeHeight})`});
 
-    nodeEnter.selectAll(".disassociateButton")
-      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
+    allNodes.selectAll(".disassociateButton")
+      .attr("transform", function(d) {return `translate(-${d.data.instance.popupWidth}
                                                         -${d.data.details.length * d.data.instance.nodeHeight})`});
 
-    nodeEnter.selectAll(".disassociateText").attr("dy", function(d) {return -1*(d.data.details.length * d.data.instance.nodeHeight - 20);});
+    allNodes.selectAll(".disassociateText").attr("dy", function(d) {return -1*(d.data.details.length * d.data.instance.nodeHeight - 20);});
 
-    nodeEnter.selectAll(".showNodeButton")
-      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.nodeHeight}
+    allNodes.selectAll(".showNodeButton")
+      .attr("transform", function(d) {return `translate(-${d.data.instance.nodeHeight}
                                                         -${d.data.details.length * d.data.instance.nodeHeight})`});
 
-    nodeEnter.selectAll(".showNodeText").attr("dy", function(d) {return -1*(d.data.details.length * d.data.instance.nodeHeight - 20);});
+    allNodes.selectAll(".showNodeText").attr("dy", function(d) {return -1*(d.data.details.length * d.data.instance.nodeHeight - 20);});
 
-    nodeEnter.selectAll(".detailHeaderText")
+    allNodes.selectAll(".detailHeaderText")
       .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; })
       .attr("dy", function(d) {return -d.data.instance.nodeHeight * (d.data.details.length - 0.5) + 6});
 
-    if (node._enter) {
-      nodeEnter.each(buildPopup);
-    }
-
-    node.selectAll(".toggleRect") // For each toggle rectangle in old nodes (may need updating)
-      .classed("childrenVisibleToggle", function(d) {if (d.data.children && d.data.children.length>0) return true; else return false;}) // Set the appropriate class
-      .classed("childrenHiddenToggle", function(d) {if (d.data._children && d.data._children.length>0) return true; else return false;})
-      .classed("noChildrenToggle", function(d) {if ((!d.data.children || d.data.children.length==0)
-                                                && (!d.data._children || d.data._children.length==0))
-                                                return true; else return false;});
-
-    node.selectAll(".notesRect")
-      .classed("noNotes", function(d) {if (d.data.notes) return false; else return true;})
-      .classed("notesExist", function(d) {if (d.data.notes) return true; else return false;})
-      .attr("transform", function(d) {
-        let childBoxOffset = 0;
-        if ((d.data.children && d.data.children.length>0)
-        || (d.data._children && d.data._children.length>0)) {
-          childBoxOffset = d.data.instance.toggleWidth;
-        }
-        const transform = `translate(${10 + childBoxOffset
-                    + d.data.instance.nodeWidth
-                    - d.data.instance.nodeHeight
-        } -10)`
-        return transform;
-      });
-
-    node.selectAll(".detailsRect") // For each detail rectangle in old nodes (may need updating)...
-      .classed("detailWithNode", function(d) {if (d.data.nodeID || d.data.type == "link") return true; else return false;}) // Set the appropriate class
-      .classed("detailNoNode", function(d) {if (d.data.nodeID || d.data.type == "link") return false; else return true;})
-
-    node.selectAll(".detailPopupVisible")
-      .attr("class", "detailPopupHidden"); // If any popup happened to still be visible, hide it on the update
-
-    node.selectAll(".detailPopup")
-      .attr("width", this.getAttribute("popupWidth"))
-      // This is fairly complicated. It allots one line (of height nodeHeight) for each entry in the details object,
-      // plus an additional line for the node's name and type.
-      .attr("height", function(d) {return (d.data.details.length + 1) * d.data.instance.nodeHeight;})
-      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
-                                                        -${d.data.details.length * d.data.instance.nodeHeight})`;});
-
-    node.selectAll(".detailHeader")
-      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
-                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
-
-    node.selectAll(".disassociateButton")
-      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.popupWidth}
-                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
-
-    node.selectAll(".disassociateText").attr("dy", function(d) {return -1*(d.data.details.length * d.data.instance.nodeHeight - 20);});
-
-    node.selectAll(".showNodeButton")
-      .attr("transform", function(d) {return `translate(-${d.data.instance.detailWidth + d.data.instance.nodeHeight}
-                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
-
-    nodeEnter.selectAll(".showNodeText").attr("dy", function(d) {return -1*((d.data.details.length) * d.data.instance.nodeHeight - 20);});
-
-    node.selectAll(".detailHeaderText")
-      .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; })
-      .attr("dy", function(d) {return -d.data.instance.nodeHeight * (d.data.details.length - 0.5) + 6});
-
-    node.each(buildPopup);
-
+    allNodes.each(buildPopup);
 
     // Update text
     d3.selectAll(".node").each(function(d) { // For each node
@@ -1409,8 +1401,8 @@ class widgetSVG {
   }
 
   toggle(button) { // Toggle children.
-    const node = button.parentElement;
-    const d = node.__data__;
+    const group = button.parentElement;
+    const d = group.__data__;
 
 
     if (d.data.children) {
@@ -1463,56 +1455,77 @@ class widgetSVG {
   	  d.data.children = d.data._children;
   	  d.data._children = null;
     }
+    this.makeSelectedNode(group);
     this.update();
   }
 
-  openDetailPopup(button) {
+  toggleDetails(button) {
     const group = button.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-
-    // Look for an existing popup for this node (there should be one). If found, just make it visible and update its location.
-    let popup = app.domFunctions.getChildByIdr(group, `popupGroup${ID}`);
-    if (popup) {
-      const node = popup.parentElement;
-      const tree = node.parentElement;
-      node.appendChild(popup); // Make the popup top in its node group...
-      tree.appendChild(node); // and the node top in its tree...
-      this.SVG_DOM.appendChild(tree); // and the tree top in the SVG.
-
-      popup.setAttribute("class", "detailPopupVisible");
+    const obj = this.getObjFromID(ID);
+    if (obj.nodeID) {
+      // Look for an existing popup for this node (there should be one).
+      const popup = app.domFunctions.getChildByIdr(group, `popupGroup${ID}`);
+      const tree = group.parentElement;
+      if (popup.classList.contains("hidden")) {
+        group.appendChild(popup); // Make the popup top in its node group...
+        tree.appendChild(group); // and the node top in its tree...
+        this.SVG_DOM.appendChild(tree); // and the tree top in the SVG.
+        popup.classList.remove("hidden")
+      }
+      else {
+        popup.classList.add("hidden");
+      }
     }
+    this.makeSelectedNode(group);
   }
 
-  closeDetailPopup(element, evnt) { // The element triggering this will be either the popup itself, or the popup rectangle.
-    const x = evnt.clientX;
-    const y = evnt.clientY;
-
-    let ID = "";
-    if (element.classList.contains("detailsRect")) { // If the triggering element was the popup rectangle...
-      const group = element.parentElement;
-      ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const obj = this.getObjFromID(ID);
-      const popup = app.domFunctions.getChildByIdr(this.SVG_DOM, `popupGroup${obj.id}`);
-      const popupBound = popup.getBoundingClientRect();
-      const inPopup = popupBound.left <= x && x <= popupBound.right && popupBound.top <= y && y <= popupBound.bottom;
-      if (!inPopup) {
-        popup.setAttribute("class", "detailPopupHidden");
-      }
+  toggleNotes(button) {
+    const ID = button.getAttribute("idr").slice(4); // idr is like notexxx
+    const obj = this.getObjFromID(ID);
+    if (this.notesLabel == obj) { // If this label's notes are shown already
+      this.notesLabel.notes = this.notesText.value;
+      this.notesLabel.notesHeight = this.notesText.clientHeight;
+      this.notesLabel.notesWidth = this.notesText.clientWidth;
+      this.notesLabel = null;
+      this.notesText.hidden = true;
+      this.notesText.value = "";
+      this.notesText.setAttribute("style", "position:static");
+      this.SVG_DOM.appendChild(this.notesText);
+      this.update();
     }
-    else { // If the triggering event was the popup
-      ID = element.getAttribute("idr").slice(10); // A popup's IDR is like popupGroupxxx.
-      const obj = this.getObjFromID(ID);
-      const button = app.domFunctions.getChildByIdr(this.SVG_DOM, `detail${obj.id}`);
-      const buttonBound = button.getBoundingClientRect();
-      const inButton = buttonBound.left <= x && x <= buttonBound.right && buttonBound.top <= y && y <= buttonBound.bottom;
+    else { // If this label's notes are NOT already shown
+      this.SVG_DOM.parentElement.appendChild(this.notesText);
+      this.notesText.hidden=false;
+      let heightString = "";
+      let widthString = "";
 
-      // Apparently, mousing over stuff IN the popup counts as mousing OUT of the popup, so I need to verify that hasn't happened.
-      const popupBound = element.getBoundingClientRect();
-      const inPopup = popupBound.left < x && x < popupBound.right && popupBound.top < y && y < popupBound.bottom;
-      if (!inButton && !inPopup) {
-        element.setAttribute("class", "detailPopupHidden");
+      // Get the object data
+      if (obj.notes) {
+        this.notesText.value = obj.notes;
       }
-    }
+
+      if (obj.notesHeight) {
+        heightString = ` height:${obj.notesHeight}px;`;
+      }
+
+      if (obj.notesWidth) {
+        widthString = ` width:${obj.notesWidth}px;`;
+      }
+
+      // Get the rectangle
+      const rect = app.domFunctions.getChildByIdr(this.SVG_DOM, `node${ID}`);
+      const bounds = rect.getBoundingClientRect();
+      // Makes the notes text area visible
+      let leftPos = bounds.left + window.scrollX + this.nodeWidth;
+      let topPos = bounds.top + window.scrollY;
+      this.notesText.setAttribute("style", `position:absolute; left:${leftPos}px; top:${topPos}px;${heightString}${widthString}`);
+
+      this.notesLabel = obj;
+      this.notesText.select();
+
+      this.makeSelectedNode(rect.parentElement);
+    } // end else (notes are not shown; show them)
   }
 
   showNode(button) {
@@ -1525,7 +1538,6 @@ class widgetSVG {
     }
     else if (type == "calendar") {
       setTimeout(this.showCalendar, 1, this.widgetID, id);
-      // new widgetCalendar(this.widgetID, id);
     }
 
     else if (type == "link") {
@@ -1551,5 +1563,123 @@ class widgetSVG {
     obj.details = [];
 
     this.update();
+  }
+
+  makeSelectedNode(group) {
+    if (this.selectedNode && this.selectedNode != group) {
+      const id = this.selectedNode.getAttribute("idr").slice(5); // groupxxx
+      this.hideEverything(id);
+      this.selectedNode.classList.remove("selected");
+    }
+    this.selectedNode = group;
+    this.selectedNode.classList.add("selected");
+  }
+
+  // Make the buttons visible when the main rect is moused over
+  showButtons(rect) {
+    const group = rect.parentElement;
+    const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+
+    const prefixes = ["toggle", "toggleText1", "toggleText2",
+                      "note", "showNotesText1", "showNotesText2",
+                      "detail", "showDetailsText1", "showDetailsText2"];
+    for (let i = 0; i < prefixes.length; i++) {
+      const idr = prefixes[i] + ID;
+      const element = app.domFunctions.getChildByIdr(this.SVG_DOM, idr);
+      element.classList.remove("hidden");
+    }
+  }
+
+  // Hide the buttons if:
+    // The mouse isn't over the main rect
+    // The mouse isn't over any of the buttons
+    // The details popup isn't visible
+    // The notes panel isn't visible
+  checkHideButtons(element, evnt) {
+    const x = evnt.clientX;
+    const y = evnt.clientY;
+    let inAnything = false;
+
+    const group = element.parentElement;
+    const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+
+    const prefixes = ["node", "toggle", "note", "detail"];
+    for (let i = 0; i < prefixes.length; i++) {
+      const idr = prefixes[i] + ID;
+      const element = app.domFunctions.getChildByIdr(this.SVG_DOM, idr);
+      const bound = element.getBoundingClientRect();
+      const inElement = bound.left <= x && x <= bound.right && bound.top <= y && y <= bound.bottom;
+      if (inElement) {
+        inAnything = true;
+        break;
+      }
+    }
+
+    const detailPopup = app.domFunctions.getChildByIdr(group, `popupGroup${ID}`);
+    const popupOpen = !(detailPopup.classList.contains("hidden"));
+
+    const obj = this.getObjFromID(ID);
+    const editing = this.notesLabel == obj;
+
+    if (!(inAnything || popupOpen || editing)) {
+      this.hideEverything(ID);
+    }
+  }
+
+  hideEverything(ID) {
+    const prefixes = ["toggle", "toggleText1", "toggleText2", "toggleExpln",
+                      "note", "showNotesText1", "showNotesText2",
+                      "detail", "detailExpln", "showDetailsText1", "showDetailsText2",
+                      "popupGroup"];
+
+    for (let i = 0; i < prefixes.length; i++) {
+      const idr = prefixes[i] + ID;
+      const element = app.domFunctions.getChildByIdr(this.SVG_DOM, idr);
+      element.classList.add("hidden");
+    }
+
+    const obj = this.getObjFromID(ID);
+    const editing = this.notesLabel == obj;
+
+    if(editing) {
+      const note = app.domFunctions.getChildByIdr(this.SVG_DOM, `note${ID}`);
+      this.toggleNotes(note);
+    }
+  }
+
+  // Show the toggle explanation text
+  toggleExplain(button) {
+    const group = button.parentElement;
+    const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+    const text = app.domFunctions.getChildByIdr(group, `toggleExpln${ID}`);
+    const data = group.__data__.data;
+    if ((!data.children || data.children.length == 0) && (!data._children || data._children.length == 0)) {
+      text.classList.remove("hidden");
+    }
+  }
+
+  // Hide the toggle explanation text
+  hideToggleExplain(button) {
+    const group = button.parentElement;
+    const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+    const text = app.domFunctions.getChildByIdr(group, `toggleExpln${ID}`);
+    text.classList.add("hidden");
+  }
+
+  detailExplain(button) {
+    const group = button.parentElement;
+    const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+    const text = app.domFunctions.getChildByIdr(group, `detailExpln${ID}`);
+    const data = group.__data__.data;
+    if (data.nodeID == null) {
+      text.classList.remove("hidden");
+    }
+  }
+
+  hideDetailExplain(button) {
+    const group = button.parentElement;
+    const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+    const text = app.domFunctions.getChildByIdr(group, `detailExpln${ID}`);
+    text.classList.add("hidden");
   }
 }

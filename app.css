@@ -101,6 +101,14 @@ text {
 	font-size: 16px;
 }
 
+text.toggleExpln {
+	font-size: 12px;
+}
+
+text.detailExpln {
+	font-size: 12px;
+}
+
 .link {
 	fill: none;
 	stroke: black;
@@ -113,31 +121,58 @@ text {
 	fill: lightblue;
 }
 
-.childrenHiddenToggle {
+/* .childrenHiddenToggle {
 	stroke: black;
 	stroke-width: 1px;
 	fill: rebeccapurple;
-}
+} */
 
-.childrenVisibleToggle {
+.toggleRect {
 	stroke: black;
 	stroke-width: 1px;
-	fill: royalblue;
+	fill: white;
 }
 
-.noChildrenToggle {
+/* .noChildrenToggle {
 	display: none;
-}
+} */
 
-.detailWithNode {
+.detailsRect {
 	stroke: black;
 	stroke-width: 1px;
-	fill: royalblue;
+	fill: white;
 }
 
-.detailNoNode {
-	display: none;
+.showNotesRect {
+	stroke: black;
+	stroke-width: 1px;
+	fill: white;
 }
+
+.inactive {
+	stroke: black;
+	stroke-width: 1px;
+	fill: gainsboro;
+}
+
+.inactiveText {
+	fill: dimgray;
+}
+
+text.toggleButtonText {
+	font-size: 12px;
+}
+
+text.notesButtonText {
+	font-size: 12px;
+}
+
+text.detailButtonText {
+	font-size: 12px;
+}
+/* .detailNoNode {
+	display: none;
+} */
 
 .detailPopup {
 	stroke: black;
@@ -181,7 +216,17 @@ text {
 	display: none;
 }
 
-.hidden {display: none}
+.hidden {display: none} !important
+
+.nodeText {
+	-webkit-touch-callout: none !important;
+	-webkit-user-select: none !important;
+	-khtml-user-select: none !important;
+	-moz-user-select: none !important;
+	-ms-user-select: none !important;
+	user-select: none !important;
+	pointer-events: none !important;
+}
 
 .unselectable {
     -webkit-touch-callout: none !important;
