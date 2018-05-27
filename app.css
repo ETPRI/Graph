@@ -105,9 +105,22 @@ text.toggleExpln {
 	font-size: 12px;
 }
 
+.toggleExpBox {
+	stroke: gray;
+	stroke-width: 1px;
+	fill: white;
+}
+
 text.detailExpln {
 	font-size: 12px;
 }
+
+.detailExpBox {
+	stroke: gray;
+	stroke-width: 1px;
+	fill: white;
+}
+
 
 .link {
 	fill: none;

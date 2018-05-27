@@ -301,6 +301,9 @@ class widgetSVG {
       if (root.children) {
         nonRootObjs = nonRootObjs.concat(root.children); // then add its children to the list to check after roots
       }
+      else if (root._children) {
+        nonRootObjs = nonRootObjs.concat(root._children);
+      }
     }
 
     while (nonRootObjs.length > 0 && nodeObj == null) { // If the parent object hasn't been found and there are more objects to check...
@@ -1175,7 +1178,7 @@ class widgetSVG {
       .attr("onmouseout", "app.widget('hideToggleExplain', this); app.widget('checkHideButtons', this, event)")
       .attr("class", "toggleRect hidden");
 
-    nodeEnter.append("text")
+    nodeEnter.append("text") // Toggle button text
       .attr("idr", function(d) {return `toggleText1${d.data.id}`})
       .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
       .attr("class", "toggleButtonText unselectable hidden")
@@ -1187,9 +1190,16 @@ class widgetSVG {
       .attr("class", "toggleButtonText unselectable hidden")
       .text("Children");
 
-    nodeEnter.append("text")
+    nodeEnter.append("rect") // Toggle explanation box...
+      .attr("width", 360)
+      .attr("height", 20)
+      .attr("idr", function(d) {return `toggleExpBox${d.data.id}`})
+      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6 - 180} ${this.getAttribute("nodeHeight") *-1.5 - 10})`)
+      .attr("class", "toggleExpBox hidden");
+
+    nodeEnter.append("text") // and text
       .attr("idr", function(d) {return `toggleExpln${d.data.id}`;})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} ${this.getAttribute("nodeHeight") *-1.5})`)
+      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} ${this.getAttribute("nodeHeight") *-1.5 + 4})`)
       .attr("class", "toggleExpln unselectable hidden")
       .text("Children can only be toggled when they exist. This node has no children.");
 
@@ -1202,11 +1212,11 @@ class widgetSVG {
       .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
       .attr("class", "showNotesRect hidden");
 
-      nodeEnter.append("text")
+      nodeEnter.append("text") // Show notes button text
         .attr("idr", function(d) {return `showNotesText1${d.data.id}`})
         .attr("transform", `translate (${this.getAttribute("nodeWidth")/2} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
         .attr("class", "notesButtonText unselectable hidden")
-        .text("Show");
+        .text("Toggle");
 
       nodeEnter.append("text")
         .attr("idr", function(d) {return `showNotesText2${d.data.id}`})
@@ -1224,11 +1234,11 @@ class widgetSVG {
       .attr("onmouseup", "app.widget('toggleDetails', this)")
       .attr("class", "detailsRect hidden");
 
-    nodeEnter.append("text")
+    nodeEnter.append("text") // Show details button text
       .attr("idr", function(d) {return `showDetailsText1${d.data.id}`})
       .attr("transform", `translate (${this.getAttribute("nodeWidth")/6} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
       .attr("class", "detailButtonText unselectable hidden")
-      .text("Show");
+      .text("Toggle");
 
     nodeEnter.append("text")
       .attr("idr", function(d) {return `showDetailsText2${d.data.id}`})
@@ -1236,10 +1246,16 @@ class widgetSVG {
       .attr("class", "detailButtonText unselectable hidden")
       .text("Details");
 
+    nodeEnter.append("rect") // Details explanation box...
+      .attr("width", 360)
+      .attr("height", 20)
+      .attr("idr", function(d) {return `detailExpBox${d.data.id}`})
+      .attr("transform", `translate (${this.getAttribute("nodeWidth")*1/6 - 180} ${this.getAttribute("nodeHeight") *-1.5 - 10})`)
+      .attr("class", "detailExpBox hidden");
 
-    nodeEnter.append("text")
+    nodeEnter.append("text") // ... and text
       .attr("idr", function(d) {return `detailExpln${d.data.id}`;})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*1/6} ${this.getAttribute("nodeHeight") *-1.5})`)
+      .attr("transform", `translate (${this.getAttribute("nodeWidth")*1/6} ${this.getAttribute("nodeHeight") *-1.5 + 4})`)
       .attr("class", "detailExpln unselectable hidden")
       .text("This label has no node or link attached, so there are no details to show.");
 
@@ -1300,7 +1316,6 @@ class widgetSVG {
     allNodes.selectAll(".notesRect")
       .classed("noNotes", function(d) {if (d.data.notes) return false; else return true;})
       .classed("notesExist", function(d) {if (d.data.notes) return true; else return false;});
-      // .attr("transform", `${10 + this.getAttribute("nodeWidth") - this.getAttribute("nodeHeight")} -10`);
 
     allNodes.selectAll(".toggleRect")
         .classed("inactive", function(d) {
@@ -1650,11 +1665,20 @@ class widgetSVG {
   // Show the toggle explanation text
   toggleExplain(button) {
     const group = button.parentElement;
+    const tree = group.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
     const text = app.domFunctions.getChildByIdr(group, `toggleExpln${ID}`);
+    const box = app.domFunctions.getChildByIdr(group, `toggleExpBox${ID}`);
+
+    this.SVG_DOM.appendChild(tree);
+    tree.appendChild(group);
+    group.appendChild(box);
+    group.appendChild(text);
+
     const data = group.__data__.data;
     if ((!data.children || data.children.length == 0) && (!data._children || data._children.length == 0)) {
       text.classList.remove("hidden");
+      box.classList.remove("hidden");
     }
   }
 
@@ -1663,16 +1687,27 @@ class widgetSVG {
     const group = button.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
     const text = app.domFunctions.getChildByIdr(group, `toggleExpln${ID}`);
+    const box = app.domFunctions.getChildByIdr(group, `toggleExpBox${ID}`);
     text.classList.add("hidden");
+    box.classList.add("hidden");
   }
 
   detailExplain(button) {
     const group = button.parentElement;
+    const tree = group.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
     const text = app.domFunctions.getChildByIdr(group, `detailExpln${ID}`);
+    const box = app.domFunctions.getChildByIdr(group, `detailExpBox${ID}`);
+
+    this.SVG_DOM.appendChild(tree);
+    tree.appendChild(group);
+    group.appendChild(box);
+    group.appendChild(text);
+
     const data = group.__data__.data;
     if (data.nodeID == null) {
       text.classList.remove("hidden");
+      box.classList.remove("hidden");
     }
   }
 
@@ -1680,6 +1715,8 @@ class widgetSVG {
     const group = button.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
     const text = app.domFunctions.getChildByIdr(group, `detailExpln${ID}`);
+    const box = app.domFunctions.getChildByIdr(group, `detailExpBox${ID}`);
     text.classList.add("hidden");
+    box.classList.add("hidden");
   }
 }
