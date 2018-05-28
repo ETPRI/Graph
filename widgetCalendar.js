@@ -1,5 +1,6 @@
 class widgetCalendar {
-  constructor(callerID, id) {
+  constructor(callerID, id, name) {
+    this.name = name;
     this.calendarID = id;
     this.widgetID = app.idCounter;
     app.widgets[app.idCounter] = this;
@@ -29,8 +30,9 @@ class widgetCalendar {
   }
 
   buildHeader() {
-    this.name = "Untitled calendar";  // Call it "Untitled calendar" for now - can change later
-
+    if (!this.name) {
+      this.name = "Untitled calendar";  // Call it "Untitled calendar" for now - can change later
+    }
     const html = app.widgetHeader() + `<b idr="name">${this.name}</b>
                                        <input type="button" idr="backButton" value="<" onclick="app.widget('page', this)">
                                        <input type="button" idr="dayButton" value="Day" onclick="app.widget('changeView', this)">

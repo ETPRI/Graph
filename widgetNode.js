@@ -16,7 +16,7 @@ input: label
 
 
 class widgetNode {
-constructor(callerID, label, id) {
+constructor(callerID, label, id, name) {
   // DOM pointers to data that will change, just make place holders
   this.widgetDOM   = {};
   this.relationsFrom = {}; // place holder for relations ->(n)
@@ -31,6 +31,7 @@ constructor(callerID, label, id) {
   this.label       = label;
   this.queryObject = app.metaData.getNode(label);
   this.fields      = this.queryObject.fields;
+  this.name        = name;
 
   this.idWidget = app.idCounter;
   app.widgets[app.idCounter] = this; // Add to app.widgets
@@ -103,7 +104,10 @@ buildEnd() {
 
 buildWidget() { // public - build table header
   let id=null;  // assume add mode
-  let name = "New Node";
+  let name = this.name;
+  if (name == "") {
+    name = `New ${this.label} Node`;
+  }
 
   if (this.dataNode) {
     // we are edit mode
@@ -175,11 +179,17 @@ buildDataNode() {   // put in one field label and input row for each field
       }
     }
 
+    else if (fieldName == "name") {
+      value = this.name;
+    }
+
+
     const dataField = document.createElement('td');
     row.appendChild(dataField);
     const input = document.createElement('input');
     dataField.appendChild(input);
     input.outerHTML = `<input type = "text" db = ${fieldName} idr = "input${fieldCount++}" onChange = "app.widget('changed',this)" value = "${value}">`
+    value="";
   }
 
   // Create div for the "trash" checkbox and reason
@@ -316,8 +326,9 @@ add(widgetElement) { // Builds a query to add a new node, then runs it and passe
 addComplete(data) { // Refreshes the node table and logs that addSave was clicked
   this.dataNode = data[0].n; // takes single nodes
   const id = this.dataNode.identity;
+  const name = this.dataNode.properties.name;
   const nodeLabel = app.domFunctions.getChildByIdr(this.widgetDOM, "nodeLabel");
-  nodeLabel.textContent=`${this.label}#${id}`;
+  nodeLabel.textContent=`${this.label}#${id}: ${name}`;
 
   const obj = {};
   obj.id = this.idWidget;

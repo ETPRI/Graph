@@ -118,7 +118,11 @@ class widgetLogin {
   // and all users are connected to the User node, so they must exist). Searches for users who are admins
   // and sends the results to this.checkAdminUser().
   checkAdminTable() {
-    // DBREPLACE DB function: it's complicated
+    // DBREPLACE DB function: changePattern
+    // JSON object: {nodesCreate:[{type:"LoginTable", details:{name:"User"}, merge:true},
+    //                           {name:"admin", type:"LoginTable", details:{"name:"Admin"}, merge:true}];
+    //              nodesFind:[{name:"user"; type:"people"}];
+    //              relsFind:{type:"Permissions"; from:"user"; to:"admin"}}
     this.db.setQuery(`merge (:LoginTable {name: "User"}) merge (admin:LoginTable {name: "Admin"})
                       with admin match (user:people)-[:Permissions]->(admin) return user`);
     this.db.runQuery(this, 'checkAdminUser');
@@ -128,7 +132,10 @@ class widgetLogin {
   // If there ARE real admins, delete the temporary admin account if it exists.
   checkAdminUser(data) {
     if (data.length == 0) { // if no users are admins, create a temporary admin node if it doesn't exist
-      // DBREPLACE DB function: IDK, it's supposed to merge BOTH a node and a relationship
+      // DBREPLACE DB function: changePattern
+      // JSON object: {nodesFind: [name:"admin"; type:"LoginTable"; details:{name:"Admin"}];
+      //               nodesCreate: [{name:"tempAdmin"; type:"tempAdmin"; details:{name:"Temporary Admin Account"}; merge:true}];
+      //               relsCreate: [{from:"tempAdmin"; to:"admin"; type:"Permissions"; details:{username:"admin"; password:"admin"}; merge:true}]}
       this.db.setQuery(`match (admin:LoginTable {name: "Admin"}) merge (tempAdmin:tempAdmin {name: "Temporary Admin Account"})-[temp:Permissions {username:"admin", password:"admin"}]->(admin)`);
       this.db.runQuery();
     }

@@ -5,7 +5,7 @@ class checkEmpty {
   // Runs a query to see all nodes in the database, then passes the results to verifyEmpty.
   checkEmpty(button) {
     // DBREPLACE DB function: changeNode
-    // JSON object: {} (assume empty means no restrictions)
+    // JSON object: {name:"n"}
     app.db.setQuery("match(n) return n");
     app.db.runQuery(this, 'verifyEmpty');
   }

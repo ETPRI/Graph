@@ -64,7 +64,7 @@ class widgetTableNodes {
   buildWhere() {
     /*   output - nameLast =~"(?i)Bol.*"
     */  // <tr><th><input>  must go up 2 levels to get to tr
-    const th  = app.domFunctions.getChildByIdr(this.widget, "header").firstElementChild.children; // get collection of th
+    const th  = app.domFunctions.getChildByIdr(this.widget, "headerRow").firstElementChild.children; // get collection of th
 
     let where = " ";
     if (app.login.userID) {
@@ -136,7 +136,7 @@ class widgetTableNodes {
     </div>
 
     <table>
-      <thead idr = "header">
+      <thead idr = "headerRow">
       <tr><th></th><th></th>#headerSearch#</tr>
       <tr><th>#</th><th>ID</th>#header#</tr>
       </thead>
@@ -372,19 +372,19 @@ class widgetTableNodes {
   }
 
 // I'm not sure this is ever used.
-getatt(fieldName) {
-  let ret = this.fields[fieldName].att
-  if (!ret) {
-    ret="";
+  getatt(fieldName) {
+    let ret = this.fields[fieldName].att
+    if (!ret) {
+      ret="";
+    }
   }
-}
 
-// I'm almost certain this isn't.
-relationAdd(element) {
-  alert(element.previousElementSibling.textContent)
-}
+  // I'm almost certain this isn't.
+  relationAdd(element) {
+    alert(element.previousElementSibling.textContent)
+  }
 
-edit(element){
+  edit(element){
     const id = element.innerHTML;
     if (this.queryObject.nodeLabel == 'mindmap') {
       new widgetSVG(this.idWidget, id);
@@ -407,14 +407,23 @@ edit(element){
 
   // open add widget
   addNode(element){
+    // Get the name searched for, if any
+    const widget = document.getElementById(this.idWidget);
+    const nameColumn = this.fieldsDisplayed.indexOf('name'); // The first two cells in the table aren't included in fieldsDisplayed
+    let name = "";
+    if (nameColumn > -1) { // If that call to indexOf didn't return -1 (-1 would mean there isn't actually a name field in this table)
+      const nameInput = app.domFunctions.getChildByIdr(widget, `text${nameColumn}`);
+      name = nameInput.value;
+    }
+
     if (this.queryObject.nodeLabel == 'mindmap') {
-      new widgetSVG(this.idWidget);
+      new widgetSVG(this.idWidget, null, name);
     }
     else if (this.queryObject.nodeLabel == "calendar") {
-      new widgetCalendar(this.idWidget);
+      new widgetCalendar(this.idWidget, null, name);
     }
     else {
-      new widgetNode(this.idWidget, this.queryObject.nodeLabel);
+      new widgetNode(this.idWidget, this.queryObject.nodeLabel, null, name);
     }
 
     // log
@@ -509,4 +518,4 @@ edit(element){
                       create (user)-[:Permissions {username:rel.username, password:rel.password}]->(permTable) delete rel`);
     this.db.runQuery(this, 'search'); // Create the link and refresh the table
   }
-} ////////////////////////////////////////////////////// end class widgetTableNodes
+  } ////////////////////////////////////////////////////// end class widgetTableNodes

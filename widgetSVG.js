@@ -1,10 +1,10 @@
 class widgetSVG {
-  constructor (callerID, id) { // create variables, then call buildWidget()
+  constructor (callerID, id, name) { // create variables, then call buildWidget()
     this.widgetID = app.idCounter;
     this.mapID = id;
     this.SVG_DOM = null;
     this.widgetDOM = null;
-    this.name = null;
+    this.name = name;
     app.widgets[app.idCounter] = this;
     this.count = 0;
     this.containedWidgets = [];
@@ -58,7 +58,9 @@ class widgetSVG {
   } // end constructor
 
   buildWidget(data) { // create blank mind map, then if an ID was passed in, call loadMap
-    this.name = "Untitled mind map";  // The name starts off untitled; it can change later
+    if (!this.name) {
+      this.name = "Untitled mind map";  // The name starts off untitled; it can change later
+    }
 
     const html = app.widgetHeader() +
       `<b idr="name">${this.name}</b>
