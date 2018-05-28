@@ -34,6 +34,7 @@ class widgetTableNodes {
 
   ////////////////////////////////////////////////////////////////////
   search() { // public - call when data changes
+    // DBREPLACE This is gonna be complicated.
     this.db.setQuery(this.buildQuery());
     this.db.runQuery(this,"buildData");
   }
@@ -438,6 +439,8 @@ edit(element){
 
     // If they entered data, create a link from them to the User table
     if (username && password) {
+      // DBREPLACE DB function: createRelation
+      // JSON object: {from: {type: user; id:ID}; to:{type:LoginTable; name: User}; attributes:{username:username; password:password}}
       this.db.setQuery(`match (user:people), (permTable:LoginTable) where ID(user) = ${ID} and permTable.name = "User"
                         create (user)-[:Permissions {username:"${username}", password:"${password}"}]->(permTable)`);
       this.db.runQuery(this, 'search'); // Create the link and refresh the table
@@ -450,12 +453,14 @@ edit(element){
     const ID = row.children[1].textContent;
 
     // Check if they are already a user
+    // DBREPLACE DB function: findPattern
     this.db.setQuery(`match (user:people)-[rel:Permissions]-(permTable:LoginTable {name:"User"}) where ID(user) = ${ID} return rel.username as name, rel.password as password`);
     this.db.runQuery(this, 'finishAdmin', ID);
   }
 
   finishAdmin(data, ID) {
     if (data.length > 0 && data[0].name && data[0].password) { // If a link between the person and the User table was found, remove it, and add a link to the Admin table
+      // DBREPLACE DB function: This will probably have to be its own thing
       this.db.setQuery(`match (user:people)-[relUser:Permissions]-(userTable:LoginTable {name:"User"}) where ID(user) = ${ID}
                         delete relUser
                         with user match (adminTable:LoginTable{name:"Admin"})
@@ -471,6 +476,8 @@ edit(element){
 
       // If they entered data, create a link from them to the Admin table
       if (username && password) {
+        // DBREPLACE DB function: createRelation
+        // JSON object: {from: {type: user; id:ID}; to:{type:LoginTable; name: Admin}; attributes:{username:username; password:password}}
         this.db.setQuery(`match (user:people), (permTable:LoginTable) where ID(user) = ${ID} and permTable.name = "Admin"
                           create (user)-[:Permissions {username:"${username}", password:"${password}"}]->(permTable)`);
         this.db.runQuery(this, 'search'); // Create the link and refresh the table
@@ -483,6 +490,8 @@ edit(element){
     const row = button.parentElement.parentElement;
     const ID = row.children[1].textContent;
 
+    // DBREPLACE DB function: delete relation
+    // JSON object: {from: {id:ID}; to: {type:LoginTable}}
     this.db.setQuery(`match (user)-[rel:Permissions]->(permTable:LoginTable) where ID(user) = ${ID} delete rel`); // Delete the connection to either the User or Admin table
     this.db.runQuery(this, 'search'); // Create the link and refresh the table
 
@@ -493,6 +502,7 @@ edit(element){
     const ID = row.children[1].textContent;
 
     // Delete the connection to the admin table; replace with one to the User table.
+    // DBREPLACE DB function: This both deletes a relation and creates a new one, so it either needs to be split up or to be its own thing
     this.db.setQuery(`match (user)-[rel:Permissions]->(permTable:LoginTable {name:"Admin"}) where ID(user) = ${ID}
                       with user, rel
                       match (permTable:LoginTable {name:"User"})

@@ -36,6 +36,14 @@ refresh() {
   const query = `match (per)-[:Owner]->(view:View {direction:"${this.relationType}"})-[:Subject]->(node)
                  where ID(per) = ${this.viewID} and ID(node) = ${this.nodeID}
                  match (view)-[r:Link]->(a) return r, a, view.order as ordering order by r.comment, a.name, a.labels[0]`;
+  // DBREPLACE DB function: matchPattern
+  // JSON object: {nodes:[{name:"per"; id:this.viewID},
+  //                      {name:view; details:[{direction:this.relationType}]},
+  //                      {name:node; ID: this.nodeID},
+  //                      {name:a}];
+  //           relations:[{type:Owner; from:"per"; to:"view"},
+  //                      {type:Subject; from:"view"; to:"node"},
+  //                      {name: r; type:Link; from:"view"; to:"a"}]}
   this.db.setQuery(query);
   this.db.runQuery(this,"rComplete");
 }
@@ -430,6 +438,7 @@ processNext(data, rows) {
     this.order.reverse();
 
     // Update the view's order property and refresh the widget.
+    // DBREPLACE DB function: matchPatternUpdate?
     const query = `match (user)-[:Owner]->(view:View {direction:"${this.relationType}"})-[:Subject]->(node)
                    where ID(user) = ${this.viewID} and ID(node) = ${this.nodeID}
                    set view.order = ${JSON.stringify(this.order)}`;
@@ -461,6 +470,7 @@ deleteNode(row, rows) {
   // delete the relation going to the other node in the view of this node,
   // find the user's view of the other node, and delete the relation from that view to this node.
   // Then call processNext() to do the next row.
+  // DBREPLACE DB function: This may have to be its own function
   this.db.setQuery(`match ()-[r]-(node) where ID(r) = ${id} delete r with node
                     match (user)-[:Owner]->(view:View {direction:"${otherRelType}"})-[:Subject]->(node) where ID(user) = ${this.viewID}
                     match (view)-[r2:Link]->(this) where ID(this) = ${this.nodeID} delete r2`);
@@ -489,6 +499,8 @@ modifyNode (row, rows) {
   const commentCell = cells[5];
   const comment = commentCell.textContent;
 
+  // DBREPLACE DB function: updateRelation
+  // JSON object: {id:id; changes:{comment; app.stringEscape(comment)}}
   this.db.setQuery(`match ()-[r]-() where ID(r) = ${id} set r.comment = "${app.stringEscape(comment)}"`);
   this.db.runQuery(this, "processNext", rows);
 }
@@ -554,6 +566,7 @@ addNode(row, rows) {
 
   // Write the actual query: find the person whose view this is and the start and end nodes.
   // Then add the relation to the person's view of each node.
+  // DBREPLACE DB function: could MAYBE do something with mergePattern???
   const query = `match (per), (start), (end)
                where ID(per) = ${this.viewID} and ID(start) = ${startID} and ID(end)=${endID}
                merge (per)-[:Owner]->(view:View {direction:"start"})-[:Subject]->(start)

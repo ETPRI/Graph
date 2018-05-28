@@ -91,7 +91,7 @@ buildHeader() {
     // append label part of the header
     let f="";
     for (let propt in fields){
-        f += "<th onClick='app.widgetSort(this)'>"+ fields[propt].label + "</th>" ;
+        f += "<th>"+ fields[propt].label + "</th>" ; // Removed onClick='app.widgetSort(this)' for now
   	}
     return r.replace('#fields#',f);
   }) (this.fields)
@@ -133,14 +133,16 @@ queryObjectsInit() {
 
 this.queryObjects.nodes = {
   nameTable: "nodes"
+  // DBREPLACE DB function: getMetaData??
   ,query: "MATCH (n) unwind labels(n) as L RETURN  distinct L, count(L) as count"
   ,fields: {
-  	"L":       {label: "Labels", att: 'onclick="app.widgetNewClick(this)"' }
+  	"L":       {label: "Labels"} // Removed ", att: 'onclick="app.widgetNewClick(this)"'"
    ,"count":  {label: "Count"  }
   }}
 
 this.queryObjects.keysNode = {
    nameQuery: ""
+   // DBREPLACE DB function: getMetaData??
   ,query: "MATCH (p) unwind keys(p) as key RETURN  distinct key, labels(p) as label,  count(key) as count  order by key"
   ,fields: {
   		"key":     {label: "Key"   , comment: "like fields"}
@@ -150,6 +152,7 @@ this.queryObjects.keysNode = {
 
 this.queryObjects.relations = {
 	nameTable: "relations"
+  // DBREPLACE DB function: getMetaData??
 	,query: "MATCH (a)-[r]->(b)  return distinct labels(a), type(r), labels(b), count(r)  order by type(r)"
 	,fields: {
 		"labels(a)":  {label: "Node"        , comment: "Like a table in RDBS"}
@@ -160,6 +163,7 @@ this.queryObjects.relations = {
 
 this.queryObjects.keysRelation = {
    nameTable: "keys"
+   // DBREPLACE DB function: getMetaData??
   ,query: "match ()-[r]->() unwind keys(r) as key return distinct key, type(r), count(key) as count"
   ,fields: {
   		"key":     {label: "Key"          , comment: "like fields"}
@@ -170,6 +174,7 @@ this.queryObjects.keysRelation = {
 
 this.queryObjects.myTrash = {
    nameTable: "myTrash"
+   // DBREPLACE DB function: matchPattern
    ,query: `match (user)-[rel:Trash]->(node) where ID(user)=${app.login.userID} return id(node) as id, node.name as name, labels(node) as labels, rel.reason as reason, node`
    ,fields: {
        "id":     {label: "ID",   att: `onclick="app.widget('edit',this)"`}
@@ -180,6 +185,7 @@ this.queryObjects.myTrash = {
 
 this.queryObjects.allTrash = {
    nameTable: "allTrash"
+   // DBREPLACE DB function: matchPattern? The count is problematic, but maybe we can do that after return
    ,query: `match ()-[rel:Trash]->(node) return ID(node) as id, node.name as name, count(rel) as times`
    ,fields: {
        "id":     {label: "ID",   att: `onclick="app.widget('showReasons',this)"`}
@@ -202,6 +208,7 @@ edit(element){
 
 showReasons(element) {
   const id = element.innerHTML;
+  // DBREPLACE DB function: matchPattern
   const query = `match (user)-[rel:Trash]->(node) where ID(node) = ${id} return user.name as userName, ID(user) as userID, rel.reason as reason, node.name as nodeName, ID(node) as nodeID`;
   this.db.setQuery(query);
   this.db.runQuery(this, "buildReasons");

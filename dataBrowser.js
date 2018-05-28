@@ -57,6 +57,13 @@ class dataBrowser {
 
     else {
       // query the DB for all info about this node and its relations
+
+      // DBREPLACE DB function: patternFind???
+      // JSON object: {ID: data.nodeID; ???}
+      // I tried to explain to UD how complicated this would be but I don't think he understood.
+      // Maybe a separate function for each call to find a pattern? Like this one would be "dataBrowserSearch"
+      // and would be called only from this class, from this method and toggleNode?
+
       const query = `match (n) where ID(n) = ${data.nodeID}
       with n optional match (in)-[inRel]->(n)
       with n, collect(in) as ins, collect(inRel) as inRels optional match (out)<-[outRel]-(n)
@@ -287,6 +294,7 @@ class dataBrowser {
 
       else {
         // query the DB for all info about this node and its relations
+        // DBREPLACE See above. I don't know how else to do this.
         const query = `match (n) where ID(n) = ${ID}
         with n optional match (in)-[inRel]->(n)
         with n, collect(in) as ins, collect(inRel) as inRels optional match (out)<-[outRel]-(n)

@@ -16,11 +16,15 @@ constructor(label, container, id) { // Label: the type of node described. ID: th
   // If we're editing, then the ID for the node was passed in.
   if (id) {
     if (app.login.userID) { // If the user is logged in - they should be, at this point.
+      //DBREPLACE Looking for a pattern again. Have a function just for this class and widgetNode?
       this.db.setQuery(`match (n) where ID(n)=${id} match (a) where ID(a)=${app.login.userID}
                         optional match (a)-[r:Trash]->(n)
                         return n, r.reason as reason`);
     }
     else {
+      // DBREPLACE DB function: find
+      // JSON object: {id:id}
+      // This is much simpler, but we probably don't even need it - you CAN'T search if you aren't logged in
       this.db.setQuery(`match (n) where ID(n) = ${id} return n`);
     }
     this.db.runQuery(this, 'finishConstructor');
@@ -160,6 +164,8 @@ trashNode(widgetElement) {
   const reason = reasonInp.value;
   reasonInp.setAttribute("class",""); // remove changedData class from reason
 
+  // DBREPLACE DB function: createRelation
+  // JSON object: {fromID:user; toID:node; properties:{reason:app.stringEscape(reason)}
   const query = `match (user), (node) where ID(user)=${user} and ID(node)=${node} merge (user)-[tRel:Trash {reason:"${app.stringEscape(reason)}"}]->(node)`
   this.db.setQuery(query);
   this.db.runQuery(this, "trashUntrash", widgetElement);
@@ -172,7 +178,9 @@ updateReason(widgetElement) {
   const reason = reasonInp.value;
   this.dataNode.properties.reason = reason;
   reasonInp.setAttribute("class","");
-  const query = `match (user)-[rel:Trash]->(node) where ID(user) = ${user} and ID(node) = ${node} set rel.reason = "${reason}"`;
+  // DBREPLACE DB function: updateRelation?
+  // JSON object: {fromID: user; toID: node; type:Trash; properties:{reason: app.stringEscape(reason)}}
+  const query = `match (user)-[rel:Trash]->(node) where ID(user) = ${user} and ID(node) = ${node} set rel.reason = "${app.stringEscape(reason)}"`;
   this.db.setQuery(query);
   this.db.runQuery(this, "trashUntrash", widgetElement);
 }
@@ -181,6 +189,8 @@ untrashNode(widgetElement) {
   this.dataNode.properties.trash = false;
   const user = app.login.userID;
   const node = this.dataNode.identity;
+  // DBREPLACE DB function: deleteRelation?
+  // JSON object: {fromID: user; toID: node; type:Trash}
   const query = `match (user)-[rel:Trash]->(node) where ID(user)=${user} and ID(node)=${node} delete rel`;
   this.db.setQuery(query);
   this.db.runQuery(this, "trashUntrash", widgetElement);

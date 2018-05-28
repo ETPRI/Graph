@@ -330,6 +330,8 @@ class regressionTesting {
       app.clearWidgets();
 
   		// Remove nodes and relationships
+      // DBREPLACE DB command: remove
+      // JSON object: {} (assume empty means no restrictions) or {type:""; parameters: {}}
   		const command = "MATCH (n) DETACH DELETE n";
   		app.db.setQuery(command);
   		app.db.runQuery(this, "dummy");

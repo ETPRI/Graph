@@ -45,6 +45,8 @@ class widgetSVG {
     this.notesLabel = null;
 
     if (this.mapID) {
+      // DBREPLACE DB function: matchNode
+      // JSON object: {id:this.mapID}
       const query = `match (mindmap:mindmap) where ID(mindmap) = ${this.mapID} return mindmap.roots as roots, mindmap.count as count, mindmap.name as name`;
       app.db.setQuery(query);
       app.db.runQuery(this, 'buildWidget');
@@ -1025,6 +1027,8 @@ class widgetSVG {
         root.y = parseFloat(transform[1]);
     }
 
+    // DBREPLACE DB function: mergeNode?
+    // JSON object: {name: name; changes: {roots:roots; count:count}}
     const query = `merge (mindmap: mindmap {name:"${name}"}) with mindmap set mindmap.roots="${app.stringEscape(JSON.stringify(rootsCopy))}", mindmap.count = ${this.count}`;
 
     app.db.setQuery(query);
@@ -1332,10 +1336,10 @@ class widgetSVG {
         });
 
     allNodes.selectAll(".detailsRect")
-      .classed("inactive", function(d) {if (d.data.nodeID == null) return true; else return false});
+      .classed("inactive", function(d) {if (d.data.nodeID == null && d.data.type != "link") return true; else return false});
 
     allNodes.selectAll(".detailButtonText")
-      .classed("inactiveText", function(d) {if (d.data.nodeID == null) return true; else return false});
+      .classed("inactiveText", function(d) {if (d.data.nodeID == null && d.data.type != "link") return true; else return false});
 
     allNodes.selectAll(".detailPopup")
       .attr("width", this.getAttribute("popupWidth"))
@@ -1478,7 +1482,7 @@ class widgetSVG {
     const group = button.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
     const obj = this.getObjFromID(ID);
-    if (obj.nodeID) {
+    if (obj.nodeID || obj.type == "link") {
       // Look for an existing popup for this node (there should be one).
       const popup = app.domFunctions.getChildByIdr(group, `popupGroup${ID}`);
       const tree = group.parentElement;
@@ -1705,7 +1709,7 @@ class widgetSVG {
     group.appendChild(text);
 
     const data = group.__data__.data;
-    if (data.nodeID == null) {
+    if (data.nodeID == null && data.type != "link") {
       text.classList.remove("hidden");
       box.classList.remove("hidden");
     }
