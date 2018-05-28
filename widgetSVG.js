@@ -410,8 +410,15 @@ class widgetSVG {
 
   // Deletes the selected node and all of its children
   deleteKey() {
-    if (this.selectedNode) {
+    if (this.selectedNode && !this.notesLabel) {
       const nodeID = this.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+      // Remove the onmouseout from everything in the group, to avoid triggering it when the group disappears
+      const prefixes = ["node", "toggle", "note", "detail"];
+      for (let i = 0; i < prefixes.length; i++) {
+        const idr = prefixes[i] + nodeID;
+        const element = app.domFunctions.getChildByIdr(this.SVG_DOM, idr);
+        element.removeAttribute("onmouseout");
+      }
       const nodeObj = this.getObjFromID(nodeID); // Get the object representing this node
       const parentID = nodeObj.parent;
       if (parentID != "null") { // If the object has a parent, remove it from its parent's children array
@@ -427,6 +434,7 @@ class widgetSVG {
           this.roots.splice(rootIndex, 1);
         }
       }
+      this.selectedNode = null;
       this.update();
     }
   }
@@ -569,10 +577,7 @@ class widgetSVG {
 
   selectNode(element, evnt) { // When a rectangle is clicked, records the current mouse position and the group's transformation, and sets onmousemove, onmouseup and onmouseout methods for dragging.
     evnt.preventDefault();
-    if (evnt.which == 3) {
-      this.showNotes(element); // On a right-click, show a notes popup instead
-    }
-    else if (evnt.which == 1) {
+    if (evnt.which == 1) {
       // Because THIS is the closest SVG gets to a goddamn "Bring to front" command!
       // It just draws everything in whatever order it's listed in the DOM,
       // so to move something to the front you have to actually move the HTML that generates it forward!

@@ -309,8 +309,8 @@ menuDBstats(dropDown){
 // Runs when the page loads. Ensures all preset calendars exist in the database.
 presetCalendars() {
 	// At the moment the only preset calendar is a dummy calendar that doesn't show events. This will change.
-	// DBREPLACE DB function: create? merge?
-	// JSON object: {type: "calendar"; name: "dummy"; description: "dummy calendar"}
+	// DBREPLACE DB function: createNode
+	// JSON object: {type: "calendar"; details:{name: "dummy"; description: "dummy calendar"}; merge:true}
 	const query = `merge (dummy:calendar {name: "dummy", description: "dummy calendar"})`;
 	this.db.setQuery(query);
 	this.db.runQuery();
