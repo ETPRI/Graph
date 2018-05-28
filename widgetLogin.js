@@ -157,7 +157,9 @@ class widgetLogin {
       alert("Enter your name and password first!");
     }
     else {
-      // DBREPLACE DB function: patternmatch? Again, this doesn't break down into atoms easily.
+      // DBREPLACE DB function: changePattern
+      // JSON object: {nodesFind:[{name:"user"; type:"people"}, {name:"table"; type:"LoginTable"}];
+      //               relsFind:[{from:"user"; to: "table"; type:"Permissions"; details: {username:name; password:password}}]}
   	  this.db.setQuery(`match (user)-[rel:Permissions {username:"${name}", password:"${password}"}]->(table:LoginTable)
                         return ID(user) as userID, user.name as name, table.name as permissions`);
   	  this.db.runQuery(this, 'loginComplete');

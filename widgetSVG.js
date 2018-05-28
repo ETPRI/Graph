@@ -385,7 +385,7 @@ class widgetSVG {
   // If NOT currently editing a node (in which case, hitting Enter just means "Done editing"),
   // create a new younger sibling for the node.
   enterKey() {
-    if (this.selectedNode) {
+    if (this.selectedNode && this.notesText.hidden == true) {
       const nodeID = this.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
       const nodeObj = this.getObjFromID(nodeID); // Get the object representing this node
       const parentID = nodeObj.parent;

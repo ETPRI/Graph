@@ -42,17 +42,13 @@ constructor(callerID, label, id, name) {
 
   // If we're editing, then the ID for the node was passed in.
   if (id) {
-    if (app.login.userID) {
-      // DBREPLACE DB function: matchPattern
-      // JSON object: {nodes: [{name: n; id: id}, {name: a; id: app.login.userID}] links:[{name: r; from: a; to: n; type: Trash; optional: true}]}
+    if (app.login.userID) { // Just in case - really, the user should be logged in
+      // DBREPLACE DB function: changePattern
+      // JSON object: {nodesFind: [{name: n; id: id}, {name: a; id: app.login.userID}]
+      //               relsFind: [{name: r; from: a; to: n; type: Trash; optional: true}]}
       this.db.setQuery(`match (n) where ID(n)=${id} match (a) where ID(a)=${app.login.userID}
                         optional match (a)-[r:Trash]->(n)
                         return n, r.reason as reason`);
-    }
-    else {
-      // DBREPLACE DB function: find
-      // Can probably be removed, really
-      this.db.setQuery(`match (n) where ID(n) = ${id} return n`);
     }
     this.db.runQuery(this, 'finishConstructor');
   } else {
@@ -265,6 +261,7 @@ trashNode(widgetElement) {
   reasonInp.setAttribute("class",""); // remove changedData class from reason
 
   // DBREPLACE DB function: createRelation
+  // JSON object: {from: {ID:user}; to: {ID:node}; type:"Trash"; properties:{reason:app.stringEscape(reason)}; merge:true}
   const query = `match (user), (node) where ID(user)=${user} and ID(node)=${node} merge (user)-[tRel:Trash {reason:"${app.stringEscape(reason)}"}]->(node)`
   this.db.setQuery(query);
   this.db.runQuery(this, "trashUntrash", widgetElement);
@@ -277,7 +274,8 @@ updateReason(widgetElement) {
   const reason = reasonInp.value;
   this.dataNode.properties.reason = reason;
   reasonInp.setAttribute("class","");
-  // DBREPLACE DB function: updateRelation
+  // DBREPLACE DB function: changeRelation
+  // JSON object: {from: {ID:user}; to: {ID:node}; type:"Trash"; changes:{reason:app.stringEscape(reason)}}
   const query = `match (user)-[rel:Trash]->(node) where ID(user) = ${user} and ID(node) = ${node} set rel.reason = "${reason}"`;
   this.db.setQuery(query);
   this.db.runQuery(this, "trashUntrash", widgetElement);
@@ -288,6 +286,7 @@ untrashNode(widgetElement) {
   const user = app.login.userID;
   const node = this.dataNode.identity;
   // DBREPLACE DB function: deleteRelation
+  // JSON object: {fromID: user; toID: node; type:Trash}
   const query = `match (user)-[rel:Trash]->(node) where ID(user)=${user} and ID(node)=${node} delete rel`;
   this.db.setQuery(query);
   this.db.runQuery(this, "trashUntrash", widgetElement);
@@ -317,7 +316,7 @@ add(widgetElement) { // Builds a query to add a new node, then runs it and passe
 
   const query = create.replace("#data#", data.substr(0,data.length-2) );
   // DBREPLACE DB function: createNode
-  // JSON object (from example): {type: person; properties: {name: "David Bolt"; lives: "Knoxville"}}
+  // JSON object (from example): {type:person; properties:{name: "David Bolt"; lives: "Knoxville"}}
   this.db.setQuery(query);
   this.db.runQuery(this,"addComplete");
 }
@@ -414,8 +413,8 @@ save(widgetElement, trashUntrash) { // Builds query to update a node, runs it an
     alert("no changes to save")
     }
   } else {
-    // DBREPLACE DB function: updateNode
-    // JSON object: {id: this.dataNode.identity; changes:{data.substr(0,data.length-2)}}, or I may change how data is built.
+    // DBREPLACE DB function: changeNode
+    // JSON object: {name: "n"; id:this.dataNode.identity; changes:{data.substr(0,data.length-2)}}, or I may change how data is built.
     this.db.setQuery( `match (n) where id(n)=${this.dataNode.identity} set ${data.substr(0,data.length-2)} return n` );
     this.db.runQuery(this,"saveData");
   }
