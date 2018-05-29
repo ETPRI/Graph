@@ -1,3 +1,10 @@
+/* Current function count: 49
+    Won't be needed permanently: 1 (showCalendar)
+    For distinguishing between types of mouse clicks: 8 (selectNode through noDoubleClick)
+    Other mouse functions: 5 (dragNode-moveNode, releaseNode)
+
+    Can combine showDetails and hideDetails into one. Call it toggleWidgetDetails to distinguisn from node details
+*/
 class widgetSVG {
   constructor (callerID, id, name) { // create variables, then call buildWidget()
     this.widgetID = app.idCounter;
@@ -9,6 +16,7 @@ class widgetSVG {
     this.count = 0;
     this.containedWidgets = [];
     this.callerID = callerID;
+    this.keys = new mindmapKeypress(this);
 
     // constants for drawing
     this.width = 1200; // Width of the SVG element
@@ -32,15 +40,7 @@ class widgetSVG {
     this.selectedNode = null;
     this.currentPosition = null;
 
-    // data for making trees. This will hold an array of objects.
-    // each with a name, a parent (although the parent will be null), x and y coordinates and a children array, as well as other data not needed for a tree.
-    // The children array will include other objects making a tree.
-    this.roots = [];
-
-    // used for creating new nodes and editing existing ones
-    this.newObject = null;
-    this.newNode = null;
-    this.editDOM = null;
+    // used for editing notes
     this.notesText = null;
     this.notesLabel = null;
 
@@ -85,23 +85,13 @@ class widgetSVG {
     this.SVG_DOM = document.getElementById(`svg${this.widgetID}`);
     this.widgetDOM = document.getElementById(`${this.widgetID}`);
 
-    this.editDOM = document.createElement("input");
-    this.editDOM.setAttribute("type", "text");
-    this.editDOM.setAttribute("onblur", "app.widget('saveInput', this)");
-    this.editDOM.setAttribute("onkeydown", "app.widget('lookForEnter', this, event)");
-    this.editDOM.setAttribute("hidden", "true");
-    this.editDOM.setAttribute("idr", "edit");
-    this.SVG_DOM.appendChild(this.editDOM);
-
     this.notesText = document.createElement("textarea");
     this.notesText.setAttribute("hidden", "true");
     this.notesText.setAttribute("idr", "notes");
     this.notesText.setAttribute("oncontextmenu", "event.preventDefault()");
     this.SVG_DOM.appendChild(this.notesText);
 
-    // if (this.mapID) {
-    //   this.loadMap();
-    // }
+    this.d3Functions = new d3Functions(this);
 
     if (data) {
       this.loadComplete(data);
@@ -113,6 +103,29 @@ class widgetSVG {
     app.activeWidget = this.widgetDOM;
     this.widgetDOM.classList.add("activeWidget");
   } // end buildWidget
+
+  loadComplete(data) { // Sets the roots array for the mind map to match the data that was loaded, then calls update() to draw the mind map
+    if (data.length == 0) {
+      alert ("Error: Mind map not found");
+    }
+    else if (data.length > 1) {
+      alert ("Error: Multiple mind maps found with same name");
+    }
+    else { // If one result was returned - which should always happen
+      if (data[0].roots) {
+        this.d3Functions.roots = JSON.parse(data[0].roots);
+      }
+      if (data[0].count) {
+        this.count = data[0].count;
+      }
+      if (data[0].name) {
+        this.name = data[0].name;
+        const nameText = app.domFunctions.getChildByIdr(this.widgetDOM, 'name');
+        nameText.textContent = this.name;
+      }
+      this.d3Functions.update();
+    }
+  }
 
   showDetails(button) {
     const row = app.domFunctions.getChildByIdr(this.widgetDOM, 'svgRow');
@@ -127,29 +140,6 @@ class widgetSVG {
     row.deleteCell(-1);
     button.value = "Show Details";
     button.setAttribute("onclick", "app.widget('showDetails', this)");
-  }
-
-  loadComplete(data) { // Sets the roots array for the mind map to match the data that was loaded, then calls update() to draw the mind map
-    if (data.length == 0) {
-      alert ("Error: Mind map not found");
-    }
-    else if (data.length > 1) {
-      alert ("Error: Multiple mind maps found with same name");
-    }
-    else { // If one result was returned - which should always happen
-      if (data[0].roots) {
-        this.roots = JSON.parse(data[0].roots);
-      }
-      if (data[0].count) {
-        this.count = data[0].count;
-      }
-      if (data[0].name) {
-        this.name = data[0].name;
-        const nameText = app.domFunctions.getChildByIdr(this.widgetDOM, 'name');
-        nameText.textContent = this.name;
-      }
-      this.update();
-    }
   }
 
   allowDrop(object, evnt) { // Prevent default action so drag and drop works properly. Also find parent and sibling nodes.
@@ -202,6 +192,7 @@ class widgetSVG {
     newObj.details = data.details;
     newObj.parent = "null";
     newObj.children = [];
+
     // Trying to get reference to this class instance into the data, where anonymous functions can use it
     const instanceVars = {};
     instanceVars.nodeWidth = this.nodeWidth;
@@ -218,12 +209,12 @@ class widgetSVG {
     const group = this.checkDrop(null, x, y);
     if (group) {
       this.connectNode(group, newObj);
-      this.update();
+      this.d3Functions.update();
     }
     else {
-      this.roots.push(newObj);
-      this.newObject = newObj;
-      this.update();
+      this.d3Functions.roots.push(newObj);
+      this.d3Functions.newObject = newObj;
+      this.d3Functions.update();
     }
 
     // Make this the active widget
@@ -234,7 +225,7 @@ class widgetSVG {
     this.widgetDOM.classList.add("activeWidget");
   }
 
-  connectNode(group, newObj) {
+  connectNode(group, newObj) { // Connect a node to a label
     const id = group.getAttribute("idr").slice(5);
     const labelObj = this.getObjFromID(id);
 
@@ -242,7 +233,7 @@ class widgetSVG {
     labelObj.nodeID = newObj.nodeID;
     labelObj.type = newObj.type;
     labelObj.details = newObj.details;
-    this.newObject = labelObj;
+    this.d3Functions.newObject = labelObj;
   }
 
   newBox(element, evnt) {
@@ -260,8 +251,8 @@ class widgetSVG {
       const newObj = this.newObj();
       newObj.x = relX;
       newObj.y = relY;
-      this.roots.push(newObj);
-      this.update();
+      this.d3Functions.roots.push(newObj);
+      this.d3Functions.update();
     }
   }
 
@@ -285,10 +276,9 @@ class widgetSVG {
 
     newObj.instance = instanceVars;
 
-
     // Remember which node to edit
-    this.newNode = newObj.id;
-    this.newObject = newObj;
+    this.d3Functions.newNode = newObj.id;
+    this.d3Functions.newObject = newObj;
 
     return newObj;
   }
@@ -296,8 +286,8 @@ class widgetSVG {
   getObjFromID(nodeID) {
     let nodeObj = null;
     let nonRootObjs = [];
-    for (let i = 0; i < this.roots.length; i++) { // for every root...
-      const root = this.roots[i];
+    for (let i = 0; i < this.d3Functions.roots.length; i++) { // for every root...
+      const root = this.d3Functions.roots[i];
       if (root.id == nodeID) { // check that root...
         nodeObj = root;
         break;
@@ -328,183 +318,7 @@ class widgetSVG {
   }
 
   keyPressed(evnt) {
-    if (evnt.target != this.editDOM) {
-      switch (evnt.which) {
-        case 9:
-          evnt.preventDefault();  // Don't jump around the page
-          this.tabKey();
-          break;
-        case 13:
-          this.enterKey();
-          break;
-        case 27:
-          this.escapeKey();
-          break;
-        case 37:
-          this.leftArrow();
-          break;
-        case 38:
-          evnt.preventDefault(); // Don't scroll
-          this.upDownArrow(-1); // On an up arrow, go to the previous sibling - SUBTRACT 1 from current index
-          break;
-        case 39:
-          this.rightArrow();
-          break;
-        case 40:
-          evnt.preventDefault(); // Don't scroll
-          this.upDownArrow(1); // on a down arrow, go to the next sibling -- ADD 1 to current index
-          break;
-        case 46:
-        case 8:
-          this.deleteKey();
-          break;
-      }
-    }
-  }
-
-  // Creates a new blank node which is a child of the selected node
-  tabKey() {
-    if (this.selectedNode) {
-      const nodeID = this.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const nodeObj = this.getObjFromID(nodeID); // Get the object representing this node
-
-      if (nodeObj._children && nodeObj._children.length > 0) { // If the object has children, but they are hidden, show them.
-        const button = this.selectedNode.children[1]; // Every node group has five children - a node rect, a toggle rect,
-        // a details rect, a details popup, and text - in that order. So the button is the child with index 1.
-        this.toggle(button);
-        // The children, if any, should now be visible, and the object should have a children array.
-      }
-
-      const child = this.newObj(); // Create a new blank label object...
-      child.parent = nodeID;
-      nodeObj.children.push(child); // make it a new child of the selected node...
-      this.update(); // and redraw the graphic.
-    }
-  }
-
-  // If NOT currently editing a node (in which case, hitting Enter just means "Done editing"),
-  // create a new younger sibling for the node.
-  enterKey() {
-    if (this.selectedNode && this.notesText.hidden == true) {
-      const nodeID = this.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const nodeObj = this.getObjFromID(nodeID); // Get the object representing this node
-      const parentID = nodeObj.parent;
-      if (parentID != "null") { // IF the selected node has a parent, it can have siblings
-      const parent = this.getObjFromID(parentID);
-        const child = this.newObj();
-
-        const index = parent.children.indexOf(nodeObj) + 1; // Insert in the NEXT position, to come after the previous sibling
-        parent.children.splice(index, 0, child);
-        child.parent = parentID;
-        this.update();
-      }
-    }
-  }
-
-  // deselects the selected node
-  escapeKey() {
-    if (this.selectedNode) {
-      this.selectedNode.classList.remove("selected");
-      this.selectedNode = null;
-      this.update();
-    }
-  }
-
-  // Deletes the selected node and all of its children
-  deleteKey() {
-    if (this.selectedNode && !this.notesLabel) {
-      const nodeID = this.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      // Remove the onmouseout from everything in the group, to avoid triggering it when the group disappears
-      const prefixes = ["node", "toggle", "note", "detail"];
-      for (let i = 0; i < prefixes.length; i++) {
-        const idr = prefixes[i] + nodeID;
-        const element = app.domFunctions.getChildByIdr(this.SVG_DOM, idr);
-        element.removeAttribute("onmouseout");
-      }
-      const nodeObj = this.getObjFromID(nodeID); // Get the object representing this node
-      const parentID = nodeObj.parent;
-      if (parentID != "null") { // If the object has a parent, remove it from its parent's children array
-        const parentObj = this.getObjFromID(parentID);
-        const parentIndex = parentObj.children.indexOf(nodeObj);
-        if(parentIndex != -1) {
-          parentObj.children.splice(parentIndex, 1);
-        }
-      }
-      else { // If the object is a root, remove it from the roots array
-        const rootIndex = this.roots.indexOf(nodeObj);
-        if(rootIndex != -1) {
-          this.roots.splice(rootIndex, 1);
-        }
-      }
-      this.selectedNode = null;
-      this.update();
-    }
-  }
-
-  // Selects the parent of the selected node
-  leftArrow() {
-    if (this.selectedNode) {
-      const nodeID = this.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const nodeObj = this.getObjFromID(nodeID); // Get the object representing this node
-      const parentID = nodeObj.parent;
-      if (parentID != "null") { // If the object has a parent, select the parent
-        const parentGroup = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${parentID}`);
-        this.makeSelectedNode(parentGroup);
-        this.update();
-      }
-    }
-  }
-
-  // Selects the first child of the selected node
-  rightArrow() {
-    if (this.selectedNode) {
-      const nodeID = this.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const nodeObj = this.getObjFromID(nodeID); // Get the object representing this node
-        if (nodeObj._children && nodeObj._children.length > 0) { // If the object has children, but they are hidden, show them.
-          const button = this.selectedNode.children[1]; // Every node group has five children - a node rect, a toggle rect,
-          // a details rect, a details popup, and text - in that order. So the button is the child with index 1.
-          this.toggle(button);
-          // The children, if any, should now be visible.
-        }
-      if (nodeObj.children && nodeObj.children.length > 0) { // If the object has children, select the oldest child
-        const childObj = nodeObj.children[0];
-        const childID = childObj.id;
-        const childGroup = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${childID}`);
-        this.makeSelectedNode(childGroup);
-        this.update();
-      }
-    }
-  }
-
-  // Go to the previous sibling, if any. If this is the first sibling, cycle around to the last one.
-  upDownArrow(offset) {
-    if (this.selectedNode) {
-      const nodeID = this.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const nodeObj = this.getObjFromID(nodeID); // Get the object representing this node
-      const parentID = nodeObj.parent;
-      if (parentID != "null") { // If the object has a parent, we can cycle through its siblings, if any
-        const parentObj = this.getObjFromID(parentID);
-        const parentIndex = parentObj.children.indexOf(nodeObj);
-        let newIndex = parentIndex + offset; // Add 1 to the index to go forward (down arrow). Subtract 1 to go back (up arrow)
-
-        // If we go too far backwards, the index will be -1. Cycle around to the last item
-        if (newIndex == -1) {
-          newIndex = parentObj.children.length - 1;
-        }
-
-        // If we go too far forward, the index will be equal to the array length. Cycle around to the first item.
-        if (newIndex == parentObj.children.length) {
-          newIndex = 0;
-        }
-
-        const siblingObj = parentObj.children[newIndex];
-        const siblingID = siblingObj.id;
-        const siblingGroup = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${siblingID}`);
-
-        this.makeSelectedNode(siblingGroup);
-      }
-      this.update();
-    }
+    this.keys.keyPressed(evnt);
   }
 
   dropConnect(node, childObj) { // Creates a link between the node being dragged and the node it was dropped onto
@@ -513,9 +327,9 @@ class widgetSVG {
     const parentObj = this.getObjFromID(nodeID);
 
     if (parentObj && childObj) { // If both objects exist
-      const rootIndex = this.roots.indexOf(childObj); // Remove the child from the roots array if it's in there
+      const rootIndex = this.d3Functions.roots.indexOf(childObj); // Remove the child from the roots array if it's in there
       if (rootIndex != -1) {
-        this.roots.splice(rootIndex, 1);
+        this.d3Functions.roots.splice(rootIndex, 1);
       }
 
       // Remove the child from its parent's children array, if it's in there
@@ -530,8 +344,10 @@ class widgetSVG {
 
       // Auto-show parent's children
       if (parentObj._children) {
-        const button = node.children[1]; // Every node group has three children - a node rect, a toggle rect and text - in that order.
-        this.toggle(button);
+        parentObj.children = parentObj._children;
+        parentObj._children = null;
+        // const button = node.children[1]; // Every node group has three children - a node rect, a toggle rect and text - in that order.
+        // this.toggleChildren(button);
       }
 
       // Make the child a child of the parent
@@ -573,7 +389,7 @@ class widgetSVG {
       this.nextSibling = null;
       this.prevSibling = null;
 
-      this.update(); // Update the mind map
+      this.d3Functions.update(); // Update the mind map
     } // End if (both objects found)
   }
 
@@ -672,10 +488,10 @@ class widgetSVG {
     const id = element.getAttribute("idr").slice(4); // The idr will look like "nodexxx"
     const obj = instance.getObjFromID(id);
     if (obj.nodeID == null) { // If this label has no node attached
-      instance.newNode = id; // Set the doubleclicked element as the new node, so it will be edited
-      instance.editDOM.value = obj.name; // Fill the existing name in the edit textbox...
+      instance.d3Functions.newNode = id; // Set the doubleclicked element as the new node, so it will be edited
+      instance.d3Functions.editDOM.value = obj.name; // Fill the existing name in the edit textbox...
       obj.name = ""; // and remove it from the object (so it won't show up behind the textbox)
-      instance.update(); // Finally, update the mind map, causing the text in the node to disappear and the edit box to appear.
+      instance.d3Functions.update(); // Finally, update the mind map, causing the text in the node to disappear and the edit box to appear.
     }
 
     element.removeAttribute("onmousemove");
@@ -808,7 +624,7 @@ class widgetSVG {
     const group = element.parentElement;
     const groupID = group.getAttribute("idr").slice(5); // this IDR will be like groupxxx
     const labelObj = this.getObjFromID(groupID);
-    this.newObject = labelObj;
+    this.d3Functions.newObject = labelObj;
 
     if (this.parentNode) { // If we dropped element (the node being moved) onto that group, we should connect them.
       if (labelObj == null) {
@@ -835,9 +651,9 @@ class widgetSVG {
         const SVGrect = this.SVG_DOM.getBoundingClientRect();
         labelObj.y = labelRect.y - SVGrect.y;
         labelObj.x = labelRect.x - SVGrect.x;
-        this.roots.push(labelObj);
+        this.d3Functions.roots.push(labelObj);
       }
-      this.update();
+      this.d3Functions.update();
     }
 
     this.parent = null;
@@ -966,55 +782,6 @@ class widgetSVG {
     }
   }
 
-  // showNotes(element) { // element is the main rectangle for this label
-  //   this.SVG_DOM.parentElement.appendChild(this.notesText);
-  //   this.notesText.hidden=false;
-  //   let heightString = "";
-  //   let widthString = "";
-  //
-  //   // Get the object
-  //   const id = element.getAttribute("idr").slice(4); // The idr will be like nodexxx
-  //   const labelObj = this.getObjFromID(id);
-  //   if (labelObj.notes) {
-  //     this.notesText.value = labelObj.notes;
-  //   }
-  //
-  //   if (labelObj.notesHeight) {
-  //     heightString = ` height:${labelObj.notesHeight}px;`;
-  //   }
-  //
-  //   if (labelObj.notesWidth) {
-  //     widthString = ` width:${labelObj.notesWidth}px;`;
-  //   }
-  //
-  //
-  //   const bounds = element.getBoundingClientRect();
-  //   // Makes the notes text area visible
-  //   let leftPos = bounds.left + window.scrollX + this.nodeWidth;
-  //   let topPos = bounds.top + window.scrollY;
-  //   this.notesText.setAttribute("style", `position:absolute; left:${leftPos}px; top:${topPos}px;${heightString}${widthString}`);
-  //
-  //   this.notesLabel = labelObj;
-  //   this.notesText.select();
-  //
-  //   this.makeSelectedNode(element.parentElement);
-  // }
-  //
-  // saveNotes(textarea) {
-  //   if (this.notesLabel) { // This SHOULD always be true, but it doesn't hurt to check
-  //      this.notesLabel.notes = textarea.value;
-  //      this.notesLabel.notesHeight = textarea.clientHeight;
-  //      this.notesLabel.notesWidth = textarea.clientWidth;
-  //      this.notesLabel = null;
-  //   }
-  //   // Even if there is no object whose notes are being written, hide and move the notes text area
-  //   textarea.hidden = true;
-  //   textarea.value = "";
-  //   textarea.setAttribute("style", "position:static");
-  //   this.SVG_DOM.appendChild(textarea);
-  //   this.update();
-  // }
-
   save (button) { // Saves the current state of the graph to the database.
     let name = this.name;
     const id = this.mapID;
@@ -1023,7 +790,7 @@ class widgetSVG {
       name = prompt("Please enter the name for this mind map", name);
     }
 
-    const rootsCopy = JSON.parse(JSON.stringify(this.roots));
+    const rootsCopy = JSON.parse(JSON.stringify(this.d3Functions.roots));
 
     for (let i=0; i< rootsCopy.length; i++) { // Go through all the roots and add their transform values to their coordinates, so they'll display in the right places.
         const root = rootsCopy[i];
@@ -1042,370 +809,6 @@ class widgetSVG {
     app.db.runQuery();
   }
 
-  update() { // Creates a group for each item in the array of roots, then calls buildTree to make a tree for each group.
-    const groups = d3.select(`#svg${this.widgetID}`).selectAll("g.tree")
-      .data(this.roots, function(d) {return d.name;});
-
-    const newTrees = groups.enter()
-      .append("g")
-        .attr("class", "tree")
-        .attr("idr", function(d) {return `tree${d.id}`})
-        .attr("nodeWidth", this.nodeWidth)
-        .attr("nodeHeight", this.nodeHeight)
-        .attr("toggleWidth", this.toggleWidth)
-        .attr("detailWidth", this.detailWidth)
-        .attr("popupWidth", this.popupWidth)
-        .attr("transform", function(d) {return "translate(" + d.x + " " + d.y + ")";} )
-
-    const allTrees = newTrees.merge(groups);
-    allTrees.each(this.buildTree);
-
-    if (groups._exit) {
-      groups.exit().remove();
-    }
-
-    //Truncate label names that are too long
-    const texts = document.getElementsByClassName("nodeText");
-    for (let i = 0; i < texts.length; i++) {
-      if (texts[i].getComputedTextLength() > this.nodeWidth - 10) { // Allow a 5-px cushion
-        texts[i].innerHTML += "...";
-        while (texts[i].getComputedTextLength() > this.nodeWidth - 10) { // Remove one character at a time, keeping the ellipsis
-          const text = texts[i];
-          const currentText = text.textContent;
-          const newText = currentText.substring(0, currentText.length-4) + "...";
-          texts[i].textContent = newText;
-        }
-      }
-    }
-
-    // Same for detailText
-    const detailTexts = document.getElementsByClassName("detailText");
-    for (let i = 0; i < detailTexts.length; i++) {
-      if (detailTexts[i].getComputedTextLength() > this.popupWidth - 10) { // Allow a 5-px cushion
-        detailTexts[i].textContent += "...";
-        while (detailTexts[i].getComputedTextLength() > this.popupWidth - 10) { // Remove one character at a time, keeping the ellipsis
-          detailTexts[i].textContent = detailTexts[i].textContent.substring(0, detailTexts[i].textContent.length-4) + "...";
-        }
-      }
-    }
-
-    // Now the detail header. Tricky part here: There are two pieces of info, the name and type.
-    // I'm going to truncate this normally for now (hiding the type), and discuss later.
-    // Truncating just the name sounds better to me, but hard to make foolproof.
-    // If I start trimming just before " Type: ", some damn fool is sure to put that in someone's name.
-    const detailHeaders = document.getElementsByClassName("detailHeaderText");
-    for (let i = 0; i < detailHeaders.length; i++) {
-      if (detailHeaders[i].getComputedTextLength() > this.popupWidth - (2*this.nodeHeight + 10)) { // Allow a 5-px cushion; leave room for buttons
-        detailHeaders[i].textContent += "...";
-        while (detailHeaders[i].getComputedTextLength() > this.popupWidth - (2*this.nodeHeight + 10)) { // Remove one character at a time, keeping the ellipsis
-          detailHeaders[i].textContent = detailHeaders[i].textContent.substring(0, detailHeaders[i].textContent.length-4) + "...";
-        }
-      }
-    }
-
-    // Finally, see if there's a new (blank) node. If so, append a text box to it to get the name,
-    // then make it NOT the new node anymore. Similarly, check for a new object (whether attached to a blank node or not).
-    // If there is one, make it the selected node.
-    if (this.newNode) {
-      const newNode = app.domFunctions.getChildByIdr(this.SVG_DOM, `node${this.newNode}`);
-      this.SVG_DOM.parentElement.appendChild(this.editDOM);
-      this.editDOM.hidden=false;
-      const bounds = newNode.getBoundingClientRect();
-      this.editDOM.setAttribute("style", `position:absolute; left:${bounds.left + window.scrollX}px; top:${bounds.top + window.scrollY}px`);
-      this.editDOM.select(); // This isn't working. Back-burner goal: Figure out why; study focus in general; fix focus in dragDrop table
-    }
-    if (this.newObject) {
-      const id = this.newObject.id;
-      const select = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${id}`);
-      if (select) {
-        this.makeSelectedNode(select);
-      }
-      this.newObject = null;
-    }
-  }
-
-  // Builds an individual tree, given the data to build it from and the group to build it in.
-  // Only called by update, which passes in the appropriate values for each tree.
-  // NOTE: I don't know why yet, but it seems that when building a group for each tree, data is stored in d.
-  // When building a node for each leaf WITHIN a tree (in buildTree), data is stored in d.data.
-  buildTree(datum, index, group) {
-    const buildPopup = function(datum, index, group) {
-      const texts = d3.select(this).select(".detailPopupVisible").selectAll(".detailText")
-        .data(datum.data.details, function(d) {return d.field});
-
-      texts.enter().append("text")
-        .attr("class", "detailText")
-        .text(function(d) {return `${d.field}: ${d.value}`})
-        .attr("transform", function(d, i) {return `translate(-${d.instance.popupWidth/2}
-                                                              ${20 -d.instance.nodeHeight*i})`})
-
-      texts.text(function(d) {return `${d.field}: ${d.value}`});
-      texts.exit().remove();
-    }
-
-    const tree = d3.tree()
-    	.nodeSize([100, 200]);
-
-    const root = d3.hierarchy(datum);
-    const nodes = root.descendants();
-
-    const links = tree(root).links();
-
-    // Update the nodes…
-    const g = d3.select(this);
-    const node = g.selectAll(".node") // This means that all the nodes inside the given group are part of this tree
-     .data(nodes, function(d) {return d.id || d.data.id;}) // Update what data to include. Each group represents one node.
-     .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; });
-
-    // Enter any new nodes
-    const nodeEnter = node.enter().append("g") // Append a "g" for each new node
-  	  .attr("class", "node")
-  	  .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; })
-      .attr("idr", function (d) {return `group${d.data.id}`; });
-
-    nodeEnter.append("rect")  // notes indicator rectangle. Appended first so it's behind the main rect
-      .attr("width", this.getAttribute("nodeHeight"))
-      .attr("height", this.getAttribute("nodeHeight"))
-      .attr("transform", `translate(${10 + parseInt(this.getAttribute("nodeWidth")) - parseInt(this.getAttribute("nodeHeight"))} -10)`)
-      .attr("idr", function(d) {return `notes${d.data.id}`; })
-      .attr("class", "notesRect");
-
-    nodeEnter.append("rect")  // Main rectangle
-      .attr("width", this.getAttribute("nodeWidth"))
-      .attr("height", this.getAttribute("nodeHeight"))
-      .attr("idr", function (d) {return `node${d.data.id}`; })
-      .attr("class", "nodeRect")
-      .attr("onmouseover", "app.widget('showButtons', this)")
-      .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
-      .attr("onmousedown", "app.widget('selectNode', this, event)");
-
-    nodeEnter.append("rect")  // toggle rectangle
-      .attr("width", this.getAttribute("nodeWidth")/3)
-      .attr("height", this.getAttribute("nodeHeight"))
-      .attr("idr", function(d) {return `toggle${d.data.id}`})
-      .attr("transform", `translate(${this.getAttribute("nodeWidth")*2/3} ${this.getAttribute("nodeHeight")*-1})`)
-      .attr("onmouseup", "app.widget('toggle', this)")
-      .attr("onmouseover", "app.widget('toggleExplain', this)")
-      .attr("onmouseout", "app.widget('hideToggleExplain', this); app.widget('checkHideButtons', this, event)")
-      .attr("class", "toggleRect hidden");
-
-    nodeEnter.append("text") // Toggle button text
-      .attr("idr", function(d) {return `toggleText1${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
-      .attr("class", "toggleButtonText unselectable hidden")
-      .text("Toggle");
-
-    nodeEnter.append("text")
-      .attr("idr", function(d) {return `toggleText2${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} -4)`)
-      .attr("class", "toggleButtonText unselectable hidden")
-      .text("Children");
-
-    nodeEnter.append("rect") // Toggle explanation box...
-      .attr("width", 360)
-      .attr("height", 20)
-      .attr("idr", function(d) {return `toggleExpBox${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6 - 180} ${this.getAttribute("nodeHeight") *-1.5 - 10})`)
-      .attr("class", "toggleExpBox hidden");
-
-    nodeEnter.append("text") // and text
-      .attr("idr", function(d) {return `toggleExpln${d.data.id}`;})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} ${this.getAttribute("nodeHeight") *-1.5 + 4})`)
-      .attr("class", "toggleExpln unselectable hidden")
-      .text("Children can only be toggled when they exist. This node has no children.");
-
-    nodeEnter.append("rect")  // Show Notes rectangle
-      .attr("width", this.getAttribute("nodeWidth")/3)
-      .attr("height", this.getAttribute("nodeHeight"))
-      .attr("idr", function(d) {return `note${d.data.id}`})
-      .attr("transform", `translate(${this.getAttribute("nodeWidth")*1/3} ${this.getAttribute("nodeHeight")*-1})`)
-      .attr("onmouseup", "app.widget('toggleNotes', this)")
-      .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
-      .attr("class", "showNotesRect hidden");
-
-      nodeEnter.append("text") // Show notes button text
-        .attr("idr", function(d) {return `showNotesText1${d.data.id}`})
-        .attr("transform", `translate (${this.getAttribute("nodeWidth")/2} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
-        .attr("class", "notesButtonText unselectable hidden")
-        .text("Toggle");
-
-      nodeEnter.append("text")
-        .attr("idr", function(d) {return `showNotesText2${d.data.id}`})
-        .attr("transform", `translate (${this.getAttribute("nodeWidth")/2} -4)`)
-        .attr("class", "notesButtonText unselectable hidden")
-        .text("Notes");
-
-    nodeEnter.append("rect")  // Detail display rectangle
-      .attr("width", this.getAttribute("nodeWidth")/3)
-      .attr("height", this.getAttribute("nodeHeight"))
-      .attr("idr", function(d) {return `detail${d.data.id}`})
-      .attr("transform", `translate(0 ${this.getAttribute("nodeHeight")*-1})`)
-      .attr("onmouseover", "app.widget('detailExplain', this)")
-      .attr("onmouseout", "app.widget('hideDetailExplain', this, event); app.widget('checkHideButtons', this, event)")
-      .attr("onmouseup", "app.widget('toggleDetails', this)")
-      .attr("class", "detailsRect hidden");
-
-    nodeEnter.append("text") // Show details button text
-      .attr("idr", function(d) {return `showDetailsText1${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")/6} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
-      .attr("class", "detailButtonText unselectable hidden")
-      .text("Toggle");
-
-    nodeEnter.append("text")
-      .attr("idr", function(d) {return `showDetailsText2${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")/6} -4)`)
-      .attr("class", "detailButtonText unselectable hidden")
-      .text("Details");
-
-    nodeEnter.append("rect") // Details explanation box...
-      .attr("width", 360)
-      .attr("height", 20)
-      .attr("idr", function(d) {return `detailExpBox${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*1/6 - 180} ${this.getAttribute("nodeHeight") *-1.5 - 10})`)
-      .attr("class", "detailExpBox hidden");
-
-    nodeEnter.append("text") // ... and text
-      .attr("idr", function(d) {return `detailExpln${d.data.id}`;})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*1/6} ${this.getAttribute("nodeHeight") *-1.5 + 4})`)
-      .attr("class", "detailExpln unselectable hidden")
-      .text("This label has no node or link attached, so there are no details to show.");
-
-    nodeEnter.append("g") // Create a detail popup group with a rectangle in it
-      .attr("idr", function(d) {return `popupGroup${d.data.id}`})
-      .attr("class", "detailPopupVisible hidden")
-      .append("rect")                                             // Large popup rectangle...
-        .attr("idr", function(d) {return`popupRect${d.data.id}`})
-        .attr("class", "detailPopup")
-      .select(function() { return this.parentNode; })
-        .append("rect")                                           // Header rectangle
-        .attr("idr", function (d) {return `detailHeader${d.data.id}`})
-        .attr("class", "detailHeader")
-        .attr("height", this.getAttribute("nodeHeight"))
-        .attr("width", this.getAttribute("popupWidth"))
-      .select(function() { return this.parentNode; })
-        .append("rect")                                           // disassociate button
-        .attr("idr", function(d) {return `disassociate${d.data.id}`})
-        .attr("class", "disassociateButton")
-        .attr("height", this.getAttribute("nodeHeight"))
-        .attr("width", this.getAttribute("nodeHeight"))
-        .attr("onmousedown", "app.widget('disassociate', this)")
-      .select(function() { return this.parentNode; })             // disassociate text
-        .append("text")
-        .attr("dx", function(d) {return `-${d.data.instance.popupWidth - d.data.instance.nodeHeight/2}`;})
-        .attr("idr", function(d) {return `disassociateText${d.data.id}`;})
-        .attr("class", "disassociateText unselectable")
-        .text("X")
-      .select(function() { return this.parentNode; })
-        .append("rect")                                           // Show Node button
-        .attr("idr", function(d) {return `showNode${d.data.id}`})
-        .attr("class", "showNodeButton")
-        .attr("height", this.getAttribute("nodeHeight"))
-        .attr("width", this.getAttribute("nodeHeight"))
-        .attr("onmousedown", "app.widget('showNode', this)")
-      .select(function() { return this.parentNode; })             // Show Node text
-        .append("text")
-        .attr("dx", function(d) {return `-${d.data.instance.nodeHeight/2}`;})
-        .attr("idr", function(d) {return `showNodeText${d.data.id}`;})
-        .attr("class", "showNodeText unselectable")
-        .text("+")
-      .select(function() {return this.parentNode; })
-        .append("text")                                           // Text in header
-        .attr("dx", function(d) {return `-${d.data.instance.popupWidth/2}`;})
-        .attr("class", "detailHeaderText unselectable")
-        .attr("idr", function(d) {return `detailHeaderText${d.data.id}`})
-      	.text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; });
-
-    nodeEnter.append("text") // Add text
-    	.attr("dx", this.getAttribute("nodeWidth")/2)
-      .attr("dy", this.getAttribute("nodeHeight")/2 + 6)
-      .attr("class", "nodeText unselectable")
-      .attr("idr", function(d) {return `text${d.data.id}`})
-    	.text(function(d) { return d.data.name; });
-
-    const allNodes = nodeEnter.merge(node);
-
-    allNodes.selectAll(".notesRect")
-      .classed("noNotes", function(d) {if (d.data.notes) return false; else return true;})
-      .classed("notesExist", function(d) {if (d.data.notes) return true; else return false;});
-
-    allNodes.selectAll(".toggleRect")
-        .classed("inactive", function(d) {
-            if ((!d.data.children || d.data.children.length == 0)
-            && (!d.data._children || d.data._children.length == 0))
-              return true; else return false;
-          });
-
-    allNodes.selectAll(".toggleButtonText")
-      .classed("inactiveText", function(d) {
-          if ((!d.data.children || d.data.children.length == 0)
-          && (!d.data._children || d.data._children.length == 0))
-            return true; else return false;
-        });
-
-    allNodes.selectAll(".detailsRect")
-      .classed("inactive", function(d) {if (d.data.nodeID == null && d.data.type != "link") return true; else return false});
-
-    allNodes.selectAll(".detailButtonText")
-      .classed("inactiveText", function(d) {if (d.data.nodeID == null && d.data.type != "link") return true; else return false});
-
-    allNodes.selectAll(".detailPopup")
-      .attr("width", this.getAttribute("popupWidth"))
-      // This is fairly complicated. It allots one line (of height nodeHeight) for each entry in the details object,
-      // plus an additional line for the node's name and type.
-      .attr("height", function(d) {return (d.data.details.length + 1) * d.data.instance.nodeHeight;})
-      .attr("transform", function(d) {return `translate(-${d.data.instance.popupWidth}
-                                                        -${d.data.details.length * d.data.instance.nodeHeight})`;});
-
-    allNodes.selectAll(".detailHeader")
-      .attr("transform", function(d) {return `translate(-${d.data.instance.popupWidth}
-                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
-
-    allNodes.selectAll(".disassociateButton")
-      .attr("transform", function(d) {return `translate(-${d.data.instance.popupWidth}
-                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
-
-    allNodes.selectAll(".disassociateText").attr("dy", function(d) {return -1*(d.data.details.length * d.data.instance.nodeHeight - 20);});
-
-    allNodes.selectAll(".showNodeButton")
-      .attr("transform", function(d) {return `translate(-${d.data.instance.nodeHeight}
-                                                        -${d.data.details.length * d.data.instance.nodeHeight})`});
-
-    allNodes.selectAll(".showNodeText").attr("dy", function(d) {return -1*(d.data.details.length * d.data.instance.nodeHeight - 20);});
-
-    allNodes.selectAll(".detailHeaderText")
-      .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; })
-      .attr("dy", function(d) {return -d.data.instance.nodeHeight * (d.data.details.length - 0.5) + 6});
-
-    allNodes.each(buildPopup);
-
-    // Update text
-    d3.selectAll(".node").each(function(d) { // For each node
-      d3.select(this).select('.nodeText')  // Should select the text of the node
-      .text(function(d) {return d.data.name}); // Should update the text
-    });
-
-    node.exit().remove();
-
-    // Update the links…
-    const link = g.selectAll("path.link")
-      .data(links);
-
-    link.enter().insert("path", "g")
-        .attr("class", "link")
-        .attr("idr", function(d) {return `link${d.source.data.id}to${d.target.data.id}`; })
-      .merge(link)
-        .attr("d", d3.linkHorizontal()
-          .x(function(d) { return d.y; })
-          .y(function(d) { return d.x; })
-          .source(function(d) { return {x: d.source.x + 15, y: d.source.y + 120}; })
-          .target(function(d) { return {x: d.target.x + 15, y: d.target.y}; }))
-        .attr("transform", "translate(0 0)");
-
-      g.selectAll("path.link")
-        .attr("idr", function(d) {return `link${d.source.data.id}to${d.target.data.id}`; })
-      link.exit().remove();
-  }
-
   lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (e. g. inserting a new node or changing an existing one)
     if (evnt.keyCode === 13) {
       input.onblur();
@@ -1413,20 +816,20 @@ class widgetSVG {
   }
 
   saveInput(edit) {
-    if (this.newNode) { // This SHOULD only run when there's a new node, but it doesn't hurt to check
-      const newObj = this.getObjFromID(this.newNode);
+    if (this.d3Functions.newNode) { // This SHOULD only run when there's a new node, but it doesn't hurt to check
+      const newObj = this.getObjFromID(this.d3Functions.newNode);
       newObj.name = edit.value;
-      this.newNode = null;
+      this.d3Functions.newNode = null;
     }
     // Even if there is no new object, hide and move the edit text box and refresh
     edit.hidden = true;
     edit.value = "";
     edit.setAttribute("style", "position:static");
     this.SVG_DOM.appendChild(edit);
-    this.update();
+    this.d3Functions.update();
   }
 
-  toggle(button) { // Toggle children.
+  toggleChildren(button) { // Toggle children.
     const group = button.parentElement;
     const d = group.__data__;
 
@@ -1435,8 +838,8 @@ class widgetSVG {
       let label = null;
       let descendant = false;
       // First, if the edit textbox is visible and attached to one of the node's children, blur it.
-      if (this.newNode) { // this.newNode is true when a node has just been created and the edit box hasn't been blurred yet
-        label = this.getObjFromID(this.newNode);
+      if (this.d3Functions.newNode) { // this.d3Functions.newNode is true when a node has just been created and the edit box hasn't been blurred yet
+        label = this.getObjFromID(this.d3Functions.newNode);
         descendant = false;
         while (label.parent != "null") {
           if (d.data.children.indexOf(label) != -1) {
@@ -1450,7 +853,7 @@ class widgetSVG {
         }
         // descendant is now true if the new label is a descendant of the label being toggled
         if (descendant) {
-          this.editDOM.blur();
+          this.d3Functions.editDOM.blur();
         }
       }
 
@@ -1482,7 +885,7 @@ class widgetSVG {
   	  d.data._children = null;
     }
     this.makeSelectedNode(group);
-    this.update();
+    this.d3Functions.update();
   }
 
   toggleDetails(button) {
@@ -1518,7 +921,7 @@ class widgetSVG {
       this.notesText.value = "";
       this.notesText.setAttribute("style", "position:static");
       this.SVG_DOM.appendChild(this.notesText);
-      this.update();
+      this.d3Functions.update();
     }
     else { // If this label's notes are NOT already shown
       this.SVG_DOM.parentElement.appendChild(this.notesText);
@@ -1579,7 +982,7 @@ class widgetSVG {
     new widgetCalendar(widgetID, id);
   }
 
-  disassociate(button) {
+  disassociate(button, evnt) {
     // Get object
     const ID = button.getAttribute("idr").slice(12); // This IDR will be like "disassociatexxx"
     const obj = this.getObjFromID(ID);
@@ -1592,7 +995,10 @@ class widgetSVG {
     const popup = app.domFunctions.getChildByIdr(this.SVG_DOM, `popupGroup${ID}`);
     popup.classList.add("hidden");
 
-    this.update();
+    // Check whether to hide buttons
+    this.checkHideButtons(button.parentElement, evnt);
+
+    this.d3Functions.update();
   }
 
   makeSelectedNode(group) {
@@ -1625,7 +1031,7 @@ class widgetSVG {
     // The mouse isn't over any of the buttons
     // The details popup isn't visible
     // The notes panel isn't visible
-  checkHideButtons(element, evnt) {
+  checkHideButtons(element, evnt) { // element is an element in the group - the main rectangle or one of the buttons, usually
     const x = evnt.clientX;
     const y = evnt.clientY;
     let inAnything = false;
