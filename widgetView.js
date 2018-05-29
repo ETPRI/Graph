@@ -31,7 +31,12 @@ class widgetView {
     this.db = new db();
 
     // Get the IDs and names of all the people with views of this node, and pass them to buildViews.
-    // DBREPLACE DB function: matchPattern
+    // DBREPLACE DB function: changePattern
+    // JSON object: {nodesFind:[{name:"user"; type:"people"},
+    //                          {name:"view"; type:"View"; details:"direction:relationType"},
+    //                          {name:"node"; ID:nodeID}];
+    //                relsFind:[{type:"Owner"; from:"user"; to:"view"},
+    //                          {type:"Subject"; from:"view"; to:"node"}]}
     const query = `match (user)-[:Owner]->(view:View {direction:"${relationType}"})-[:Subject]->(node) where id(node) = ${nodeID} return ID(user) as ID, user.name as name order by name, ID`;
     this.db.setQuery(query);
     this.db.runQuery(this, "buildViews");
@@ -263,8 +268,14 @@ class widgetView {
   // querying the database again to get up-to-date information on who has a view, and rebuilding the table.
   refresh(button) {
     this.relations = {}; // reset list of existing relation DOM objects
-    // Set and run the query over again
-    // DBREPLACE DB function: matchPattern
+    // Get the IDs and names of all the people with views of this node, and pass them to buildViews.
+    // DBREPLACE DB function: changePattern
+    // JSON object: {nodesFind:[{name:"user"; type:"people"},
+    //                          {name:"view"; type:"View"; details:"direction:relationType"},
+    //                          {name:"node"; ID:nodeID}];
+    //                relsFind:[{type:"Owner"; from:"user"; to:"view"},
+    //                          {type:"Subject"; from:"view"; to:"node"}]}
+    // Consider: Can this be combined with the version in constructor?
     const query = `match (user)-[:Owner]->(view:View {direction:"${this.relationType}"})-[:Subject]->(node) where id(node) = ${this.nodeID} return ID(user) as ID, user.name as name order by name, ID`;
     this.db.setQuery(query);
 
@@ -383,7 +394,12 @@ class widgetView {
   // Adds a new view to the database linked to the node being viewed and the logged-in user, then calls addComplete
   addUser(button) {
     // Create a view of this node for this user
-    // DBREPLACE DB function: createPattern? It creates both a node and two relations.
+    // DBREPLACE DB function: changePattern
+    // JSON object: {nodesFind:[{name:"user"; ID:app.login.userID},
+    //                          {name:"subject"; ID:this.nodeID}];
+    //             nodesCreate:[{name:"view"; type:"View"; details:{direction:this.relationType}}];
+    //              relsCreate:[{type:"Owner"; from:"user"; to:"view"},
+    //                          {type:"Subject"; from:"view"; to:"subject"}]}
     const query = `match (user), (subject) where ID(user) = ${app.login.userID} and ID(subject) = ${this.nodeID}
                    create (user)-[:Owner]->(:View {direction: "${this.relationType}"})-[:Subject]->(subject)`;
     this.db.setQuery(query);

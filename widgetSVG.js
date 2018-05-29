@@ -45,8 +45,8 @@ class widgetSVG {
     this.notesLabel = null;
 
     if (this.mapID) {
-      // DBREPLACE DB function: matchNode
-      // JSON object: {id:this.mapID}
+      // DBREPLACE DB function: changeNode
+      // JSON object: {name:"mindmap"; id:this.mapID}
       const query = `match (mindmap:mindmap) where ID(mindmap) = ${this.mapID} return mindmap.roots as roots, mindmap.count as count, mindmap.name as name`;
       app.db.setQuery(query);
       app.db.runQuery(this, 'buildWidget');
@@ -1034,8 +1034,8 @@ class widgetSVG {
         root.y = parseFloat(transform[1]);
     }
 
-    // DBREPLACE DB function: mergeNode?
-    // JSON object: {name: name; changes: {roots:roots; count:count}}
+    // DBREPLACE DB function: createNode
+    // JSON object: {name:"mindmap"; type:"mindmap"; details:{name:name}; merge:true; changes:{roots:app.stringEscape(JSON.stringify(rootsCopy)); count:this.count}}
     const query = `merge (mindmap: mindmap {name:"${name}"}) with mindmap set mindmap.roots="${app.stringEscape(JSON.stringify(rootsCopy))}", mindmap.count = ${this.count}`;
 
     app.db.setQuery(query);
