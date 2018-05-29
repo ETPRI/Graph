@@ -20,6 +20,34 @@ class d3Functions {
     this.roots = [];
     this.newNode = null;
     this.newObject = null;
+    this.count = 0;
+  }
+
+  // Create new object with no node associated
+  newObj() {
+    const newObj = {};
+    newObj.nodeID = null;
+    newObj.id = this.count++;
+    newObj.name = "";
+    newObj.type = "";
+    newObj.parent = "null";
+    newObj.children = [];
+    newObj.details = [];
+
+    const instanceVars = {};
+    instanceVars.nodeWidth = this.nodeWidth;
+    instanceVars.nodeHeight = this.nodeHeight;
+    instanceVars.toggleWidth = this.toggleWidth;
+    instanceVars.detailWidth = this.detailWidth;
+    instanceVars.popupWidth = this.popupWidth;
+
+    newObj.instance = instanceVars;
+
+    // Remember which node to edit
+    this.newNode = newObj.id;
+    this.newObject = newObj;
+
+    return newObj;
   }
 
   update() { // Creates a group for each item in the array of roots, then calls buildTree to make a tree for each group.
@@ -157,7 +185,7 @@ class d3Functions {
       .attr("class", "nodeRect")
       .attr("onmouseover", "app.widget('showButtons', this)")
       .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
-      .attr("onmousedown", "app.widget('selectNode', this, event)");
+      .attr("onmousedown", "app.widget('click', this, event, 'selectNode')");
 
     nodeEnter.append("rect")  // toggle rectangle
       .attr("width", this.getAttribute("nodeWidth")/3)
@@ -165,8 +193,8 @@ class d3Functions {
       .attr("idr", function(d) {return `toggle${d.data.id}`})
       .attr("transform", `translate(${this.getAttribute("nodeWidth")*2/3} ${this.getAttribute("nodeHeight")*-1})`)
       .attr("onmouseup", "app.widget('toggleChildren', this)")
-      .attr("onmouseover", "app.widget('toggleExplain', this)")
-      .attr("onmouseout", "app.widget('hideToggleExplain', this); app.widget('checkHideButtons', this, event)")
+      .attr("onmouseover", "app.widget('toggleExplain', this, event, 'toggle')")
+      .attr("onmouseout", "app.widget('toggleExplain', this, event, 'toggle'); app.widget('checkHideButtons', this, event)")
       .attr("class", "toggleRect hidden");
 
     nodeEnter.append("text") // Toggle button text
@@ -220,8 +248,8 @@ class d3Functions {
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function(d) {return `detail${d.data.id}`})
       .attr("transform", `translate(0 ${this.getAttribute("nodeHeight")*-1})`)
-      .attr("onmouseover", "app.widget('detailExplain', this)")
-      .attr("onmouseout", "app.widget('hideDetailExplain', this, event); app.widget('checkHideButtons', this, event)")
+      .attr("onmouseover", "app.widget('toggleExplain', this, event, 'detail')")
+      .attr("onmouseout", "app.widget('toggleExplain', this, event, 'detail'); app.widget('checkHideButtons', this, event)")
       .attr("onmouseup", "app.widget('toggleDetails', this)")
       .attr("class", "detailsRect hidden");
 
@@ -385,5 +413,4 @@ class d3Functions {
         .attr("idr", function(d) {return `link${d.source.data.id}to${d.target.data.id}`; })
       link.exit().remove();
   }
-
 }
