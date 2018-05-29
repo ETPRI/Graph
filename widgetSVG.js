@@ -1588,6 +1588,10 @@ class widgetSVG {
     obj.type = "";
     obj.details = [];
 
+    // Close detail popup
+    const popup = app.domFunctions.getChildByIdr(this.SVG_DOM, `popupGroup${ID}`);
+    popup.classList.add("hidden");
+
     this.update();
   }
 
