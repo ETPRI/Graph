@@ -231,6 +231,7 @@ class widgetView {
       else { // If not, create it in a new div and append it to relCell.
         const relDOM = document.createElement('div');
         this.relCell.appendChild(relDOM);
+        this.containedWidgets.push(app.idCounter);
         new widgetRelations(relDOM, this.nodeID, ID, this.relationType); // Creates a new widgetRelations object in relDOM
         this.relations[ID] = relDOM;
         this.activeDOM = relDOM;

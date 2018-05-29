@@ -13,23 +13,11 @@ class widgetSVG {
     // constants for drawing
     this.width = 1200; // Width of the SVG element
     this.height = 600; // Height of the SVG element
-    this.nodeWidth = 150;
-    this.nodeHeight = 30;
-    this.toggleWidth = 20;
-    this.detailWidth = 20;
-    this.popupWidth = 360;
 
-    // variables for dragging and creating new nodes
+    // variables for dragging map and selecting nodes
     this.currentX=0;
     this.currentY=0;
-    // this.transform = [];
-    // this.elemsToMove = [];
-    // this.parentNode = null;
-    // this.nextSibling = null;
-    // this.prevSibling = null;
-    // this.currentParent = null;
     this.selectedNode = null;
-    this.currentPosition = null;
 
     // used for editing notes
     this.notesText = null;
@@ -57,7 +45,7 @@ class widgetSVG {
       `<b idr="name">${this.name}</b>
       <input type="button" idr="save" value="Save" onclick="app.widget('save', this)">
       <input type="button" idr="saveAs" value="Save As" onclick="app.widget('save', this)">
-      <input type="button" idr="details" value="Show Details" onclick="app.widget('showDetails', this)">
+      <input type="button" idr="details" value="Show Details" onclick="app.widget('toggleWidgetDetails', this)">
     </div>
     <div><table><tr idr="svgRow"><td>
       <svg id="svg${this.widgetID}" width="${this.width}" height="${this.height}" viewBox = "0 0 ${this.width} ${this.height}"
@@ -83,7 +71,7 @@ class widgetSVG {
     this.SVG_DOM.appendChild(this.notesText);
 
     this.d3Functions = new d3Functions(this);
-    this.clicks = new mindmapClick(this);  //this.checkDrop, this.makeSelectedNode, this.getObjFromID, this.SVG_DOM, this.d3Functions
+    this.clicks = new mindmapClick(this);
 
     if (data) {
       this.loadComplete(data);
@@ -119,19 +107,19 @@ class widgetSVG {
     }
   }
 
-  showDetails(button) {
+  toggleWidgetDetails(button) {
     const row = app.domFunctions.getChildByIdr(this.widgetDOM, 'svgRow');
-    const detailsCell = row.insertCell(-1);
-    new widgetDetails('mindmap', detailsCell, this.mapID);
-    button.value = "Hide Details";
-    button.setAttribute("onclick", "app.widget('hideDetails', this)");
-  }
+    if (button.value == "Show Details") {
+      const detailsCell = row.insertCell(-1);
+      this.containedWidgets.push(app.idCounter);
+      new widgetDetails('mindmap', detailsCell, this.mapID);
+      button.value = "Hide Details";
 
-  hideDetails(button) {
-    const row = app.domFunctions.getChildByIdr(this.widgetDOM, 'svgRow');
-    row.deleteCell(-1);
-    button.value = "Show Details";
-    button.setAttribute("onclick", "app.widget('showDetails', this)");
+    }
+    else {
+      row.deleteCell(-1);
+      button.value = "Show Details";
+    }
   }
 
   allowDrop(object, evnt) { // Prevent default action so drag and drop works properly. Also find parent and sibling nodes.
@@ -152,7 +140,7 @@ class widgetSVG {
       data.details.push(uri);
     }
 
-    else {
+    else { // If it's not a link, check whether it's a node...
       const dataText = evnt.dataTransfer.getData("text/plain");
       if (dataText) {
         data = JSON.parse(dataText);
@@ -181,14 +169,14 @@ class widgetSVG {
     newObj.name = name;
     newObj.type = data.type;
     newObj.details = data.details;
-    this.d3Functions.newNode = null;
+    this.d3Functions.editNode = null;
 
-    // Trying to get reference to this class instance into the data, where anonymous functions can use it
+    // Trying to get reference to these variables into the data, where anonymous functions can use it
     const instanceVars = {};
-    instanceVars.nodeWidth = this.nodeWidth;
-    instanceVars.nodeHeight = this.nodeHeight;
-    instanceVars.toggleWidth = this.toggleWidth;
-    instanceVars.popupWidth = this.popupWidth;
+    instanceVars.nodeWidth = this.d3Functions.nodeWidth;
+    instanceVars.nodeHeight = this.d3Functions.nodeHeight;
+    instanceVars.toggleWidth = this.d3Functions.toggleWidth;
+    instanceVars.popupWidth = this.d3Functions.popupWidth;
 
     newObj.instance = instanceVars;
     for (let i = 0; i < newObj.details.length; i++) {
@@ -213,6 +201,28 @@ class widgetSVG {
     }
     app.activeWidget = this.widgetDOM;
     this.widgetDOM.classList.add("activeWidget");
+  }
+
+  checkDrop(element, x, y) {
+    const groups = this.SVG_DOM.getElementsByClassName("node"); // Get all rectangles in the mind map
+
+    for (let i = 0; i < groups.length; i++) { // Loop through all rectangles
+      const group=groups[i];
+      const bound = group.getBoundingClientRect(); // Get bounds of each rectangle
+      const top = bound.top;
+      const bottom = bound.bottom;
+      const left = bound.left;
+      const right = bound.right;
+      let contains = false;
+      if (element != null) {
+        contains = element.contains(group);
+      }
+
+      if (top < y && y < bottom && left < x && x < right && !contains ) { // If the mouse is inside this element, and this is NOT the element being dragged or that element doesn't exist
+        return group;
+      }
+    }
+    return null;
   }
 
   connectNode(group, newObj) { // Connect a node to a label
@@ -284,7 +294,6 @@ class widgetSVG {
     this.keys.keyPressed(evnt);
   }
 
-
   click(rectangle, evnt, methodName) {
     this.clicks[methodName](rectangle, evnt);
   }
@@ -310,28 +319,7 @@ class widgetSVG {
     SVG.setAttribute("viewBox", `${viewBox[0]} ${viewBox[1]} ${this.width} ${this.height}`)
   }
 
-  checkDrop(element, x, y) {
-    const groups = this.SVG_DOM.getElementsByClassName("node"); // Get all rectangles in the mind map
-
-    for (let i = 0; i < groups.length; i++) { // Loop through all rectangles
-      const group=groups[i];
-      const bound = group.getBoundingClientRect(); // Get bounds of each rectangle
-      const top = bound.top;
-      const bottom = bound.bottom;
-      const left = bound.left;
-      const right = bound.right;
-      let contains = false;
-      if (element != null) {
-        contains = element.contains(group);
-      }
-
-      if (top < y && y < bottom && left < x && x < right && !contains ) { // If the mouse is inside this element, and this is NOT the element being dragged or that element doesn't exist
-        return group;
-      }
-    }
-    return null;
-  }
-
+  // REFACTOR THIS LATER - there's no point right now, the whole thing needs to be overhauled.
   save (button) { // Saves the current state of the graph to the database.
     let name = this.name;
     const id = this.mapID;
@@ -366,10 +354,10 @@ class widgetSVG {
   }
 
   saveInput(edit) {
-    if (this.d3Functions.newNode) { // This SHOULD only run when there's a new node, but it doesn't hurt to check
-      const newObj = this.getObjFromID(this.d3Functions.newNode);
-      newObj.name = edit.value;
-      this.d3Functions.newNode = null;
+    if (this.d3Functions.editNode) { // This SHOULD only run when there's a node being edited, but it doesn't hurt to check
+      const editObj = this.getObjFromID(this.d3Functions.editNode);
+      editObj.name = edit.value;
+      this.d3Functions.editNode = null;
     }
     // Even if there is no new object, hide and move the edit text box and refresh
     edit.hidden = true;
@@ -383,57 +371,11 @@ class widgetSVG {
     const group = button.parentElement;
     const d = group.__data__;
 
+    // swap children and _children
+    const temp = d.data.children;
+    d.data.children = d.data._children;
+    d.data._children = temp;
 
-    if (d.data.children) {
-      let label = null;
-      let descendant = false;
-      // First, if the edit textbox is visible and attached to one of the node's children, blur it.
-      if (this.d3Functions.newNode) { // this.d3Functions.newNode is truthy when a node has just been created and the edit box hasn't been blurred yet
-        label = this.getObjFromID(this.d3Functions.newNode);
-        descendant = false;
-        while (label.parent != "null") {
-          if (d.data.children.indexOf(label) != -1) {
-            descendant = true;
-            break;
-          }
-          else {
-            const newID = label.parent;
-            label = this.getObjFromID(newID);
-          }
-        }
-        // descendant is now true if the new label is a descendant of the label being toggled
-        if (descendant) {
-          this.d3Functions.editDOM.blur();
-        }
-      }
-
-      // Now do the same for the notes textarea
-      if (this.notesLabel) { // this.notesLabel is true when a node's notes are being edited
-        label = this.notesLabel;
-        descendant = false;
-        while (label.parent != "null") {
-          if (d.data.children.indexOf(label) != -1) {
-            descendant = true;
-            break;
-          }
-          else {
-            const newID = label.parent;
-            label = this.getObjFromID(newID);
-          }
-        }
-        // descendant is now true if the label being edited is a descendant of the label being toggled
-        if (descendant) {
-          this.notesText.blur();
-        }
-      }
-
-  	  d.data._children = d.data.children;
-  	  d.data.children = null;
-    }
-    else {
-  	  d.data.children = d.data._children;
-  	  d.data._children = null;
-    }
     this.makeSelectedNode(group);
     this.d3Functions.update();
   }
@@ -446,7 +388,7 @@ class widgetSVG {
       // Look for an existing popup for this node (there should be one).
       const popup = app.domFunctions.getChildByIdr(group, `popupGroup${ID}`);
       const tree = group.parentElement;
-      if (popup.classList.contains("hidden")) {
+      if (popup.classList.contains("hidden")) { // In order to make sure this popup is on top...
         group.appendChild(popup); // Make the popup top in its node group...
         tree.appendChild(group); // and the node top in its tree...
         this.SVG_DOM.appendChild(tree); // and the tree top in the SVG.
@@ -475,7 +417,7 @@ class widgetSVG {
     }
     else { // If this label's notes are NOT already shown
       this.SVG_DOM.parentElement.appendChild(this.notesText);
-      this.notesText.hidden=false;
+      this.notesText.hidden = false;
       let heightString = "";
       let widthString = "";
 
@@ -484,20 +426,18 @@ class widgetSVG {
         this.notesText.value = obj.notes;
       }
 
-      if (obj.notesHeight) {
+      if (obj.notesHeight) { // If it has a notesHeight, it will also have a notesWidth
         heightString = ` height:${obj.notesHeight}px;`;
-      }
-
-      if (obj.notesWidth) {
         widthString = ` width:${obj.notesWidth}px;`;
       }
 
-      // Get the rectangle
+      // Get the rectangle's location
       const rect = app.domFunctions.getChildByIdr(this.SVG_DOM, `node${ID}`);
       const bounds = rect.getBoundingClientRect();
-      // Makes the notes text area visible
-      let leftPos = bounds.left + window.scrollX + this.nodeWidth;
+      let leftPos = bounds.left + window.scrollX + this.d3Functions.nodeWidth;
       let topPos = bounds.top + window.scrollY;
+
+      // Make the notes text area visible
       this.notesText.setAttribute("style", `position:absolute; left:${leftPos}px; top:${topPos}px;${heightString}${widthString}`);
 
       this.notesLabel = obj;
@@ -507,24 +447,56 @@ class widgetSVG {
     } // end else (notes are not shown; show them)
   }
 
+  // Show or hide explanations for inactive buttons
+  toggleExplain(button, evnt, prefix) {
+    const group = button.parentElement;
+    const tree = group.parentElement;
+    const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+    const text = app.domFunctions.getChildByIdr(group, `${prefix}Expln${ID}`);
+    const box = app.domFunctions.getChildByIdr(group, `${prefix}ExpBox${ID}`);
+
+    if (evnt.type == "mouseover") { // SHOW the explanation, if applicable
+      const data = group.__data__.data;
+                         // Either the button in question is the toggle children button and there are no children...
+      const applicable = (prefix=="toggle" &&
+                         (!data.children || data.children.length == 0) &&
+                         (!data._children || data._children.length == 0)) ||
+                         // or the button is the toggle details button and there are no details.
+                         (prefix=="detail" && data.nodeID == null && data.type != "link")
+      if (applicable) { // Bring the explanation to the front
+        this.SVG_DOM.appendChild(tree);
+        tree.appendChild(group);
+        group.appendChild(box);
+        group.appendChild(text);
+
+        text.classList.remove("hidden"); // Then show it
+        box.classList.remove("hidden");
+      }
+    }
+
+    else { // HIDE the explanation
+      text.classList.add("hidden");
+      box.classList.add("hidden");
+    }
+  }
+
   showNode(button) {
     const data = button.parentElement.parentElement.__data__.data;
     const id = data.nodeID;
     const type = data.type;
 
-    if (type == 'mindmap') {
-      new widgetSVG(this.widgetID, id);
-    }
-    else if (type == "calendar") {
-      setTimeout(this.showCalendar, 1, this.widgetID, id);
-    }
-
-    else if (type == "link") {
-      window.open(data.details[0].value); // For now, assume the uri is the first (and only) detail
-    }
-
-    else {
-      new widgetNode(this.widgetID, type, id);
+    switch(type) {
+      case 'mindmap':
+        new widgetSVG(this.widgetID, id);
+        break;
+      case 'calendar':
+        setTimeout(this.showCalendar, 1, this.widgetID, id);
+        break;
+      case 'link':
+        window.open(data.details[0].value); // For now, assume the uri is the first (and only) detail
+        break;
+      default:
+        new widgetNode(this.widgetID, type, id);
     }
   }
 
@@ -561,7 +533,7 @@ class widgetSVG {
     this.selectedNode.classList.add("selected");
   }
 
-  // Make the buttons visible when the main rect is moused over
+  // Make the buttons (and their text) visible when the main rect is moused over
   showButtons(rect) {
     const group = rect.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
@@ -630,39 +602,6 @@ class widgetSVG {
     if(editing) {
       const note = app.domFunctions.getChildByIdr(this.SVG_DOM, `note${ID}`);
       this.toggleNotes(note);
-    }
-  }
-
-  // Show or hide explanations for inactive buttons
-  toggleExplain(button, evnt, prefix) {
-    const group = button.parentElement;
-    const tree = group.parentElement;
-    const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-    const text = app.domFunctions.getChildByIdr(group, `${prefix}Expln${ID}`);
-    const box = app.domFunctions.getChildByIdr(group, `${prefix}ExpBox${ID}`);
-
-    if (evnt.type == "mouseover") { // SHOW the explanation, if applicable
-      const data = group.__data__.data;
-                         // Either the button in question is the toggle children button and there are no children...
-      const applicable = (prefix=="toggle" &&
-                         (!data.children || data.children.length == 0) &&
-                         (!data._children || data._children.length == 0)) ||
-                         // or the button is the toggle details button and there are no details.
-                         (prefix=="detail" && data.nodeID == null && data.type != "link")
-      if (applicable) {
-        this.SVG_DOM.appendChild(tree);
-        tree.appendChild(group);
-        group.appendChild(box);
-        group.appendChild(text);
-
-        text.classList.remove("hidden");
-        box.classList.remove("hidden");
-      }
-    }
-
-    else { // HIDE the explanation
-      text.classList.add("hidden");
-      box.classList.add("hidden");
     }
   }
 }

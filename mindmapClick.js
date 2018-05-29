@@ -112,7 +112,7 @@ class mindmapClick {
     const id = element.getAttribute("idr").slice(4); // The idr will look like "nodexxx"
     const obj = instance.parent.getObjFromID(id);
     if (obj.nodeID == null) { // If this label has no node attached
-      instance.d3Functions.newNode = id; // Set the doubleclicked element as the new node, so it will be edited
+      instance.d3Functions.editNode = id; // Set the doubleclicked element as the new node, so it will be edited
       instance.d3Functions.editDOM.value = obj.name; // Fill the existing name in the edit textbox...
       obj.name = ""; // and remove it from the object (so it won't show up behind the textbox)
       instance.d3Functions.update(); // Finally, update the mind map, causing the text in the node to disappear and the edit box to appear.

@@ -386,8 +386,9 @@ widgetClose(widgetElement) {
 
 	while (children.length >0) {
 		const child = children.pop(); // Grab a child widget...
-		if (child.containedWidgets) { // Get the IDs of all widgets contained within it...
-			children = children.concat(child.containedWidgets);
+		const widget = this.widgets[child];
+		if (widget.containedWidgets) { // Get the IDs of all widgets contained within it...
+			children = children.concat(widget.containedWidgets);
 		}
 		delete this.widgets[child]; 	// and delete it.
 	}

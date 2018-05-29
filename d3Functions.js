@@ -2,12 +2,11 @@ class d3Functions {
   constructor(parent) {
     this.parent = parent;
     this.widgetID = parent.widgetID;
-    this.nodeWidth = parent.nodeWidth;
-    this.nodeHeight = parent.nodeHeight;
-    this.toggleWidth = parent.toggleWidth;
-    this.detailWidth = parent.detailWidth;
-    this.popupWidth = parent.popupWidth;
     this.SVG_DOM = parent.SVG_DOM;
+
+    this.nodeWidth = 150;
+    this.nodeHeight = 30;
+    this.popupWidth = 360;
 
     this.editDOM = document.createElement("input");
     this.editDOM.setAttribute("type", "text");
@@ -18,7 +17,7 @@ class d3Functions {
     this.SVG_DOM.appendChild(this.editDOM);
 
     this.roots = [];
-    this.newNode = null;
+    this.editNode = null;
     this.newObject = null;
     this.count = 0;
   }
@@ -37,14 +36,12 @@ class d3Functions {
     const instanceVars = {};
     instanceVars.nodeWidth = this.nodeWidth;
     instanceVars.nodeHeight = this.nodeHeight;
-    instanceVars.toggleWidth = this.toggleWidth;
-    instanceVars.detailWidth = this.detailWidth;
     instanceVars.popupWidth = this.popupWidth;
 
     newObj.instance = instanceVars;
 
     // Remember which node to edit
-    this.newNode = newObj.id;
+    this.editNode = newObj.id;
     this.newObject = newObj;
 
     return newObj;
@@ -60,8 +57,6 @@ class d3Functions {
         .attr("idr", function(d) {return `tree${d.id}`})
         .attr("nodeWidth", this.nodeWidth)
         .attr("nodeHeight", this.nodeHeight)
-        .attr("toggleWidth", this.toggleWidth)
-        .attr("detailWidth", this.detailWidth)
         .attr("popupWidth", this.popupWidth)
         .attr("transform", function(d) {return "translate(" + d.x + " " + d.y + ")";} )
 
@@ -114,8 +109,8 @@ class d3Functions {
     // Finally, see if there's a new (blank) node. If so, append a text box to it to get the name,
     // then make it NOT the new node anymore. Similarly, check for a new object (whether attached to a blank node or not).
     // If there is one, make it the selected node.
-    if (this.newNode) {
-      const newNode = app.domFunctions.getChildByIdr(this.SVG_DOM, `node${this.newNode}`);
+    if (this.editNode) {
+      const newNode = app.domFunctions.getChildByIdr(this.SVG_DOM, `node${this.editNode}`);
       this.SVG_DOM.parentElement.appendChild(this.editDOM);
       this.editDOM.hidden=false;
       const bounds = newNode.getBoundingClientRect();
