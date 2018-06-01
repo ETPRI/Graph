@@ -1,7 +1,8 @@
 class mindmapClick {
-  constructor(parent) { // checkDrop, makeSelectedNode, getObjFromID, SVG_DOM, d3Functions
-    this.SVG_DOM = parent.SVG_DOM;
-    this.d3Functions = parent.d3Functions;
+  // selectFunction (makeSelectedNode), dblclickFunction should be passed in
+  constructor(parent, SVG_DOM, d3Functions) {
+    this.SVG_DOM = SVG_DOM;
+    this.d3Functions = d3Functions;
     this.parent = parent;
 
     this.initialPosition = null;
@@ -14,7 +15,43 @@ class mindmapClick {
     this.transform = [];
     this.elemsToMove = [];
     this.detachDistance = 50;
-    this.toggleWidth = parent.toggleWidth;
+    this.frontCushion = 40;
+  }
+
+  checkClickedNode(element, x, y) { // element is a group representing a node
+    const rects = this.SVG_DOM.getElementsByTagName("rect"); // Get all rectangles in the mind map
+    const clickedRects = [];
+
+    for (let i = 0; i < rects.length; i++) { // Loop through all rectangles
+      const rect=rects[i];
+      const bound = rect.getBoundingClientRect(); // Get bounds of each rectangle
+      const top = bound.top;
+      const bottom = bound.bottom;
+      const left = bound.left;
+      const right = bound.right;
+
+      let contains = false;
+      if (element != null) {
+        contains = element.contains(rect);
+      }
+
+      let hidden = false;
+      let ancestor = rect;
+      while (ancestor.parentElement != this.SVG_DOM && !(ancestor.classList.contains("hidden"))) {
+        ancestor = ancestor.parentElement;
+      }
+      hidden = ancestor.classList.contains("hidden");
+
+      if (top < y && y < bottom && left < x && x < right && !contains && !hidden) { // If the mouse is inside this element, and this is NOT the element being dragged or that element doesn't exist
+        clickedRects.push(rect);
+      }
+    }
+    if (clickedRects.length > 0) {
+      return clickedRects;
+    }
+    else {
+      return null;
+    }
   }
 
   selectNode(element, evnt) { // When a rectangle is clicked, records the current mouse position and the group's transformation, and sets onmousemove, onmouseup and onmouseout methods for dragging.
@@ -43,6 +80,8 @@ class mindmapClick {
       }
       this.getTransforms();
 
+      setTimeout(function(element){element.classList.remove("unselectable");}, 5, element);
+      // element.classList.remove("unselectable");
       element.setAttribute("onmousemove", "app.widget('click', this, event, 'moveNode')");
       element.setAttribute("onmouseout", "app.widget('click', this, event, 'releaseNode')");
       element.setAttribute("onmouseup", "app.widget('click', this, event, 'singleClick')");
@@ -107,10 +146,10 @@ class mindmapClick {
   // Fires if the mouse is released within half a second of being pressed for the second time.
   // Acknowledges a doubleclick and resets listeners.
   doubleClickProcess(element, instance) {
-    instance.releaseNode(element)
+    instance.releaseNode(element);
     // Check whether the doubleclicked label has a node attached
     const id = element.getAttribute("idr").slice(4); // The idr will look like "nodexxx"
-    const obj = instance.parent.getObjFromID(id);
+    const obj = instance.d3Functions.getObjFromID(id);
     if (obj.nodeID == null) { // If this label has no node attached
       instance.d3Functions.editNode = id; // Set the doubleclicked element as the new node, so it will be edited
       instance.d3Functions.editDOM.value = obj.name; // Fill the existing name in the edit textbox...
@@ -136,7 +175,7 @@ class mindmapClick {
   getSubtree(element) {
     // Get array of ALL SVG elements to move - this node, all its children and the lines connecting it to its children
     const nodeID = element.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-    const nodeObj = this.parent.getObjFromID(nodeID); // Get the object representing this node
+    const nodeObj = this.d3Functions.getObjFromID(nodeID); // Get the object representing this node
     this.elemsToMove = [element]; // A list of all elements that need to move. It starts with just the node being dragged.
     if (nodeObj.children) {
       let descendantObjs = nodeObj.children.slice(); // To list the node's descendants, start with its children. slice makes a shallow copy.
@@ -203,7 +242,14 @@ class mindmapClick {
     // Check for parent and highlight it if found
     let parent = null;
     if (element) { // Check for hovering over something first, but ONLY if moving an existing box!
-      parent = this.parent.checkDrop(element, x, y);
+      const rectArray = this.checkClickedNode(element, x, y);
+      if (rectArray) { // If the mouse was over any rectangles, then check whether any of them was a nodeRect.
+        for (let i = 0; i < rectArray.length; i++) {
+          if (rectArray[i].classList.contains("nodeRect")) {
+            parent = rectArray[i].parentElement;
+          }
+        }
+      }
     }
 
     if (!parent) {
@@ -240,7 +286,7 @@ class mindmapClick {
       // Check for prospective parent...
       const kids = group.__data__.data.children;
       const noKids = (kids == null || kids.length < 1); // true if the group represents a node with no chldren visible
-      if (top < y && y < bottom && right < x && x < right + 2*this.toggleWidth && !contains &&noKids) {
+      if (top < y && y < bottom && right < x && x < right + this.frontCushion && !contains && noKids) {
         return group;
       }
 
@@ -270,6 +316,7 @@ class mindmapClick {
     // Reset mouse methods and ensure all drag variables are null
     element.removeAttribute("onmousemove");
     element.removeAttribute("onmouseup");
+    element.classList.add("unselectable");
     // If a child became a root or vice versa
     if (this.currentParent && !this.currentParent.classList.contains("currentParent") && !this.parentNode
     || !this.currentParent && this.parentNode) {
@@ -283,7 +330,7 @@ class mindmapClick {
     // Get object representing the label being dragged
     const group = element.parentElement;
     const groupID = group.getAttribute("idr").slice(5); // this IDR will be like groupxxx
-    const labelObj = this.parent.getObjFromID(groupID);
+    const labelObj = this.d3Functions.getObjFromID(groupID);
     this.d3Functions.newObject = labelObj;
 
     if (this.parentNode) { // If we dropped element (the node being moved) onto that group, we should connect them.
@@ -299,7 +346,7 @@ class mindmapClick {
       // Detach child if it's too far from parent. Since we're already tracking this with classes, why recalculate?
       if (!this.currentParent.classList.contains("currentParent")) {
         const parentID = this.currentParent.__data__.data.id;
-        const parent = this.parent.getObjFromID(parentID);
+        const parent = this.d3Functions.getObjFromID(parentID);
         const parentIndex = parent.children.indexOf(labelObj);
         if(parentIndex != -1) {
           parent.children.splice(parentIndex, 1);
@@ -327,7 +374,7 @@ class mindmapClick {
   dropConnect(node, childObj) { // Creates a link between the node being dragged and the node it was dropped onto
     // Get object representing parent node (object representing child node was already found)
     const nodeID = node.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-    const parentObj = this.parent.getObjFromID(nodeID);
+    const parentObj = this.d3Functions.getObjFromID(nodeID);
 
     if (parentObj && childObj) { // If both objects exist
       const rootIndex = this.d3Functions.roots.indexOf(childObj); // Remove the child from the roots array if it's in there
@@ -338,7 +385,7 @@ class mindmapClick {
       // Remove the child from its parent's children array, if it's in there
       if (this.currentParent) {
         const parentID = this.currentParent.__data__.data.id;
-        const parent = this.parent.getObjFromID(parentID);
+        const parent = this.d3Functions.getObjFromID(parentID);
         const parentIndex = parent.children.indexOf(childObj);
         if(parentIndex != -1) {
           parent.children.splice(parentIndex, 1);
@@ -355,7 +402,7 @@ class mindmapClick {
       // Get index of next or previous sibling if applicable, and insert there. If no sibling, just push to the end of the children array.
       if (this.prevSibling) {
         const sibID = this.prevSibling.getAttribute("idr").slice(5);
-        const prevSibObj = this.parent.getObjFromID(sibID);
+        const prevSibObj = this.d3Functions.getObjFromID(sibID);
         const siblings = parentObj.children;
         const index = siblings.indexOf(prevSibObj) + 1; // Insert in the NEXT position, to come after the previous sibling
         parentObj.children.splice(index, 0, childObj);
@@ -363,7 +410,7 @@ class mindmapClick {
 
       else if (this.nextSibling) {
         const sibID = this.nextSibling.getAttribute("idr").slice(5);
-        const nextSibObj = this.parent.getObjFromID(sibID);
+        const nextSibObj = this.d3Functions.getObjFromID(sibID);
         const siblings = parentObj.children;
         const index = siblings.indexOf(nextSibObj); // Insert in the PREVIOUS position, to come after the next sibling
         parentObj.children.splice(index, 0, childObj);

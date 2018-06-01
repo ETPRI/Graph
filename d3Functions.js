@@ -47,6 +47,40 @@ class d3Functions {
     return newObj;
   }
 
+  getObjFromID(nodeID) {
+    let nodeObj = null;
+    let nonRootObjs = [];
+    for (let i = 0; i < this.roots.length; i++) { // for every root...
+      const root = this.roots[i];
+      if (root.id == nodeID) { // check that root...
+        nodeObj = root;
+        break;
+      }
+      if (root.children) {
+        nonRootObjs = nonRootObjs.concat(root.children); // then add its children to the list to check after roots
+      }
+      else if (root._children) {
+        nonRootObjs = nonRootObjs.concat(root._children);
+      }
+    }
+
+    while (nonRootObjs.length > 0 && nodeObj == null) { // If the parent object hasn't been found and there are more objects to check...
+      const testObj = nonRootObjs.pop(); // Grab an object and check it...
+      if (testObj.id == nodeID) {
+        nodeObj = testObj;
+        break;
+      }
+      if (testObj.children) {
+        nonRootObjs = nonRootObjs.concat(testObj.children); // then add its children to the list of objects to check.
+      }
+    }
+
+    if (nodeObj == null) {
+      alert(`Error: The object belonging to the node with idr "group${nodeID}" was not found.`);
+    }
+    return nodeObj;
+  }
+
   update() { // Creates a group for each item in the array of roots, then calls buildTree to make a tree for each group.
     const groups = d3.select(`#svg${this.widgetID}`).selectAll("g.tree")
       .data(this.roots, function(d) {return d.name;});
@@ -147,23 +181,24 @@ class d3Functions {
     }
 
     const tree = d3.tree()
-      .nodeSize([100, 200]);
+      .nodeSize([100, 200]); // This sets the overall size of nodes, but not why sometimes they get more spaced.
 
     const root = d3.hierarchy(datum);
-    const nodes = root.descendants();
+    const nodes = root.descendants(); // These two lines seem to parse the root data into a form d3.js understands
 
-    const links = tree(root).links();
+    const links = tree(root).links(); // This line gives each object x and y coordinates, and returns array of links
+    const test = nodes[1];
 
     // Update the nodes…
     const g = d3.select(this);
     const node = g.selectAll(".node") // This means that all the nodes inside the given group are part of this tree
      .data(nodes, function(d) {return d.id || d.data.id;}) // Update what data to include. Each group represents one node.
-     .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; });
+     .attr("transform", function(d) {return "translate(" + d.y + " " + d.x + ")"; });
 
     // Enter any new nodes
     const nodeEnter = node.enter().append("g") // Append a "g" for each new node
       .attr("class", "node")
-      .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; })
+      .attr("transform", function(d) {return "translate(" + d.y + " " + d.x + ")"; })
       .attr("idr", function (d) {return `group${d.data.id}`; });
 
     nodeEnter.append("rect")  // notes indicator rectangle. Appended first so it's behind the main rect
@@ -177,17 +212,18 @@ class d3Functions {
       .attr("width", this.getAttribute("nodeWidth"))
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function (d) {return `node${d.data.id}`; })
-      .attr("class", "nodeRect")
+      .attr("class", "nodeRect unselectable")
+      .attr("mousedownObj", '{"subclass":"clicks", "method":"selectNode"}')
       .attr("onmouseover", "app.widget('showButtons', this)")
-      .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
-      .attr("onmousedown", "app.widget('click', this, event, 'selectNode')");
+      .attr("onmouseout", "app.widget('checkHideButtons', this, event)");
 
     nodeEnter.append("rect")  // toggle rectangle
       .attr("width", this.getAttribute("nodeWidth")/3)
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function(d) {return `toggle${d.data.id}`})
       .attr("transform", `translate(${this.getAttribute("nodeWidth")*2/3} ${this.getAttribute("nodeHeight")*-1})`)
-      .attr("onmouseup", "app.widget('toggleChildren', this)")
+      // .attr("onmouseup", "app.widget('toggleChildren', this, event)")
+      .attr("mousedownObj", '{"method":"toggleChildren"}')
       .attr("onmouseover", "app.widget('toggleExplain', this, event, 'toggle')")
       .attr("onmouseout", "app.widget('toggleExplain', this, event, 'toggle'); app.widget('checkHideButtons', this, event)")
       .attr("class", "toggleRect hidden");
@@ -222,7 +258,8 @@ class d3Functions {
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function(d) {return `note${d.data.id}`})
       .attr("transform", `translate(${this.getAttribute("nodeWidth")*1/3} ${this.getAttribute("nodeHeight")*-1})`)
-      .attr("onmouseup", "app.widget('toggleNotes', this)")
+      // .attr("onmouseup", "app.widget('toggleNotes', this, event)")
+      .attr("mousedownObj", '{"method":"toggleNotes"}')
       .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
       .attr("class", "showNotesRect hidden");
 
@@ -245,7 +282,8 @@ class d3Functions {
       .attr("transform", `translate(0 ${this.getAttribute("nodeHeight")*-1})`)
       .attr("onmouseover", "app.widget('toggleExplain', this, event, 'detail')")
       .attr("onmouseout", "app.widget('toggleExplain', this, event, 'detail'); app.widget('checkHideButtons', this, event)")
-      .attr("onmouseup", "app.widget('toggleDetails', this)")
+      // .attr("onmouseup", "app.widget('toggleDetails', this, event)")
+      .attr("mousedownObj", '{"method":"toggleDetails"}')
       .attr("class", "detailsRect hidden");
 
     nodeEnter.append("text") // Show details button text
@@ -291,7 +329,8 @@ class d3Functions {
         .attr("class", "disassociateButton")
         .attr("height", this.getAttribute("nodeHeight"))
         .attr("width", this.getAttribute("nodeHeight"))
-        .attr("onmousedown", "app.widget('disassociate', this, event)")
+        // .attr("onmousedown", "app.widget('disassociate', this, event)")
+        .attr("mousedownObj", '{"method":"disassociate"}')
       .select(function() { return this.parentNode; })             // disassociate text
         .append("text")
         .attr("dx", function(d) {return `-${d.data.instance.popupWidth - d.data.instance.nodeHeight/2}`;})
@@ -304,7 +343,8 @@ class d3Functions {
         .attr("class", "showNodeButton")
         .attr("height", this.getAttribute("nodeHeight"))
         .attr("width", this.getAttribute("nodeHeight"))
-        .attr("onmousedown", "app.widget('showNode', this)")
+        // .attr("onmousedown", "app.widget('showNode', this, event)")
+        .attr("mousedownObj", '{"method":"showNode"}')
       .select(function() { return this.parentNode; })             // Show Node text
         .append("text")
         .attr("dx", function(d) {return `-${d.data.instance.nodeHeight/2}`;})
