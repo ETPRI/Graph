@@ -44,7 +44,7 @@ class mindmapKeypress {
   tabKey() {
     if (this.parent.selectedNode) {
       const nodeID = this.parent.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const nodeObj = this.parent.getObjFromID(nodeID); // Get the object representing this node
+      const nodeObj = this.parent.d3Functions.objects[nodeID].JSobj; // Get the object representing this node
 
       if (nodeObj._children && nodeObj._children.length > 0) { // If the object has children, but they are hidden, show them.
         const button = this.parent.selectedNode.children[1]; // Every node group has five children - a node rect, a toggle rect,
@@ -53,7 +53,7 @@ class mindmapKeypress {
         // The children, if any, should now be visible, and the object should have a children array.
       }
 
-      const child = this.parent.newObj(); // Create a new blank label object...
+      const child = this.parent.d3Functions.newObj(); // Create a new blank label object...
       child.parent = nodeID;
       nodeObj.children.push(child); // make it a new child of the selected node...
       this.parent.d3Functions.update(); // and redraw the graphic.
@@ -66,11 +66,11 @@ class mindmapKeypress {
   enterKey() {
     if (this.parent.selectedNode && this.parent.notesText.hidden == true) {
       const nodeID = this.parent.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const nodeObj = this.parent.getObjFromID(nodeID); // Get the object representing this node
+      const nodeObj = this.parent.d3Functions.objects[nodeID].JSobj; // Get the object representing this node
       const parentID = nodeObj.parent;
       if (parentID != "null") { // IF the selected node has a parent, it can have siblings
-      const parent = this.parent.getObjFromID(parentID);
-        const child = this.parent.newObj();
+      const parent = this.parent.d3Functions.objects[parentID].JSobj;
+        const child = this.parent.d3Functions.newObj();
 
         const index = parent.children.indexOf(nodeObj) + 1; // Insert in the NEXT position, to come after the previous sibling
         parent.children.splice(index, 0, child);
@@ -97,13 +97,13 @@ class mindmapKeypress {
       const prefixes = ["node", "toggle", "note", "detail"];
       for (let i = 0; i < prefixes.length; i++) {
         const idr = prefixes[i] + nodeID;
-        const element = app.domFunctions.getChildByIdr(this.parent.SVG_DOM, idr);
+        const element = this.parent.d3Functions.objects[nodeID].DOMelements[prefixes[i]];
         element.removeAttribute("onmouseout");
       }
-      const nodeObj = this.parent.getObjFromID(nodeID); // Get the object representing this node
+      const nodeObj = this.parent.d3Functions.objects[nodeID].JSobj; // Get the object representing this node
       const parentID = nodeObj.parent;
       if (parentID != "null") { // If the object has a parent, remove it from its parent's children array
-        const parentObj = this.parent.getObjFromID(parentID);
+        const parentObj = this.parent.d3Functions.objects[parentID].JSobj;
         const parentIndex = parentObj.children.indexOf(nodeObj);
         if(parentIndex != -1) {
           parentObj.children.splice(parentIndex, 1);
@@ -124,10 +124,10 @@ class mindmapKeypress {
   leftArrow() {
     if (this.parent.selectedNode) {
       const nodeID = this.parent.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const nodeObj = this.parent.getObjFromID(nodeID); // Get the object representing this node
+      const nodeObj = this.parent.d3Functions.objects[nodeID].JSobj; // Get the object representing this node
       const parentID = nodeObj.parent;
       if (parentID != "null") { // If the object has a parent, select the parent
-        const parentGroup = app.domFunctions.getChildByIdr(this.parent.SVG_DOM, `group${parentID}`);
+        const parentGroup = this.parent.d3Functions.objects[parentID].DOMelements.group;
         this.parent.makeSelectedNode(parentGroup);
         this.parent.d3Functions.update();
       }
@@ -138,7 +138,7 @@ class mindmapKeypress {
   rightArrow() {
     if (this.parent.selectedNode) {
       const nodeID = this.parent.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const nodeObj = this.parent.getObjFromID(nodeID); // Get the object representing this node
+      const nodeObj = this.parent.d3Functions.objects[nodeID].JSobj; // Get the object representing this node
         if (nodeObj._children && nodeObj._children.length > 0) { // If the object has children, but they are hidden, show them.
           const button = this.parent.selectedNode.children[1]; // Every node group has five children - a node rect, a toggle rect,
           // a details rect, a details popup, and text - in that order. So the button is the child with index 1.
@@ -148,7 +148,7 @@ class mindmapKeypress {
       if (nodeObj.children && nodeObj.children.length > 0) { // If the object has children, select the oldest child
         const childObj = nodeObj.children[0];
         const childID = childObj.id;
-        const childGroup = app.domFunctions.getChildByIdr(this.parent.SVG_DOM, `group${childID}`);
+        const childGroup = this.parent.d3Functions.objects[childID].DOMelements.group;
         this.parent.makeSelectedNode(childGroup);
         this.parent.d3Functions.update();
       }
@@ -159,10 +159,10 @@ class mindmapKeypress {
   upDownArrow(offset) {
     if (this.parent.selectedNode) {
       const nodeID = this.parent.selectedNode.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-      const nodeObj = this.parent.getObjFromID(nodeID); // Get the object representing this node
+      const nodeObj = this.parent.d3Functions.objects[nodeID].JSobj; // Get the object representing this node
       const parentID = nodeObj.parent;
       if (parentID != "null") { // If the object has a parent, we can cycle through its siblings, if any
-        const parentObj = this.parent.getObjFromID(parentID);
+        const parentObj = this.parent.d3Functions.objects[parentID].JSobj;
         const parentIndex = parentObj.children.indexOf(nodeObj);
         let newIndex = parentIndex + offset; // Add 1 to the index to go forward (down arrow). Subtract 1 to go back (up arrow)
 
@@ -178,7 +178,7 @@ class mindmapKeypress {
 
         const siblingObj = parentObj.children[newIndex];
         const siblingID = siblingObj.id;
-        const siblingGroup = app.domFunctions.getChildByIdr(this.parent.SVG_DOM, `group${siblingID}`);
+        const siblingGroup = this.parent.d3Functions.objects[siblingID].DOMelements.group;
 
         this.parent.makeSelectedNode(siblingGroup);
       }

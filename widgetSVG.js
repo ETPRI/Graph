@@ -94,7 +94,48 @@ class widgetSVG {
     else { // If one result was returned - which should always happen
       if (data[0].roots) {
         this.d3Functions.roots = JSON.parse(data[0].roots);
+
+        // Go through all objects, make them reference d3Functions, add to objects array
+        let nonRootObjs = [];
+        for (let i = 0; i < this.d3Functions.roots.length; i++) { // for every root...
+          const root = this.d3Functions.roots[i];
+          root.instance = this.d3Functions;
+          for (let j = 0; j < root.details.length; j++) {
+            root.details[j].instance = this.d3Functions;
+          }
+
+          if (root.children) {
+            nonRootObjs = nonRootObjs.concat(root.children);
+          }
+          else if (root._children) {
+            nonRootObjs = nonRootObjs.concat(root._children);
+          }
+          this.d3Functions.objects[root.id] = {};
+          this.d3Functions.objects[root.id].JSobj = root; // Store JS object
+          this.d3Functions.objects[root.id].DOMelements = {}; // Prepare to store DOM elements
+
+        }
+
+        while (nonRootObjs.length > 0) { // If there are more objects...
+          const label = nonRootObjs.pop();
+          label.instance = this.d3Functions;
+          for (let j = 0; j < label.details.length; j++) {
+            label.details[j].instance = this.d3Functions;
+          }
+
+          if (label.children) {
+            nonRootObjs = nonRootObjs.concat(label.children);
+          }
+          else if (label._children) {
+            nonRootObjs = nonRootObjs.concat(label._children);
+          }
+
+          this.d3Functions.objects[label.id] = {};
+          this.d3Functions.objects[label.id].JSobj = label; // Store JS object
+          this.d3Functions.objects[label.id].DOMelements = {}; // Prepare to store DOM elements
+        }
       }
+
       if (data[0].count) {
         this.d3Functions.count = data[0].count;
       }
@@ -171,20 +212,16 @@ class widgetSVG {
     newObj.details = data.details;
     this.d3Functions.editNode = null; // NOTE: Fix this; we shouldn't be assigning a variable just to unassign it later
 
-    // Trying to get reference to these variables into the data, where anonymous functions can use it
-    const instanceVars = {};
-    instanceVars.nodeWidth = this.d3Functions.nodeWidth;   //NOTE: Try using a pointer instead
-    instanceVars.nodeHeight = this.d3Functions.nodeHeight;
-    instanceVars.popupWidth = this.d3Functions.popupWidth;
-
-    newObj.instance = instanceVars;
+    // Trying to get reference to this object into the data, where anonymous functions can use it
+    newObj.instance = this.d3Functions;
     for (let i = 0; i < newObj.details.length; i++) {
-      newObj.details[i].instance = instanceVars;
+      newObj.details[i].instance = this.d3Functions;
     }
 
     let group = null;
 
-    // Right here, I should check whether I dropped ONTO a nodeRect. If so, instead of adding the new node as a root, I should call connectNode.
+    //  Check whether user dropped ONTO a nodeRect.
+    // If so, instead of adding the new node as a root, call connectNode.
     const rects = this.clicks.checkClickedNode(null, x, y);
     if (rects) {
       for (let i = 0; i < rects.length; i++) {
@@ -198,9 +235,16 @@ class widgetSVG {
       this.connectNode(group, newObj);
       this.d3Functions.update();
     }
+
+    // now check if user dropped NEAR a label. This can be determined by checking parentNode in clicks.
+    // If so, add the new node as a child of that label.
+    else if (this.clicks.parentNode) {
+      this.clicks.dropConnect(this.clicks.parentNode, newObj);
+    }
+
+    // If it wasn't dropped on or near a label, add it as a root.
     else {
       this.d3Functions.roots.push(newObj);
-      // this.d3Functions.newObject = newObj;
       this.d3Functions.update();
     }
 
@@ -214,7 +258,7 @@ class widgetSVG {
 
   connectNode(group, newObj) { // Connect a node to a label
     const id = group.getAttribute("idr").slice(5);
-    const labelObj = this.d3Functions.getObjFromID(id);
+    const labelObj = this.d3Functions.objects[ID].JSobj;
 
     labelObj.name = newObj.name;
     labelObj.nodeID = newObj.nodeID;
@@ -243,40 +287,6 @@ class widgetSVG {
       this.d3Functions.roots.push(newObj);
       this.d3Functions.update();
     }
-  }
-
-  getObjFromID(nodeID) {
-    let nodeObj = null;
-    let nonRootObjs = [];
-    for (let i = 0; i < this.d3Functions.roots.length; i++) { // for every root...
-      const root = this.d3Functions.roots[i];
-      if (root.id == nodeID) { // check that root...
-        nodeObj = root;
-        break;
-      }
-      if (root.children) {
-        nonRootObjs = nonRootObjs.concat(root.children); // then add its children to the list to check after roots
-      }
-      else if (root._children) {
-        nonRootObjs = nonRootObjs.concat(root._children);
-      }
-    }
-
-    while (nonRootObjs.length > 0 && nodeObj == null) { // If the parent object hasn't been found and there are more objects to check...
-      const testObj = nonRootObjs.pop(); // Grab an object and check it...
-      if (testObj.id == nodeID) {
-        nodeObj = testObj;
-        break;
-      }
-      if (testObj.children) {
-        nonRootObjs = nonRootObjs.concat(testObj.children); // then add its children to the list of objects to check.
-      }
-    }
-
-    if (nodeObj == null) {
-      alert(`Error: The object belonging to the node with idr "group${nodeID}" was not found.`);
-    }
-    return nodeObj;
   }
 
   keyPressed(evnt) {
@@ -353,13 +363,72 @@ class widgetSVG {
       name = prompt("Please enter the name for this mind map", name);
     }
 
-    const rootsCopy = JSON.parse(JSON.stringify(this.d3Functions.roots));
+    // Create array of parents (starts empty)
+    const parents = [];
+
+    // Copy roots array (with pointers to original root objects)
+    const rootsCopy = Array.from(this.d3Functions.roots);
+
+    // For each root object, copy the object, remove the instance, replace the original with the copy, add to parents if applicable
+    for (let i = 0; i < rootsCopy.length; i++) {
+      const copy = Object.assign({}, rootsCopy[i]);
+      delete copy.instance;
+
+      // Copy and delete instances from the details array too
+      const detailCopy = Array.from(copy.details)
+      for (let j = 0; j < detailCopy.length; j++) {
+        const lineCopy = Object.assign({}, detailCopy[j]);
+        delete lineCopy.instance;
+        detailCopy[j] = lineCopy;
+      }
+      copy.details = detailCopy;
+      rootsCopy[i] = copy;
+
+      if (copy.children && copy.children.length > 0 || copy._children && copy._children.length > 0) {
+        parents.push(copy);
+      }
+    }
+    // For each item in parents, go through children array
+    while (parents.length > 0) {
+      const obj = parents.pop();
+      let kids = null;
+      if (obj.children) {  // Get the children array, whether hidden or not
+        kids = Array.from(obj.children);
+        obj.children = kids;
+      }
+      else  {
+        kids = Array.from(obj._children);
+        obj._children = kids;
+      }
+
+      // For each child, copy the object, remove instance, replace, add to parents if applicable
+      for (let i = 0; i < kids.length; i++) {
+        const copy = Object.assign({}, kids[i]);
+        delete copy.instance;
+
+        // Copy and delete instances from the details array too
+        const detailCopy = Array.from(copy.details)
+        for (let j = 0; j < detailCopy.length; j++) {
+          const lineCopy = Object.assign({}, detailCopy[j]);
+          delete lineCopy.instance;
+          detailCopy[j] = lineCopy;
+        }
+        copy.details = detailCopy;
+        kids[i] = copy;
+
+        if (copy.children && copy.children.length > 0 || copy._children && copy._children.length > 0) {
+          parents.push(copy);
+        }
+      }
+    }
+
+    // I REALLY REALLY hope that when we get here, rootsCopy is a copy of roots with no instances, which can be stringified.
 
     for (let i=0; i< rootsCopy.length; i++) { // Go through all the roots and add their transform values to their coordinates, so they'll display in the right places.
         const root = rootsCopy[i];
         const id = root.id;
-        const group = app.domFunctions.getChildByIdr(this.SVG_DOM, `tree${id}`);
-        const transform = group.getAttribute("transform").slice(10, -1).split(' '); // Get the transformation string and extract the coordinates
+        const tree = this.d3Functions.objects[id].DOMelements.tree;
+        const transform = tree.getAttribute("transform").slice(10, -1).split(' '); // Get the transformation string and extract the coordinates
         root.x = parseFloat(transform[0]);
         root.y = parseFloat(transform[1]);
     }
@@ -380,7 +449,7 @@ class widgetSVG {
 
   saveInput(edit) {
     if (this.d3Functions.editNode) { // This SHOULD only run when there's a node being edited, but it doesn't hurt to check
-      const editObj = this.d3Functions.getObjFromID(this.d3Functions.editNode);
+      const editObj = this.d3Functions.objects[this.d3Functions.editNode].JSobj;
       editObj.name = edit.value;
       this.d3Functions.editNode = null;
     }
@@ -410,10 +479,10 @@ class widgetSVG {
     evnt.stopPropagation();
     const group = button.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-    const obj = this.d3Functions.getObjFromID(ID);
+    const obj = this.d3Functions.objects[ID].JSobj;
     if (obj.nodeID || obj.type == "link") {
       // Look for an existing popup for this node (there should be one).
-      const popup = app.domFunctions.getChildByIdr(group, `popupGroup${ID}`);
+      const popup = this.d3Functions.objects[ID].DOMelements.popupGroup;
       const tree = group.parentElement;
       if (popup.classList.contains("hidden")) { // In order to make sure this popup is on top...
         group.appendChild(popup); // Make the popup top in its node group...
@@ -431,7 +500,7 @@ class widgetSVG {
   toggleNotes(button, evnt) {
     evnt.stopPropagation();
     const ID = button.getAttribute("idr").slice(4); // idr is like notexxx
-    const obj = this.d3Functions.getObjFromID(ID);
+    const obj = this.d3Functions.objects[ID].JSobj;
     if (this.notesLabel == obj) { // If this label's notes are shown already
       this.notesLabel.notes = this.notesText.value;
       this.notesLabel.notesHeight = this.notesText.clientHeight;
@@ -460,7 +529,7 @@ class widgetSVG {
       }
 
       // Get the rectangle's location
-      const rect = app.domFunctions.getChildByIdr(this.SVG_DOM, `node${ID}`);
+      const rect = this.d3Functions.objects[ID].DOMelements.node;
       const bounds = rect.getBoundingClientRect();
       let leftPos = bounds.left + window.scrollX + this.d3Functions.nodeWidth;
       let topPos = bounds.top + window.scrollY;
@@ -480,8 +549,8 @@ class widgetSVG {
     const group = button.parentElement;
     const tree = group.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
-    const text = app.domFunctions.getChildByIdr(group, `${prefix}Expln${ID}`);
-    const box = app.domFunctions.getChildByIdr(group, `${prefix}ExpBox${ID}`);
+    const text = this.d3Functions.objects[ID].DOMelements[`${prefix}Expln`];
+    const box = this.d3Functions.objects[ID].DOMelements[`${prefix}ExpBox`];
 
     if (evnt.type == "mouseover") { // SHOW the explanation, if applicable
         this.SVG_DOM.appendChild(tree);
@@ -514,7 +583,8 @@ class widgetSVG {
         new widgetSVG(this.widgetID, id);
         break;
       case 'calendar':
-        setTimeout(this.showCalendar, 1, this.widgetID, id); // Temporary workaround because calendars don't make DB requests, which is what slows down the other node types
+        new widgetCalendar(this.widgetID, id);
+        //setTimeout(this.showCalendar, 1, this.widgetID, id); // Temporary workaround because calendars don't make DB requests, which is what slows down the other node types
         break;
       case 'link':
         window.open(data.details[0].value); // For now, assume the uri is the first (and only) detail
@@ -532,14 +602,14 @@ class widgetSVG {
     evnt.stopPropagation();
     // Get object
     const ID = button.getAttribute("idr").slice(12); // This IDR will be like "disassociatexxx"
-    const obj = this.d3Functions.getObjFromID(ID);
+    const obj = this.d3Functions.objects[ID].JSobj;
     // reset node ID, type and details
     obj.nodeID = null;
     obj.type = "";
     obj.details = [];
 
     // Close detail popup
-    const popup = app.domFunctions.getChildByIdr(this.SVG_DOM, `popupGroup${ID}`);
+    const popup = this.d3Functions.objects[ID].DOMelements.popupGroup;
     popup.classList.add("hidden");
 
     // Check whether to hide buttons
@@ -569,7 +639,7 @@ class widgetSVG {
                       "edit", "editText1"];
     for (let i = 0; i < prefixes.length; i++) {
       const idr = prefixes[i] + ID;
-      const element = app.domFunctions.getChildByIdr(this.SVG_DOM, idr);
+      const element = this.d3Functions.objects[ID].DOMelements[prefixes[i]];
       group.appendChild(element);
       element.classList.remove("hidden");
     }
@@ -591,7 +661,7 @@ class widgetSVG {
     const prefixes = ["node", "toggle", "note", "detail", "edit"];
     for (let i = 0; i < prefixes.length; i++) {
       const idr = prefixes[i] + ID;
-      const element = app.domFunctions.getChildByIdr(this.SVG_DOM, idr);
+      const element = this.d3Functions.objects[ID].DOMelements[prefixes[i]];
       const bound = element.getBoundingClientRect();
       const inElement = bound.left <= x && x <= bound.right && bound.top <= y && y <= bound.bottom;
       if (inElement) {
@@ -600,10 +670,10 @@ class widgetSVG {
       }
     }
 
-    const detailPopup = app.domFunctions.getChildByIdr(group, `popupGroup${ID}`);
+    const detailPopup = this.d3Functions.objects[ID].DOMelements.popupGroup;
     const popupOpen = !(detailPopup.classList.contains("hidden"));
 
-    const obj = this.d3Functions.getObjFromID(ID);
+    const obj = this.d3Functions.objects[ID].JSobj;
     const editing = this.notesLabel == obj;
 
     if (!(inAnything || popupOpen || editing)) {
@@ -620,15 +690,15 @@ class widgetSVG {
 
     for (let i = 0; i < prefixes.length; i++) {
       const idr = prefixes[i] + ID;
-      const element = app.domFunctions.getChildByIdr(this.SVG_DOM, idr);
+      const element = this.d3Functions.objects[ID].DOMelements[prefixes[i]];
       element.classList.add("hidden");
     }
 
-    const obj = this.d3Functions.getObjFromID(ID);
+    const obj = this.d3Functions.objects[ID].JSobj;
     const editing = this.notesLabel == obj;
 
     if(editing) {
-      const note = app.domFunctions.getChildByIdr(this.SVG_DOM, `note${ID}`);
+      const note = this.d3Functions.objects[ID].DOMelements.note;
       this.toggleNotes(note);
     }
   }

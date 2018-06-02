@@ -17,6 +17,7 @@ class d3Functions {
     this.SVG_DOM.appendChild(this.editDOM);
 
     this.roots = [];
+    this.objects = [];
     this.editNode = null;
     this.newObject = null;
     this.count = 0;
@@ -25,6 +26,10 @@ class d3Functions {
   // Create new object with no node associated
   newObj() {
     const newObj = {};
+    this.objects[this.count] = {};
+    this.objects[this.count].JSobj = newObj; // Store JS object
+    this.objects[this.count].DOMelements = {}; // Prepare to store DOM elements
+
     newObj.nodeID = null;
     newObj.id = this.count++;
     newObj.name = "";
@@ -33,52 +38,13 @@ class d3Functions {
     newObj.children = [];
     newObj.details = [];
 
-    const instanceVars = {};
-    instanceVars.nodeWidth = this.nodeWidth;
-    instanceVars.nodeHeight = this.nodeHeight;
-    instanceVars.popupWidth = this.popupWidth;
-
-    newObj.instance = instanceVars;
+    newObj.instance = this;
 
     // Remember which node to edit
     this.editNode = newObj.id;
     this.newObject = newObj;
 
     return newObj;
-  }
-
-  getObjFromID(nodeID) {
-    let nodeObj = null;
-    let nonRootObjs = [];
-    for (let i = 0; i < this.roots.length; i++) { // for every root...
-      const root = this.roots[i];
-      if (root.id == nodeID) { // check that root...
-        nodeObj = root;
-        break;
-      }
-      if (root.children) {
-        nonRootObjs = nonRootObjs.concat(root.children); // then add its children to the list to check after roots
-      }
-      else if (root._children) {
-        nonRootObjs = nonRootObjs.concat(root._children);
-      }
-    }
-
-    while (nonRootObjs.length > 0 && nodeObj == null) { // If the parent object hasn't been found and there are more objects to check...
-      const testObj = nonRootObjs.pop(); // Grab an object and check it...
-      if (testObj.id == nodeID) {
-        nodeObj = testObj;
-        break;
-      }
-      if (testObj.children) {
-        nonRootObjs = nonRootObjs.concat(testObj.children); // then add its children to the list of objects to check.
-      }
-    }
-
-    if (nodeObj == null) {
-      alert(`Error: The object belonging to the node with idr "group${nodeID}" was not found.`);
-    }
-    return nodeObj;
   }
 
   update() { // Creates a group for each item in the array of roots, then calls buildTree to make a tree for each group.
@@ -93,6 +59,9 @@ class d3Functions {
         .attr("nodeHeight", this.nodeHeight)
         .attr("popupWidth", this.popupWidth)
         .attr("transform", function(d) {return "translate(" + d.x + " " + d.y + ")";} )
+        .each(function(d) {
+          d.instance.objects[d.id].DOMelements.tree = this;
+        });
 
     const allTrees = newTrees.merge(groups);
     allTrees.each(this.buildTree);
@@ -199,14 +168,21 @@ class d3Functions {
     const nodeEnter = node.enter().append("g") // Append a "g" for each new node
       .attr("class", "node")
       .attr("transform", function(d) {return "translate(" + d.y + " " + d.x + ")"; })
-      .attr("idr", function (d) {return `group${d.data.id}`; });
+      .attr("idr", function (d) {return `group${d.data.id}`; })
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.group = this;
+      });
 
     nodeEnter.append("rect")  // notes indicator rectangle. Appended first so it's behind the main rect
       .attr("width", this.getAttribute("nodeHeight"))
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("transform", `translate(${10 + parseInt(this.getAttribute("nodeWidth")) - parseInt(this.getAttribute("nodeHeight"))} -10)`)
       .attr("idr", function(d) {return `notes${d.data.id}`; })
-      .attr("class", "notesRect");
+      .attr("class", "notesRect")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.notes = this;
+      });
+
 
     nodeEnter.append("rect")  // Main rectangle
       .attr("width", this.getAttribute("nodeWidth"))
@@ -215,65 +191,95 @@ class d3Functions {
       .attr("class", "nodeRect")
       .attr("mousedownObj", '{"subclass":"clicks", "method":"selectNode"}')
       .attr("onmouseover", "app.widget('showButtons', this)")
-      .attr("onmouseout", "app.widget('checkHideButtons', this, event)");
+      .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.node = this;
+      });
+
 
     nodeEnter.append("rect")  // toggle rectangle
       .attr("width", this.getAttribute("nodeHeight")/2)
       .attr("height", this.getAttribute("nodeHeight")/2)
       .attr("idr", function(d) {return `toggle${d.data.id}`})
-      .attr("transform", `translate(${this.getAttribute("nodeHeight")*7/4} ${this.getAttribute("nodeHeight")/4})`)
+      .attr("transform", `translate(${this.getAttribute("nodeHeight")*5/2} ${this.getAttribute("nodeHeight")/4})`)
       .attr("mousedownObj", '{"method":"toggleChildren"}')
       .attr("onmouseover", "app.widget('toggleExplain', this, event, 'toggle')")
       .attr("onmouseout", "app.widget('toggleExplain', this, event, 'toggle'); app.widget('checkHideButtons', this, event)")
-      .attr("class", "toggleRect hidden");
+      .attr("class", "toggleRect hidden")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.toggle = this;
+      });
+
 
     nodeEnter.append("text") // Toggle button text
       .attr("idr", function(d) {return `toggleText1${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeHeight")*2} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*11/4} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
       .attr("class", "toggleButtonText unselectable hidden")
-      .text("C");
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.toggleText1 = this;
+      });
+
 
     nodeEnter.append("rect") // Toggle explanation box...
       .attr("width", 320)
       .attr("height", 20)
       .attr("idr", function(d) {return `toggleExpBox${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeHeight")*2 - 160} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
-      .attr("class", "toggleExpBox hidden");
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*11/4 - 160} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
+      .attr("class", "toggleExpBox hidden")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.toggleExpBox = this;
+      });
+
 
     nodeEnter.append("text") // and text
       .attr("idr", function(d) {return `toggleExpln${d.data.id}`;})
-      .attr("transform", `translate (${this.getAttribute("nodeHeight")*2} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*11/4} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
       .attr("class", "toggleExpln unselectable hidden")
-      .text("Toggle children (disabled for nodes which have no children)");
+      .text("Toggle children (disabled for nodes which have no children)")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.toggleExpln = this;
+      });
 
     nodeEnter.append("rect")  // Show Notes rectangle
       .attr("width", this.getAttribute("nodeHeight")/2)
       .attr("height", this.getAttribute("nodeHeight")/2)
       .attr("idr", function(d) {return `note${d.data.id}`})
-      .attr("transform", `translate(${this.getAttribute("nodeHeight")} ${this.getAttribute("nodeHeight")/4})`)
+      .attr("transform", `translate(${this.getAttribute("nodeHeight")*7/4} ${this.getAttribute("nodeHeight")/4})`)
       .attr("mousedownObj", '{"method":"toggleNotes"}')
       .attr("onmouseover", "app.widget('toggleExplain', this, event, 'note')")
       .attr("onmouseout", "app.widget('toggleExplain', this, event, 'note'); app.widget('checkHideButtons', this, event)")
-      .attr("class", "showNotesRect hidden");
+      .attr("class", "showNotesRect hidden")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.note = this;
+      });
 
-      nodeEnter.append("text") // Show notes button text
-        .attr("idr", function(d) {return `showNotesText1${d.data.id}`})
-        .attr("transform", `translate (${this.getAttribute("nodeHeight")*5/4} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
-        .attr("class", "notesButtonText unselectable hidden")
-        .text("N");
+    nodeEnter.append("text") // Show notes button text
+      .attr("idr", function(d) {return `showNotesText1${d.data.id}`})
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*2} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
+      .attr("class", "notesButtonText unselectable hidden")
+      .text("N")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.showNotesText1 = this;
+      });
 
-      nodeEnter.append("rect") // Notes explanation box...
-        .attr("width", 180)
-        .attr("height", 20)
-        .attr("idr", function(d) {return `noteExpBox${d.data.id}`})
-        .attr("transform", `translate (${this.getAttribute("nodeHeight")*5/4 - 90} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
-        .attr("class", "noteExpBox hidden");
+    nodeEnter.append("rect") // Notes explanation box...
+      .attr("width", 180)
+      .attr("height", 20)
+      .attr("idr", function(d) {return `noteExpBox${d.data.id}`})
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*2 - 90} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
+      .attr("class", "noteExpBox hidden")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.noteExpBox = this;
+      });
 
-      nodeEnter.append("text") // ... and text
-        .attr("idr", function(d) {return `noteExpln${d.data.id}`;})
-        .attr("transform", `translate (${this.getAttribute("nodeHeight")*5/4} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
-        .attr("class", "noteExpln unselectable hidden")
-        .text("Toggle notes (always enabled)");
+    nodeEnter.append("text") // ... and text
+      .attr("idr", function(d) {return `noteExpln${d.data.id}`;})
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*2} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
+      .attr("class", "noteExpln unselectable hidden")
+      .text("Toggle notes (always enabled)")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.noteExpln = this;
+      });
 
     nodeEnter.append("rect")  // Detail display rectangle
       .attr("width", this.getAttribute("nodeHeight")/2)
@@ -283,69 +289,103 @@ class d3Functions {
       .attr("onmouseover", "app.widget('toggleExplain', this, event, 'detail')")
       .attr("onmouseout", "app.widget('toggleExplain', this, event, 'detail'); app.widget('checkHideButtons', this, event)")
       .attr("mousedownObj", '{"method":"toggleDetails"}')
-      .attr("class", "detailsRect hidden");
+      .attr("class", "detailsRect hidden")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.detail = this;
+      });
 
     nodeEnter.append("text") // Show details button text
       .attr("idr", function(d) {return `showDetailsText1${d.data.id}`})
       .attr("transform", `translate (${this.getAttribute("nodeHeight")/2} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
       .attr("class", "detailButtonText unselectable hidden")
-      .text("D");
+      .text("D")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.showDetailsText1 = this;
+      });
 
     nodeEnter.append("rect") // Details explanation box...
       .attr("width", 340)
       .attr("height", 20)
       .attr("idr", function(d) {return `detailExpBox${d.data.id}`})
       .attr("transform", `translate (${this.getAttribute("nodeHeight")/2 - 170} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
-      .attr("class", "detailExpBox hidden");
+      .attr("class", "detailExpBox hidden")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.detailExpBox = this;
+      });
 
     nodeEnter.append("text") // ... and text
       .attr("idr", function(d) {return `detailExpln${d.data.id}`;})
       .attr("transform", `translate (${this.getAttribute("nodeHeight")*1/2} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
       .attr("class", "detailExpln unselectable hidden")
-      .text("Toggle details (disabled for labels with no link or node attached)");
+      .text("Toggle details (disabled for labels with no link or node attached)")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.detailExpln = this;
+      });
 
     nodeEnter.append("rect")  // Edit rectangle
       .attr("width", this.getAttribute("nodeHeight")/2)
       .attr("height", this.getAttribute("nodeHeight")/2)
       .attr("idr", function(d) {return `edit${d.data.id}`})
-      .attr("transform", `translate(${this.getAttribute("nodeHeight")*5/2} ${this.getAttribute("nodeHeight")/4})`)
+      .attr("transform", `translate(${this.getAttribute("nodeHeight")} ${this.getAttribute("nodeHeight")/4})`)
       .attr("onmouseover", "app.widget('toggleExplain', this, event, 'edit')")
       .attr("onmouseout", "app.widget('toggleExplain', this, event, 'edit'); app.widget('checkHideButtons', this, event)")
       .attr("mousedownObj", '{"subclass":"clicks", "method":"editLabel"}') // Change the name
-      .attr("class", "editRect hidden");
+      .attr("class", "editRect hidden")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.edit = this;
+      });
 
     nodeEnter.append("text") // Edit button text
       .attr("idr", function(d) {return `editText1${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeHeight")*11/4} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*5/4} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
       .attr("class", "editText unselectable hidden")
-      .text("E");
+      .text("E")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.editText1 = this;
+      });
 
     nodeEnter.append("rect") // Edit explanation box...
       .attr("width", 440)
       .attr("height", 20)
       .attr("idr", function(d) {return `editExpBox${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeHeight")*11/4 - 220} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
-      .attr("class", "editExpBox hidden");
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*5/4 - 220} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
+      .attr("class", "editExpBox hidden")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.editExpBox = this;
+      });
 
     nodeEnter.append("text") // ... and text
       .attr("idr", function(d) {return `editExpln${d.data.id}`;})
-      .attr("transform", `translate (${this.getAttribute("nodeHeight")*11/4} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*5/4} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
       .attr("class", "editExpln unselectable hidden")
-      .text("Edit label (disabled for labels with nodes attached, which always show that node's name)");
+      .text("Edit label (disabled for labels with nodes attached, which always show that node's name)")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.editExpln = this;
+      })
+
 
 
     nodeEnter.append("g") // Create a detail popup group with a rectangle in it
       .attr("idr", function(d) {return `popupGroup${d.data.id}`})
       .attr("class", "detailPopupVisible hidden")
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.popupGroup = this;
+      })
       .append("rect")                                             // Large popup rectangle...
         .attr("idr", function(d) {return`popupRect${d.data.id}`})
         .attr("class", "detailPopup")
+        .each(function(d) {
+          d.data.instance.objects[d.data.id].DOMelements.popupRect = this;
+        })
       .select(function() { return this.parentNode; })
         .append("rect")                                           // Header rectangle
         .attr("idr", function (d) {return `detailHeader${d.data.id}`})
         .attr("class", "detailHeader")
         .attr("height", this.getAttribute("nodeHeight"))
         .attr("width", this.getAttribute("popupWidth"))
+        .each(function(d) {
+          d.data.instance.objects[d.data.id].DOMelements.detailHeader = this;
+        })
       .select(function() { return this.parentNode; })
         .append("rect")                                           // disassociate button
         .attr("idr", function(d) {return `disassociate${d.data.id}`})
@@ -353,12 +393,18 @@ class d3Functions {
         .attr("height", this.getAttribute("nodeHeight"))
         .attr("width", this.getAttribute("nodeHeight"))
         .attr("mousedownObj", '{"method":"disassociate"}')
+        .each(function(d) {
+          d.data.instance.objects[d.data.id].DOMelements.disassociate = this;
+        })
       .select(function() { return this.parentNode; })             // disassociate text
         .append("text")
         .attr("dx", function(d) {return `-${d.data.instance.popupWidth - d.data.instance.nodeHeight/2}`;})
         .attr("idr", function(d) {return `disassociateText${d.data.id}`;})
         .attr("class", "disassociateText unselectable")
         .text("X")
+        .each(function(d) {
+          d.data.instance.objects[d.data.id].DOMelements.disassociateText = this;
+        })
       .select(function() { return this.parentNode; })
         .append("rect")                                           // Show Node button
         .attr("idr", function(d) {return `showNode${d.data.id}`})
@@ -366,25 +412,37 @@ class d3Functions {
         .attr("height", this.getAttribute("nodeHeight"))
         .attr("width", this.getAttribute("nodeHeight"))
         .attr("mousedownObj", '{"method":"showNode"}')
+        .each(function(d) {
+          d.data.instance.objects[d.data.id].DOMelements.showNode = this;
+        })
       .select(function() { return this.parentNode; })             // Show Node text
         .append("text")
         .attr("dx", function(d) {return `-${d.data.instance.nodeHeight/2}`;})
         .attr("idr", function(d) {return `showNodeText${d.data.id}`;})
         .attr("class", "showNodeText unselectable")
         .text("+")
+        .each(function(d) {
+          d.data.instance.objects[d.data.id].DOMelements.showNodeText = this;
+        })
       .select(function() {return this.parentNode; })
         .append("text")                                           // Text in header
         .attr("dx", function(d) {return `-${d.data.instance.popupWidth/2}`;})
         .attr("class", "detailHeaderText unselectable")
         .attr("idr", function(d) {return `detailHeaderText${d.data.id}`})
-        .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; });
+        .text(function(d) { return `Name: ${d.data.name} Type: ${d.data.type}`; })
+        .each(function(d) {
+          d.data.instance.objects[d.data.id].DOMelements.detailHeaderText = this;
+        });
 
     nodeEnter.append("text") // Add text
       .attr("dx", this.getAttribute("nodeWidth")/2)
       .attr("dy", this.getAttribute("nodeHeight")/2 + 6)
       .attr("class", "nodeText unselectable")
       .attr("idr", function(d) {return `text${d.data.id}`})
-      .text(function(d) { return d.data.name; });
+      .text(function(d) { return d.data.name; })
+      .each(function(d) {
+        d.data.instance.objects[d.data.id].DOMelements.text = this;
+      });
 
     const allNodes = nodeEnter.merge(node);
 
@@ -404,7 +462,8 @@ class d3Functions {
           if ((!d.data.children || d.data.children.length == 0)
           && (!d.data._children || d.data._children.length == 0))
             return true; else return false;
-        });
+        })
+      .text(function(d) {if (d.data.children && d.data.children.length > 0) return "-"; else return "+";});
 
     allNodes.selectAll(".detailsRect")
       .classed("inactive", function(d) {if (d.data.nodeID == null && d.data.type != "link") return true; else return false});
