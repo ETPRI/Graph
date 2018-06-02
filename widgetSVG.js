@@ -584,7 +584,6 @@ class widgetSVG {
         break;
       case 'calendar':
         new widgetCalendar(this.widgetID, id);
-        //setTimeout(this.showCalendar, 1, this.widgetID, id); // Temporary workaround because calendars don't make DB requests, which is what slows down the other node types
         break;
       case 'link':
         window.open(data.details[0].value); // For now, assume the uri is the first (and only) detail
@@ -592,10 +591,6 @@ class widgetSVG {
       default:
         new widgetNode(this.widgetID, type, id);
     }
-  }
-
-  showCalendar(widgetID, id) {
-    new widgetCalendar(widgetID, id);
   }
 
   disassociate(button, evnt) {
