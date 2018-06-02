@@ -182,8 +182,10 @@ class widgetSVG {
       newObj.details[i].instance = instanceVars;
     }
 
+    let group = null;
+
     // Right here, I should check whether I dropped ONTO a nodeRect. If so, instead of adding the new node as a root, I should call connectNode.
-    const groups = this.clicks.checkClickedNode(null, x, y);
+    const rects = this.clicks.checkClickedNode(null, x, y);
     if (rects) {
       for (let i = 0; i < rects.length; i++) {
         if (rects[i].classList.contains("nodeRect")) {
@@ -198,7 +200,7 @@ class widgetSVG {
     }
     else {
       this.d3Functions.roots.push(newObj);
-      this.d3Functions.newObject = newObj;
+      // this.d3Functions.newObject = newObj;
       this.d3Functions.update();
     }
 
@@ -218,7 +220,7 @@ class widgetSVG {
     labelObj.nodeID = newObj.nodeID;
     labelObj.type = newObj.type;
     labelObj.details = newObj.details;
-    this.d3Functions.newObject = labelObj;
+    this.makeSelectedNode(group);
   }
 
   newBox(element, evnt) {
@@ -233,7 +235,8 @@ class widgetSVG {
     const relY = y - top + parseInt(viewBox[1]);
 
     // verify that the user doubleclicked on an EMPTY spot
-    if (this.clicks.checkClickedNode(null, x, y) == null) {
+    const elements = this.clicks.checkClickedNode(null, x, y);
+    if (elements == null) {
       const newObj = this.d3Functions.newObj();
       newObj.x = relX;
       newObj.y = relY;
@@ -304,6 +307,10 @@ class widgetSVG {
           else {
             this[obj.method](elements[i], evnt, obj.args);
           }
+          // If at least one rectangle was clicked in, and had a mousedown event
+          // (so we're doing something other than scrolling),
+          // check for mouseup events when the mouse is released.
+          SVG.setAttribute("onmouseup", "app.widget('mouseup', this, event)");
         }
       }
     }
@@ -318,6 +325,23 @@ class widgetSVG {
     viewBox[0] = parseInt(viewBox[0]) - dx;
     viewBox[1] = parseInt(viewBox[1]) - dy;
     SVG.setAttribute("viewBox", `${viewBox[0]} ${viewBox[1]} ${this.width} ${this.height}`)
+  }
+
+  mouseup(SVG, evnt) {
+    const elements = this.clicks.checkClickedNode(null, evnt.clientX, evnt.clientY);
+    if (elements) { // If at least one rectangle was clicked in, check each clicked rectangle for a mouseupObj.
+      for (let i = 0; i < elements.length; i++) {
+        const obj = JSON.parse(elements[i].getAttribute("mouseupObj"));
+        if (obj) { // If this rectangle has a mouseup object...
+          if (obj.subclass) {
+            this[obj.subclass][obj.method](elements[i], evnt, obj.args);
+          }
+          else {
+            this[obj.method](elements[i], evnt, obj.args);
+          }
+        }
+      }
+    }
   }
 
   // REFACTOR THIS LATER - there's no point right now, the whole thing needs to be overhauled.
@@ -460,14 +484,6 @@ class widgetSVG {
     const box = app.domFunctions.getChildByIdr(group, `${prefix}ExpBox${ID}`);
 
     if (evnt.type == "mouseover") { // SHOW the explanation, if applicable
-      const data = group.__data__.data;
-                         // Either the button in question is the toggle children button and there are no children...
-      const applicable = (prefix=="toggle" &&
-                         (!data.children || data.children.length == 0) &&
-                         (!data._children || data._children.length == 0)) ||
-                         // or the button is the toggle details button and there are no details.
-                         (prefix=="detail" && data.nodeID == null && data.type != "link")
-      if (applicable) { // Bring the explanation to the front
         this.SVG_DOM.appendChild(tree);
         tree.appendChild(group);
         group.appendChild(box);
@@ -475,7 +491,7 @@ class widgetSVG {
 
         text.classList.remove("hidden"); // Then show it
         box.classList.remove("hidden");
-      }
+      // }
     }
 
     else { // HIDE the explanation
@@ -547,12 +563,14 @@ class widgetSVG {
     const group = rect.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
 
-    const prefixes = ["toggle", "toggleText1", "toggleText2",
-                      "note", "showNotesText1", "showNotesText2",
-                      "detail", "showDetailsText1", "showDetailsText2"];
+    const prefixes = ["toggle", "toggleText1",
+                      "note", "showNotesText1",
+                      "detail", "showDetailsText1",
+                      "edit", "editText1"];
     for (let i = 0; i < prefixes.length; i++) {
       const idr = prefixes[i] + ID;
       const element = app.domFunctions.getChildByIdr(this.SVG_DOM, idr);
+      group.appendChild(element);
       element.classList.remove("hidden");
     }
   }
@@ -570,7 +588,7 @@ class widgetSVG {
     const group = element.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
 
-    const prefixes = ["node", "toggle", "note", "detail"];
+    const prefixes = ["node", "toggle", "note", "detail", "edit"];
     for (let i = 0; i < prefixes.length; i++) {
       const idr = prefixes[i] + ID;
       const element = app.domFunctions.getChildByIdr(this.SVG_DOM, idr);
@@ -594,9 +612,10 @@ class widgetSVG {
   }
 
   hideEverything(ID) {
-    const prefixes = ["toggle", "toggleText1", "toggleText2", "toggleExpln",
-                      "note", "showNotesText1", "showNotesText2",
-                      "detail", "detailExpln", "showDetailsText1", "showDetailsText2",
+    const prefixes = ["toggle", "toggleText1", "toggleExpln", "toggleExpBox",
+                      "note", "showNotesText1", "noteExpln", "noteExpBox",
+                      "detail", "detailExpln", "showDetailsText1", "detailExpBox",
+                      "edit", "editText1", "editExpln", "editExpBox",
                       "popupGroup"];
 
     for (let i = 0; i < prefixes.length; i++) {

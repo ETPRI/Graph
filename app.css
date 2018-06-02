@@ -111,6 +111,16 @@ text.toggleExpln {
 	fill: white;
 }
 
+text.noteExpln {
+	font-size: 12px;
+}
+
+.noteExpBox {
+	stroke: gray;
+	stroke-width: 1px;
+	fill: white;
+}
+
 text.detailExpln {
 	font-size: 12px;
 }
@@ -121,6 +131,15 @@ text.detailExpln {
 	fill: white;
 }
 
+text.editExpln {
+	font-size: 12px;
+}
+
+.editExpBox {
+	stroke: gray;
+	stroke-width: 1px;
+	fill: white;
+}
 
 .link {
 	fill: none;
@@ -169,6 +188,12 @@ text.detailExpln {
 	fill: white;
 }
 
+.editRect {
+	stroke: black;
+	stroke-width: 1px;
+	fill: white;
+}
+
 .inactive {
 	stroke: black;
 	stroke-width: 1px;
@@ -188,6 +213,10 @@ text.notesButtonText {
 }
 
 text.detailButtonText {
+	font-size: 12px;
+}
+
+text.editText {
 	font-size: 12px;
 }
 /* .detailNoNode {
@@ -233,6 +262,10 @@ text.detailButtonText {
 }
 
 .detailPopupHidden {
+	display: none;
+}
+
+.hideable {
 	display: none;
 }
 
