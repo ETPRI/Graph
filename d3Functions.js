@@ -47,6 +47,40 @@ class d3Functions {
     return newObj;
   }
 
+  getObjFromID(nodeID) {
+    let nodeObj = null;
+    let nonRootObjs = [];
+    for (let i = 0; i < this.roots.length; i++) { // for every root...
+      const root = this.roots[i];
+      if (root.id == nodeID) { // check that root...
+        nodeObj = root;
+        break;
+      }
+      if (root.children) {
+        nonRootObjs = nonRootObjs.concat(root.children); // then add its children to the list to check after roots
+      }
+      else if (root._children) {
+        nonRootObjs = nonRootObjs.concat(root._children);
+      }
+    }
+
+    while (nonRootObjs.length > 0 && nodeObj == null) { // If the parent object hasn't been found and there are more objects to check...
+      const testObj = nonRootObjs.pop(); // Grab an object and check it...
+      if (testObj.id == nodeID) {
+        nodeObj = testObj;
+        break;
+      }
+      if (testObj.children) {
+        nonRootObjs = nonRootObjs.concat(testObj.children); // then add its children to the list of objects to check.
+      }
+    }
+
+    if (nodeObj == null) {
+      alert(`Error: The object belonging to the node with idr "group${nodeID}" was not found.`);
+    }
+    return nodeObj;
+  }
+
   update() { // Creates a group for each item in the array of roots, then calls buildTree to make a tree for each group.
     const groups = d3.select(`#svg${this.widgetID}`).selectAll("g.tree")
       .data(this.roots, function(d) {return d.name;});
@@ -147,23 +181,24 @@ class d3Functions {
     }
 
     const tree = d3.tree()
-      .nodeSize([100, 200]);
+      .nodeSize([50, 200]); // This sets the overall size of nodes, but not why sometimes they get more spaced.
 
     const root = d3.hierarchy(datum);
-    const nodes = root.descendants();
+    const nodes = root.descendants(); // These two lines seem to parse the root data into a form d3.js understands
 
-    const links = tree(root).links();
+    const links = tree(root).links(); // This line gives each object x and y coordinates, and returns array of links
+    const test = nodes[1];
 
     // Update the nodes…
     const g = d3.select(this);
     const node = g.selectAll(".node") // This means that all the nodes inside the given group are part of this tree
      .data(nodes, function(d) {return d.id || d.data.id;}) // Update what data to include. Each group represents one node.
-     .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; });
+     .attr("transform", function(d) {return "translate(" + d.y + " " + d.x + ")"; });
 
     // Enter any new nodes
     const nodeEnter = node.enter().append("g") // Append a "g" for each new node
       .attr("class", "node")
-      .attr("transform", function(d) { return "translate(" + d.y + " " + d.x + ")"; })
+      .attr("transform", function(d) {return "translate(" + d.y + " " + d.x + ")"; })
       .attr("idr", function (d) {return `group${d.data.id}`; });
 
     nodeEnter.append("rect")  // notes indicator rectangle. Appended first so it's behind the main rect
@@ -178,100 +213,126 @@ class d3Functions {
       .attr("height", this.getAttribute("nodeHeight"))
       .attr("idr", function (d) {return `node${d.data.id}`; })
       .attr("class", "nodeRect")
+      .attr("mousedownObj", '{"subclass":"clicks", "method":"selectNode"}')
       .attr("onmouseover", "app.widget('showButtons', this)")
-      .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
-      .attr("onmousedown", "app.widget('click', this, event, 'selectNode')");
+      .attr("onmouseout", "app.widget('checkHideButtons', this, event)");
 
     nodeEnter.append("rect")  // toggle rectangle
-      .attr("width", this.getAttribute("nodeWidth")/3)
-      .attr("height", this.getAttribute("nodeHeight"))
+      .attr("width", this.getAttribute("nodeHeight")/2)
+      .attr("height", this.getAttribute("nodeHeight")/2)
       .attr("idr", function(d) {return `toggle${d.data.id}`})
-      .attr("transform", `translate(${this.getAttribute("nodeWidth")*2/3} ${this.getAttribute("nodeHeight")*-1})`)
-      .attr("onmouseup", "app.widget('toggleChildren', this)")
+      .attr("transform", `translate(${this.getAttribute("nodeHeight")*7/4} ${this.getAttribute("nodeHeight")/4})`)
+      .attr("mousedownObj", '{"method":"toggleChildren"}')
       .attr("onmouseover", "app.widget('toggleExplain', this, event, 'toggle')")
       .attr("onmouseout", "app.widget('toggleExplain', this, event, 'toggle'); app.widget('checkHideButtons', this, event)")
       .attr("class", "toggleRect hidden");
 
     nodeEnter.append("text") // Toggle button text
       .attr("idr", function(d) {return `toggleText1${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*2} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
       .attr("class", "toggleButtonText unselectable hidden")
-      .text("Toggle");
-
-    nodeEnter.append("text")
-      .attr("idr", function(d) {return `toggleText2${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} -4)`)
-      .attr("class", "toggleButtonText unselectable hidden")
-      .text("Children");
+      .text("C");
 
     nodeEnter.append("rect") // Toggle explanation box...
-      .attr("width", 360)
+      .attr("width", 320)
       .attr("height", 20)
       .attr("idr", function(d) {return `toggleExpBox${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6 - 180} ${this.getAttribute("nodeHeight") *-1.5 - 10})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*2 - 160} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
       .attr("class", "toggleExpBox hidden");
 
     nodeEnter.append("text") // and text
       .attr("idr", function(d) {return `toggleExpln${d.data.id}`;})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*5/6} ${this.getAttribute("nodeHeight") *-1.5 + 4})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*2} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
       .attr("class", "toggleExpln unselectable hidden")
-      .text("Children can only be toggled when they exist. This node has no children.");
+      .text("Toggle children (disabled for nodes which have no children)");
 
     nodeEnter.append("rect")  // Show Notes rectangle
-      .attr("width", this.getAttribute("nodeWidth")/3)
-      .attr("height", this.getAttribute("nodeHeight"))
+      .attr("width", this.getAttribute("nodeHeight")/2)
+      .attr("height", this.getAttribute("nodeHeight")/2)
       .attr("idr", function(d) {return `note${d.data.id}`})
-      .attr("transform", `translate(${this.getAttribute("nodeWidth")*1/3} ${this.getAttribute("nodeHeight")*-1})`)
-      .attr("onmouseup", "app.widget('toggleNotes', this)")
-      .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
+      .attr("transform", `translate(${this.getAttribute("nodeHeight")} ${this.getAttribute("nodeHeight")/4})`)
+      .attr("mousedownObj", '{"method":"toggleNotes"}')
+      .attr("onmouseover", "app.widget('toggleExplain', this, event, 'note')")
+      .attr("onmouseout", "app.widget('toggleExplain', this, event, 'note'); app.widget('checkHideButtons', this, event)")
       .attr("class", "showNotesRect hidden");
 
       nodeEnter.append("text") // Show notes button text
         .attr("idr", function(d) {return `showNotesText1${d.data.id}`})
-        .attr("transform", `translate (${this.getAttribute("nodeWidth")/2} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
+        .attr("transform", `translate (${this.getAttribute("nodeHeight")*5/4} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
         .attr("class", "notesButtonText unselectable hidden")
-        .text("Toggle");
+        .text("N");
 
-      nodeEnter.append("text")
-        .attr("idr", function(d) {return `showNotesText2${d.data.id}`})
-        .attr("transform", `translate (${this.getAttribute("nodeWidth")/2} -4)`)
-        .attr("class", "notesButtonText unselectable hidden")
-        .text("Notes");
+      nodeEnter.append("rect") // Notes explanation box...
+        .attr("width", 180)
+        .attr("height", 20)
+        .attr("idr", function(d) {return `noteExpBox${d.data.id}`})
+        .attr("transform", `translate (${this.getAttribute("nodeHeight")*5/4 - 90} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
+        .attr("class", "noteExpBox hidden");
+
+      nodeEnter.append("text") // ... and text
+        .attr("idr", function(d) {return `noteExpln${d.data.id}`;})
+        .attr("transform", `translate (${this.getAttribute("nodeHeight")*5/4} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
+        .attr("class", "noteExpln unselectable hidden")
+        .text("Toggle notes (always enabled)");
 
     nodeEnter.append("rect")  // Detail display rectangle
-      .attr("width", this.getAttribute("nodeWidth")/3)
-      .attr("height", this.getAttribute("nodeHeight"))
+      .attr("width", this.getAttribute("nodeHeight")/2)
+      .attr("height", this.getAttribute("nodeHeight")/2)
       .attr("idr", function(d) {return `detail${d.data.id}`})
-      .attr("transform", `translate(0 ${this.getAttribute("nodeHeight")*-1})`)
+      .attr("transform", `translate(${this.getAttribute("nodeHeight")/4} ${this.getAttribute("nodeHeight")/4})`)
       .attr("onmouseover", "app.widget('toggleExplain', this, event, 'detail')")
       .attr("onmouseout", "app.widget('toggleExplain', this, event, 'detail'); app.widget('checkHideButtons', this, event)")
-      .attr("onmouseup", "app.widget('toggleDetails', this)")
+      .attr("mousedownObj", '{"method":"toggleDetails"}')
       .attr("class", "detailsRect hidden");
 
     nodeEnter.append("text") // Show details button text
       .attr("idr", function(d) {return `showDetailsText1${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")/6} ${this.getAttribute("nodeHeight") *-0.5 - 4})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")/2} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
       .attr("class", "detailButtonText unselectable hidden")
-      .text("Toggle");
-
-    nodeEnter.append("text")
-      .attr("idr", function(d) {return `showDetailsText2${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")/6} -4)`)
-      .attr("class", "detailButtonText unselectable hidden")
-      .text("Details");
+      .text("D");
 
     nodeEnter.append("rect") // Details explanation box...
-      .attr("width", 360)
+      .attr("width", 340)
       .attr("height", 20)
       .attr("idr", function(d) {return `detailExpBox${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*1/6 - 180} ${this.getAttribute("nodeHeight") *-1.5 - 10})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")/2 - 170} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
       .attr("class", "detailExpBox hidden");
 
     nodeEnter.append("text") // ... and text
       .attr("idr", function(d) {return `detailExpln${d.data.id}`;})
-      .attr("transform", `translate (${this.getAttribute("nodeWidth")*1/6} ${this.getAttribute("nodeHeight") *-1.5 + 4})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*1/2} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
       .attr("class", "detailExpln unselectable hidden")
-      .text("This label has no node or link attached, so there are no details to show.");
+      .text("Toggle details (disabled for labels with no link or node attached)");
+
+    nodeEnter.append("rect")  // Edit rectangle
+      .attr("width", this.getAttribute("nodeHeight")/2)
+      .attr("height", this.getAttribute("nodeHeight")/2)
+      .attr("idr", function(d) {return `edit${d.data.id}`})
+      .attr("transform", `translate(${this.getAttribute("nodeHeight")*5/2} ${this.getAttribute("nodeHeight")/4})`)
+      .attr("onmouseover", "app.widget('toggleExplain', this, event, 'edit')")
+      .attr("onmouseout", "app.widget('toggleExplain', this, event, 'edit'); app.widget('checkHideButtons', this, event)")
+      .attr("mousedownObj", '{"subclass":"clicks", "method":"editLabel"}') // Change the name
+      .attr("class", "editRect hidden");
+
+    nodeEnter.append("text") // Edit button text
+      .attr("idr", function(d) {return `editText1${d.data.id}`})
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*11/4} ${this.getAttribute("nodeHeight") *0.5 + 3})`)
+      .attr("class", "editText unselectable hidden")
+      .text("E");
+
+    nodeEnter.append("rect") // Edit explanation box...
+      .attr("width", 440)
+      .attr("height", 20)
+      .attr("idr", function(d) {return `editExpBox${d.data.id}`})
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*11/4 - 220} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
+      .attr("class", "editExpBox hidden");
+
+    nodeEnter.append("text") // ... and text
+      .attr("idr", function(d) {return `editExpln${d.data.id}`;})
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")*11/4} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
+      .attr("class", "editExpln unselectable hidden")
+      .text("Edit label (disabled for labels with nodes attached, which always show that node's name)");
+
 
     nodeEnter.append("g") // Create a detail popup group with a rectangle in it
       .attr("idr", function(d) {return `popupGroup${d.data.id}`})
@@ -291,7 +352,7 @@ class d3Functions {
         .attr("class", "disassociateButton")
         .attr("height", this.getAttribute("nodeHeight"))
         .attr("width", this.getAttribute("nodeHeight"))
-        .attr("onmousedown", "app.widget('disassociate', this, event)")
+        .attr("mousedownObj", '{"method":"disassociate"}')
       .select(function() { return this.parentNode; })             // disassociate text
         .append("text")
         .attr("dx", function(d) {return `-${d.data.instance.popupWidth - d.data.instance.nodeHeight/2}`;})
@@ -304,7 +365,7 @@ class d3Functions {
         .attr("class", "showNodeButton")
         .attr("height", this.getAttribute("nodeHeight"))
         .attr("width", this.getAttribute("nodeHeight"))
-        .attr("onmousedown", "app.widget('showNode', this)")
+        .attr("mousedownObj", '{"method":"showNode"}')
       .select(function() { return this.parentNode; })             // Show Node text
         .append("text")
         .attr("dx", function(d) {return `-${d.data.instance.nodeHeight/2}`;})
@@ -350,6 +411,12 @@ class d3Functions {
 
     allNodes.selectAll(".detailButtonText")
       .classed("inactiveText", function(d) {if (d.data.nodeID == null && d.data.type != "link") return true; else return false});
+
+    allNodes.selectAll(".editRect")
+      .classed("inactive", function(d) {if (d.data.nodeID) return true; else return false});
+
+    allNodes.selectAll(".editText")
+      .classed("inactiveText", function(d) {if (d.data.nodeID) return true; else return false});
 
     allNodes.selectAll(".detailPopup")
       .attr("width", this.getAttribute("popupWidth"))
