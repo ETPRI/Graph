@@ -40,6 +40,12 @@ class widgetTableNodes {
     this.db.runQuery(this,"buildData");
   }
 
+  searchOnEnter(input, evnt) { // Makes hitting enter run a search
+    if (evnt.keyCode === 13) {
+      this.search();
+    }
+  }
+
   buildQuery() { // public - called when search criteria change
     // init cypherQuery data
     let match    = `(n:${this.queryObject.nodeLabel})`;
@@ -133,7 +139,7 @@ class widgetTableNodes {
     +'<b> '+this.queryObject.nodeLabel +":"+ this.queryObjectName +` </b>
     <input type="button" value="Add" idr = "addButton" onclick="app.widget('addNode',this)">
     <input type="button" value="Search" idr = "searchButton" onclick="app.widgetSearch(this)">
-    limit <input value ="9" idr = "limit" style="width: 20px;" onblur = "app.regression.logText(this)">
+    limit <input value ="9" idr = "limit" style="width: 20px;" onblur = "app.regression.logText(this)" onkeydown="app.widget('searchOnEnter', this, event)">
     </div>
 
     <table>
@@ -168,7 +174,7 @@ class widgetTableNodes {
     let s="";
     for (let i=0; i<this.fieldsDisplayed.length; i++ ) {
         const fieldName =this.fieldsDisplayed[i];
-        let s1 = `<th><input idr = "text` + i + `" db="fieldName: #1" size="7" onblur="app.regression.logText(this)">`
+        let s1 = `<th><input idr = "text` + i + `" db="fieldName: #1" size="7" onblur="app.regression.logText(this)" onkeydown="app.widget('searchOnEnter', this, event)">`
         if (this.fields[fieldName].type === "number") {
           // number search
           s1 += numSearch.replace('#x#', i);
@@ -404,7 +410,6 @@ class widgetTableNodes {
     app.regression.log(JSON.stringify(obj));
     app.regression.record(obj);
   }
-
 
   // open add widget
   addNode(element){
