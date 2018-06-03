@@ -1,5 +1,4 @@
 class mindmapClick {
-  // selectFunction (makeSelectedNode), dblclickFunction should be passed in
   constructor(parent, SVG_DOM, d3Functions) {
     this.SVG_DOM = SVG_DOM;
     this.d3Functions = d3Functions;
@@ -8,10 +7,14 @@ class mindmapClick {
     this.initialPosition = null;
     this.currentX = null;
     this.currentY = null;
+
+
     this.currentParent = null;
     this.parentNode = null;
     this.prevSibling = null;
     this.nextSibling = null;
+
+    this.selectedRoots = [];
     this.transform = [];
     this.elemsToMove = [];
     this.detachDistance = 50;
@@ -61,11 +64,17 @@ class mindmapClick {
     this.currentY = evnt.clientY;
 
     if (evnt.which == 1) {
-      // Now that we have buttons ON the label, have to verify I'm NOT clicking one of them first.
+      const group = element.parentElement;
+
+      // Should select the label whether it itself, or a button in it, was clicked - IF it wasn't selected already
+      if (!(this.parent.selectedNodes.has(group))) {
+        this.parent.makeSelectedNode(group);
+      }
+
+      // Now  verify NOT clicking one of the buttons, since they're over labels now
       // I've copied this from elsewhere, which is maybe a sign it should be a function.
       let inAnything = false;
 
-      const group = element.parentElement;
       const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
 
       const prefixes = ["toggle", "note", "detail", "edit"];
@@ -81,23 +90,41 @@ class mindmapClick {
         }
       }
 
-      if (!inAnything) {
+      if (!inAnything) { // Now we get ready to actually move.
         // Because THIS is the closest SVG gets to a goddamn "Bring to front" command!
         // It just draws everything in whatever order it's listed in the DOM,
         // so to move something to the front you have to actually move the HTML that generates it forward!
         const tree = group.parentElement;
         this.SVG_DOM.appendChild(tree);
         tree.appendChild(group);
+        this.elemsToMove = [];
+        this.selectedRoots = [];
 
-        if (group.__data__.data.parent == "null") { // If the element being dragged is a root, drag the whole group it's part of
-          this.elemsToMove = [tree];
-        }
-        else { // Otherwise, get its descendants and the lines linking it to them using the getSubtree method. Also, mark its current parent.
-          this.getSubtree(group);
-          const parentID = group.__data__.data.parent;
-          this.currentParent = this.d3Functions.objects[parentID].DOMelements.group;
-          this.currentParent.classList.add("currentParent");
-          this.initialPosition = [this.currentX, this.currentY];
+        for (let group of this.parent.selectedNodes) {
+          // If the element being dragged is a root, it must be top-level, and drag the whole group it's part of
+          if (group.__data__.data.parent == "null") {
+            const move = {};
+            move.group = group;
+            this.selectedRoots.push(move); // Add this group to the list of top-level selected nodes...
+            this.elemsToMove.push(group.parentElement); // and its entire TREE to the list of "things to move".
+          }
+          // Otherwise, check whether its parent is also selected. If not (it is a top-level selected node),
+          // get its descendants and the lines linking it to them using the getSubtree method. Also, mark its current parent.
+          else {
+            const parentID = group.__data__.data.parent;
+            const parentGroup = this.d3Functions.objects[parentID].DOMelements.group; // Get the label's parent group
+            if (!(this.parent.selectedNodes.has(parentGroup))) { // If this label's parent is NOT selected
+              this.getSubtree(group); // Add the label and its subtree to elemsToMove
+              const move = {};
+              move.group = group;
+              move.parent = this.d3Functions.objects[parentID].DOMelements.group;
+              move.parent.classList.add("currentParent");
+              this.selectedRoots.push(move);
+
+              // If ANY top-level selected node is a root, record the current position to determine whether they need to "snap back".
+              this.initialPosition = [this.currentX, this.currentY];
+            }
+          }
         }
         this.getTransforms();
 
@@ -105,8 +132,6 @@ class mindmapClick {
         element.setAttribute("onmouseout", "app.widget('click', this, event, 'releaseNode')");
         element.setAttribute("mouseupObj", '{"subclass":"clicks", "method":"releaseNode"}')
       }
-      // Should select the label whether it itself, or a button in it, was clicked
-      this.parent.makeSelectedNode(group);
     } // end if (left button)
   }
 
@@ -131,7 +156,7 @@ class mindmapClick {
     // Get array of ALL SVG elements to move - this node, all its children and the lines connecting it to its children
     const nodeID = element.getAttribute("idr").slice(5); // the IDR will be like groupxxx
     const nodeObj = this.d3Functions.objects[nodeID].JSobj; // Get the object representing this node
-    this.elemsToMove = [element]; // A list of all elements that need to move. It starts with just the node being dragged.
+    this.elemsToMove.push(element); // A list of all elements that need to move. It starts with just the node being dragged.
     if (nodeObj.children) {
       let descendantObjs = nodeObj.children.slice(); // To list the node's descendants, start with its children. slice makes a shallow copy.
       while (descendantObjs.length > 0) {
@@ -180,17 +205,25 @@ class mindmapClick {
     }
 
     // Highlight the prospective parent. Add/remove highlighting from current parent if needed.
-    if (this.currentParent) {
+    this.highlightParent(evnt.clientX, evnt.clientY, element.parentElement);
+
+    if (this.initialPosition) { // If any of the labels being dragged were children, this variable will be defined.
       if (Math.abs(this.currentX - this.initialPosition[0]) < this.detachDistance
       &&  Math.abs(this.currentY - this.initialPosition[1]) < this.detachDistance) {
-         this.currentParent.classList.add("currentParent");
+        for (let i = 0; i < this.selectedRoots.length; i++) {
+          if (this.selectedRoots[i].parent) {
+            this.selectedRoots[i].parent.classList.add("currentParent");
+          }
+        }
       }
       else {
-        this.currentParent.classList.remove("currentParent");
+        for (let i = 0; i < this.selectedRoots.length; i++) {
+          if (this.selectedRoots[i].parent) {
+            this.selectedRoots[i].parent.classList.remove("currentParent");
+          }
+        }
       }
     }
-
-    this.highlightParent(evnt.clientX, evnt.clientY, element.parentElement);
   }
 
   highlightParent(x, y, element) {
@@ -272,63 +305,107 @@ class mindmapClick {
     element.removeAttribute("onmousemove");
     element.removeAttribute("onmouseup");
     element.removeAttribute("mouseupObj");
-    // If a child became a root or vice versa, then its DOM element will be removed and replaced.
-    // Remove its onmouseout attribute so that it won't fire when the DOM element disappears.
-    if (this.currentParent && !this.currentParent.classList.contains("currentParent") && !this.parentNode
-    || !this.currentParent && this.parentNode) {
-        element.removeAttribute("onmouseout")
+    /* If a child became a root, a root became a child, or a child moved from one tree to another,
+     then its DOM element will be removed and replaced. Remove its onmouseout attribute
+     so that it won't fire when the DOM element disappears. Only necessary for the element which the mouse is over while dragging.
+     Best way I can see to recognize this situation: The element's tree doesn't match the current parent's tree,
+     OR there is no current parent but the element has a parent.
+    */
+    const group = element.parentElement; // The parent element of a node rectangle is a (label) group
+    const elemTree = group.parentElement; // The parent element of a label group is a tree group
+    let newParentTree = null;
+    if (this.parentNode) {
+      newParentTree = this.parentNode.parentElement;
+    }
+    const oldParent = element.__data__.data.parent;
+
+    if ((newParentTree && newParentTree != elemTree) || !newParentTree && oldParent != "null") {
+        element.removeAttribute("onmouseout");
     }
     else {
       // If the element ISN'T about to disappear, just restore its onmouseout attribute.
       element.setAttribute("onmouseout", "app.widget('checkHideButtons', this, event)");
     }
-    element.setAttribute("onmousedown", "app.widget('click', this, event, 'selectNode')");
+    // element.setAttribute("onmousedown", "app.widget('click', this, event, 'selectNode')");
 
-    // Get object representing the label being dragged
-    const group = element.parentElement;
-    const groupID = group.getAttribute("idr").slice(5); // this IDR will be like groupxxx
-    const labelObj = this.d3Functions.objects[groupID].JSobj;
-    this.parent.makeSelectedNode(group);
-
-    if (this.parentNode) { // If we dropped element (the node being moved) onto that group, we should connect them.
-      if (labelObj == null) {
-        alert("Error: The child object was not found.");
+    /* If a child became a root, a root became a child, or a child moved from one tree to another,
+     then its DOM element will be removed and replaced. Remove it from the set of selected nodes,
+     and add it to a set of objects that should be selected once their new nodes are made.
+     This should apply to ALL selected nodes, not just top-level ones.
+     Best way I can see to recognize this situation: The element's tree doesn't match the current parent's tree,
+     OR there is no current parent but the element has a parent.
+     NOTE: This code, as written, will work for all selected nodes, but will sometimes affect children
+     that aren't actually moving. That should be acceptable, but if I find a more elegant solution, I'll switch to it.
+    */
+    for (let group of this.parent.selectedNodes) {
+      const DOMtree = group.parentElement; // The parent element of a label group is a tree group
+      let newParentTree = null;
+      if (this.parentNode) {
+        newParentTree = this.parentNode.parentElement;
       }
-      else this.dropConnect(this.parentNode, labelObj);
-    } // end if (the node was dragged onto another node)
+      const oldParent = group.__data__.data.parent;
 
-    else if (this.currentParent) { // if the node being dragged was a child, detach it if necessary.
-                                   // Then refresh the page so it will either snap back or become a new root
-
-      // Detach child if it's too far from parent. Since we're already tracking this with classes, why recalculate?
-      if (!this.currentParent.classList.contains("currentParent")) {
-        const parentID = this.currentParent.__data__.data.id;
-        const parent = this.d3Functions.objects[parentID].JSobj;
-        const parentIndex = parent.children.indexOf(labelObj);
-        if(parentIndex != -1) {
-          parent.children.splice(parentIndex, 1);
-        }
-        labelObj.parent = "null";
-
-        // Get coordinates of label and store them
-        const labelRect = element.getBoundingClientRect();
-        const SVGrect = this.SVG_DOM.getBoundingClientRect();
-        labelObj.y = labelRect.y - SVGrect.y;
-        labelObj.x = labelRect.x - SVGrect.x;
-        this.d3Functions.roots.push(labelObj);
+      if ((newParentTree && newParentTree != DOMtree) || !newParentTree && oldParent != "null") {
+          this.parent.selectedNodes.delete(group);
+          const id = group.__data__.data.id;
+          const obj = this.d3Functions.objects[id].JSobj;
+          this.d3Functions.selectObjectCollection.add(obj);
       }
-      this.d3Functions.update();
     }
 
+    for (let object of this.selectedRoots) { // Each object contains a group and a parent group
+      // Get object representing the selected label
+      const group = object.group;
+      const groupID = group.getAttribute("idr").slice(5); // this IDR will be like groupxxx
+      const labelObj = this.d3Functions.objects[groupID].JSobj;
+
+      if (this.parentNode) { // If we dropped the selected label onto another label, we should connect them.
+        if (labelObj == null) {
+          alert("Error: The child object was not found.");
+        }
+        else this.dropConnect(this.parentNode, labelObj, object);
+      } // end if (the label was dragged onto another label)
+
+      else if (object.parent) { // if the node being dragged was a child, detach it if necessary.
+                                // Then refresh the page so it will either snap back or become a new root
+
+        // Detach child if it's too far from parent. Since we're already tracking this with classes, why recalculate?
+        if (!(object.parent.classList.contains("currentParent"))) {
+          const parentID = object.parent.__data__.data.id;
+          const parent = this.d3Functions.objects[parentID].JSobj;
+          const parentIndex = parent.children.indexOf(labelObj);
+          if(parentIndex != -1) {
+            parent.children.splice(parentIndex, 1);
+          }
+          labelObj.parent = "null";
+
+          // Get coordinates of label and store them
+          const labelRect = this.d3Functions.objects[groupID].DOMelements.node.getBoundingClientRect();
+          const SVGrect = this.SVG_DOM.getBoundingClientRect();
+          const viewBox = this.SVG_DOM.getAttribute("viewBox").split(" ");
+          labelObj.x = labelRect.x - SVGrect.x + parseInt(viewBox[0]);
+          labelObj.y = labelRect.y - SVGrect.y + parseInt(viewBox[1]);
+          this.d3Functions.roots.push(labelObj);
+        } // end if (current parent doesn't have currentParent class; the element has moved far enough to detach)
+      } // end else if (the element has a current parent and wasn't dragged to another label)
+      if (object.parent) {
+        object.parent.classList.remove("currentParent");
+      }
+    } // end for (every selected root)
+
+    // This is cleanup code that doesn't need to run every time
+    this.d3Functions.update();
     this.nextSibling = null;
     this.prevSibling = null;
-    if (this.currentParent) {
-      this.currentParent.classList.remove("currentParent");
+    if (this.parentNode) {
+      this.parentNode.classList.remove("parent");
+      this.parentNode = null;
     }
-    this.currentParent = null;
   }
 
-  dropConnect(node, childObj) { // Creates a link between the node being dragged and the node it was dropped onto
+  // Creates a link between the node being dragged and the node it was dropped onto. selectedRoot is used
+  // only for moving existing labels, and is the object containing a selected label and its parent.
+  dropConnect(node, childObj, selectedRoot) {
     // Get object representing parent node (object representing child node was already found)
     const nodeID = node.getAttribute("idr").slice(5); // the IDR will be like groupxxx
     const parentObj = this.d3Functions.objects[nodeID].JSobj;
@@ -340,8 +417,8 @@ class mindmapClick {
       }
 
       // Remove the child from its parent's children array, if it's in there
-      if (this.currentParent) {
-        const parentID = this.currentParent.__data__.data.id;
+      if (selectedRoot && selectedRoot.parent) {
+        const parentID = selectedRoot.parent.__data__.data.id;
         const parent = this.d3Functions.objects[parentID].JSobj;
         const parentIndex = parent.children.indexOf(childObj);
         if(parentIndex != -1) {
@@ -387,14 +464,6 @@ class mindmapClick {
       childObj.parent = parentObj.id;
       delete childObj.x;
       delete childObj.y;
-
-      // Remove parent node and formatting
-      this.parentNode.classList.remove("parent");
-      this.parentNode = null;
-      this.nextSibling = null;
-      this.prevSibling = null;
-
-      this.d3Functions.update(); // Update the mind map
     } // End if (both objects found)
   }
 }

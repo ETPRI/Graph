@@ -8,7 +8,6 @@ class widgetSVG {
     app.widgets[app.idCounter] = this;
     this.containedWidgets = [];
     this.callerID = callerID;
-    this.keys = new mindmapKeypress(this);
 
     // constants for drawing
     this.width = 1200; // Width of the SVG element
@@ -17,7 +16,9 @@ class widgetSVG {
     // variables for dragging map and selecting nodes
     this.currentX=0;
     this.currentY=0;
-    this.selectedNode = null;
+    this.selectedNodes = new Set();
+    this.selectBox = null;
+    this.selectBoxCorner = [0,0];
 
     // used for editing notes
     this.notesText = null;
@@ -70,8 +71,19 @@ class widgetSVG {
     this.notesText.setAttribute("oncontextmenu", "event.preventDefault()");
     this.SVG_DOM.appendChild(this.notesText);
 
+    d3.select(`#svg${this.widgetID}`).append("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", 0)
+      .attr("height", 0)
+      .attr("idr", "selectBox")
+      .attr("class", "selectBox hidden");
+    this.selectBox = app.domFunctions.getChildByIdr(this.SVG_DOM, "selectBox");
+
+
     this.d3Functions = new d3Functions(this);
     this.clicks = new mindmapClick(this, this.SVG_DOM, this.d3Functions);
+    this.keys = new mindmapKeypress(this.d3Functions, this.newChild.bind(this), this.newSibling.bind(this), this); // Navigation is likely to be standard, but effects of tab and enter may change
 
     if (data) {
       this.loadComplete(data);
@@ -233,20 +245,26 @@ class widgetSVG {
 
     if (group) {
       this.connectNode(group, newObj);
-      this.d3Functions.update();
     }
 
     // now check if user dropped NEAR a label. This can be determined by checking parentNode in clicks.
-    // If so, add the new node as a child of that label.
+    // If so, add the new node as a child of that label, then reset clicks variables.
     else if (this.clicks.parentNode) {
       this.clicks.dropConnect(this.clicks.parentNode, newObj);
+      // Remove parent node and formatting
+      this.clicks.parentNode.classList.remove("parent");
+      this.clicks.parentNode = null;
+      this.clicks.nextSibling = null;
+      this.clicks.prevSibling = null;
+
     }
 
     // If it wasn't dropped on or near a label, add it as a root.
     else {
       this.d3Functions.roots.push(newObj);
-      this.d3Functions.update();
     }
+
+    this.d3Functions.update();
 
     // Make this the active widget
     if (app.activeWidget) {
@@ -289,6 +307,49 @@ class widgetSVG {
     }
   }
 
+  newChild() {
+    if (this.selectedNodes.size == 1) {
+      for (let node of this.selectedNodes) {
+        const nodeID = node.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+        const nodeObj = this.d3Functions.objects[nodeID].JSobj; // Get the object representing this node
+
+        if (nodeObj._children && nodeObj._children.length > 0) { // If the object has children, but they are hidden, show them.
+          const button = this.d3Functions.objects[nodeID].DOMelements.toggle;
+          this.toggleChildren(button);
+          // The children, if any, should now be visible, and the object should have a children array.
+        }
+
+        const child = this.d3Functions.newObj(); // Create a new blank label object...
+        child.parent = nodeID;
+        nodeObj.children.push(child); // make it a new child of the selected node...
+      }
+      this.d3Functions.update(); // and redraw the graphic.
+    }
+  }
+
+  // If NOT currently editing a node (in which case, hitting Enter just means "Done editing"),
+  // or its notes (in which case, hitting Enter just starts a new line),
+  // create a new younger sibling for the node.
+  newSibling() {
+    if (this.selectedNodes.size == 1 && this.notesText.hidden == true) {
+      for (let node of this.selectedNodes) {
+        const nodeID = node.getAttribute("idr").slice(5); // the IDR will be like groupxxx
+        const nodeObj = this.d3Functions.objects[nodeID].JSobj; // Get the object representing this node
+        const parentID = nodeObj.parent;
+        if (parentID != "null") { // IF the selected node has a parent, it can have siblings
+        const parent = this.d3Functions.objects[parentID].JSobj;
+          const child = this.d3Functions.newObj();
+
+          const index = parent.children.indexOf(nodeObj) + 1; // Insert in the NEXT position, to come after the previous sibling
+          parent.children.splice(index, 0, child);
+          child.parent = parentID;
+        }
+      }
+      this.d3Functions.update();
+    }
+  }
+
+
   keyPressed(evnt) {
     this.keys.keyPressed(evnt);
   }
@@ -303,13 +364,50 @@ class widgetSVG {
     if (elements == null) {
       this.currentX = evnt.clientX; // get mouse position
       this.currentY = evnt.clientY;
-      SVG.setAttribute("onmousemove", "app.widget('drag', this, event)");
-      SVG.setAttribute("onmouseup", "this.removeAttribute('onmousemove'); this.removeAttribute('onmouseup')");
+      // Now check whether the shift key is down - If it is, we're selecting multiple nodes.
+      if (!(evnt.shiftKey)) {
+        SVG.setAttribute("onmousemove", "app.widget('drag', this, event)");
+        SVG.setAttribute("onmouseup", "this.removeAttribute('onmousemove'); this.removeAttribute('onmouseup')");
+      }
+      else { // if the shift key is down
+        const x = evnt.clientX;
+        const y = evnt.clientY;
+        const bound = SVG.getBoundingClientRect();
+        const top = bound.top;
+        const left = bound.left;
+        const viewBox = SVG.getAttribute("viewBox").split(" ");
+        const relX = x - left + parseInt(viewBox[0]);
+        const relY = y - top + parseInt(viewBox[1]);
+
+        // make select box visible (well, except for its size) and position it
+        SVG.appendChild(this.selectBox);
+        this.selectBox.classList.remove("hidden");
+        this.selectBox.setAttribute("x", relX);
+        this.selectBox.setAttribute("y", relY);
+        this.selectBox.setAttribute("width", 0);
+        this.selectBox.setAttribute("height", 0);
+        this.selectBoxCorner[0] = relX;
+        this.selectBoxCorner[1] = relY;
+
+        // set mousemove and mouseup listeners
+        SVG.setAttribute("onmousemove", "app.widget('dragSelect', this, event)");
+        SVG.setAttribute("onmouseup", "app.widget('stopDragSelect', this, event)");
+      }
     }
 
-    else { // If at least one rectangle was clicked in, check each clicked rectangle for a mousedownObj.
+    // If at least one rectangle was clicked in, check each clicked rectangle for a mousedownObj.
+    // If the shift key was held, check for a shiftClickObj instead.
+    else {
       for (let i = 0; i < elements.length; i++) {
-        const obj = JSON.parse(elements[i].getAttribute("mousedownObj"));
+        let obj = null;
+
+        if (evnt.shiftKey) {
+          obj = JSON.parse(elements[i].getAttribute("shiftClickObj"));
+        }
+        else {
+          obj = JSON.parse(elements[i].getAttribute("mousedownObj"));
+        }
+
         if (obj) { // If this rectangle has a mousedown object...
           if (obj.subclass) {
             this[obj.subclass][obj.method](elements[i], evnt, obj.args);
@@ -352,6 +450,67 @@ class widgetSVG {
         }
       }
     }
+  }
+
+  dragSelect(SVG, evnt) {
+    // Get current relative location of mouse
+    const x = evnt.clientX;
+    const y = evnt.clientY;
+    const bound = SVG.getBoundingClientRect();
+    const top = bound.top;
+    const left = bound.left;
+    const viewBox = SVG.getAttribute("viewBox").split(" ");
+    const relX = x - left + parseInt(viewBox[0]);
+    const relY = y - top + parseInt(viewBox[1]);
+
+    // Calculate x, y, height and width of select rectangle. x and y are top-left corner: the LOWER numbers
+    SVG.appendChild(this.selectBox);
+    this.selectBox.setAttribute("x", Math.min(relX, this.selectBoxCorner[0]));
+    this.selectBox.setAttribute("y", Math.min(relY, this.selectBoxCorner[1]));
+    this.selectBox.setAttribute("height", Math.abs(relY - this.selectBoxCorner[1]));
+    this.selectBox.setAttribute("width", Math.abs(relX - this.selectBoxCorner[0]));
+  }
+
+  stopDragSelect(SVG, evnt) {
+    // Remove listeners
+    SVG.removeAttribute("onmousemove");
+    SVG.removeAttribute("onmouseup");
+
+    const select = this.selectBox.getBoundingClientRect();
+
+    // if (this.selectedNodes.size > 0) { // Clear existing selected nodes
+    //   for (let node of this.selectedNodes) {
+    //     const id = node.getAttribute("idr").slice(5); // groupxxx
+    //     this.hideEverything(id);
+    //     node.classList.remove("selected");
+    //   }
+    //   this.selectedNodes.clear();
+    // }
+
+    // Select nodes
+    // For every label...
+    for (let i = 0; i < this.d3Functions.objects.length; i++) {
+      if (this.d3Functions.objects[i]) { // If the label still exists
+        // Check whether it overlaps the select box, and add it to the list of selected nodes if it does
+        const label = this.d3Functions.objects[i].DOMelements.node;
+        const box = label.getBoundingClientRect();
+        const inHorizontal = (select.left < box.left && box.left < select.right)
+                          || (select.left < box.right && box.right < select.right);
+        const inVertical = (select.top < box.top && box.top < select.bottom)
+                        || (select.top < box.bottom && box.bottom < select.bottom);
+        if (inVertical && inHorizontal) {
+          this.selectedNodes.add(label.parentElement);
+          label.parentElement.classList.add("selected");
+        }
+      }
+    }
+
+    // Remove box
+    this.selectBox.setAttribute("x", 0);
+    this.selectBox.setAttribute("y", 0);
+    this.selectBox.setAttribute("height", 0);
+    this.selectBox.setAttribute("width", 0);
+    this.selectBox.classList.add("hidden");
   }
 
   // REFACTOR THIS LATER - there's no point right now, the whole thing needs to be overhauled.
@@ -462,7 +621,6 @@ class widgetSVG {
   }
 
   toggleChildren(button, evnt) { // Toggle children.
-    evnt.stopPropagation();
     const group = button.parentElement;
     const d = group.__data__;
 
@@ -476,7 +634,6 @@ class widgetSVG {
   }
 
   toggleDetails(button, evnt) {
-    evnt.stopPropagation();
     const group = button.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
     const obj = this.d3Functions.objects[ID].JSobj;
@@ -498,7 +655,6 @@ class widgetSVG {
   }
 
   toggleNotes(button, evnt) {
-    evnt.stopPropagation();
     const ID = button.getAttribute("idr").slice(4); // idr is like notexxx
     const obj = this.d3Functions.objects[ID].JSobj;
     if (this.notesLabel == obj) { // If this label's notes are shown already
@@ -573,7 +729,6 @@ class widgetSVG {
   // If it has a mindmap or calendar attached, opens the mindmap or calendar.
   // If it has any other type of node attached, opens a widgetNode table showing that node's details.
   showNode(button, evnt) {
-    evnt.stopPropagation();
     const data = button.parentElement.parentElement.__data__.data;
     const id = data.nodeID;
     const type = data.type;
@@ -594,7 +749,6 @@ class widgetSVG {
   }
 
   disassociate(button, evnt) {
-    evnt.stopPropagation();
     // Get object
     const ID = button.getAttribute("idr").slice(12); // This IDR will be like "disassociatexxx"
     const obj = this.d3Functions.objects[ID].JSobj;
@@ -614,13 +768,34 @@ class widgetSVG {
   }
 
   makeSelectedNode(group) {
-    if (this.selectedNode && this.selectedNode != group) {
-      const id = this.selectedNode.getAttribute("idr").slice(5); // groupxxx
-      this.hideEverything(id);
-      this.selectedNode.classList.remove("selected");
+    if (this.selectedNodes.size > 0) {
+      for (let node of this.selectedNodes) {
+        // If THIS isn't the node in question
+        if (node != group) {
+          const id = node.getAttribute("idr").slice(5); // groupxxx
+          this.hideEverything(id);
+          node.classList.remove("selected");
+        }
+      }
+      this.selectedNodes.clear();
     }
-    this.selectedNode = group;
-    this.selectedNode.classList.add("selected");
+    this.selectedNodes.add(group);
+    group.classList.add("selected");
+  }
+
+  toggleSelectedNode(rect) {
+    const group = rect.parentElement;
+    // If this group was already selected, deselect it
+    if (this.selectedNodes.has(group)) {
+      this.selectedNodes.delete(group);
+      group.classList.remove("selected");
+    }
+
+    // If it wasn't already selected, select it
+    else {
+      this.selectedNodes.add(group);
+      group.classList.add("selected");
+    }
   }
 
   // Make the buttons (and their text) visible when the main rect is moused over

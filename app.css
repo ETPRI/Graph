@@ -141,6 +141,14 @@ text.editExpln {
 	fill: white;
 }
 
+
+.selectBox {
+	stroke: black;
+	stroke-width: 2px;
+	fill: turquoise;
+	opacity: 0.25;
+}
+
 .link {
 	fill: none;
 	stroke: black;

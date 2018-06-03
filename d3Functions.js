@@ -21,6 +21,7 @@ class d3Functions {
     this.editNode = null;
     this.newObject = null;
     this.count = 0;
+    this.selectObjectCollection = new Set();
   }
 
   // Create new object with no node associated
@@ -122,11 +123,23 @@ class d3Functions {
     }
     if (this.newObject) {
       const id = this.newObject.id;
-      const select = app.domFunctions.getChildByIdr(this.SVG_DOM, `group${id}`);
+      const select = this.objects[id].DOMelements.group;
       if (select) {
         this.parent.makeSelectedNode(select);
       }
       this.newObject = null;
+    }
+
+    if (this.selectObjectCollection.size>0) {
+      for (let object of this.selectObjectCollection) {
+        const id = object.id;
+        const select = this.objects[id].DOMelements.group;
+        if (select) {
+          this.parent.selectedNodes.add(select);
+          select.classList.add("selected");
+        }
+      }
+      this.selectObjectCollection.clear();
     }
   }
 
@@ -190,6 +203,7 @@ class d3Functions {
       .attr("idr", function (d) {return `node${d.data.id}`; })
       .attr("class", "nodeRect")
       .attr("mousedownObj", '{"subclass":"clicks", "method":"selectNode"}')
+      .attr("shiftClickObj", '{"method":"toggleSelectedNode"}')
       .attr("onmouseover", "app.widget('showButtons', this)")
       .attr("onmouseout", "app.widget('checkHideButtons', this, event)")
       .each(function(d) {
