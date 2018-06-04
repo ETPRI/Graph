@@ -1,6 +1,5 @@
 /* use in table widget */
 table {
-	width: auto;
 	background-color: #EEE;
 	font-size: 13px;
 }
@@ -301,8 +300,9 @@ text.editText {
 
 .resizeable {
 	overflow: scroll;
-	resize: both;
-	width: 1000px;
+	resize: vertical;
+	margin: auto;
+	width: 100%;
 	height: 400px;
 z-index: 1;
 }

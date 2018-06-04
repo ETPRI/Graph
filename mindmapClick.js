@@ -309,7 +309,8 @@ class mindmapClick {
      then its DOM element will be removed and replaced. Remove its onmouseout attribute
      so that it won't fire when the DOM element disappears. Only necessary for the element which the mouse is over while dragging.
      Best way I can see to recognize this situation: The element's tree doesn't match the current parent's tree,
-     OR there is no current parent but the element has a parent.
+     OR there is no current parent (including an existing parent to snap back to) but the element is part of an existing tree
+     and the entire tree is NOT moving.
     */
     const group = element.parentElement; // The parent element of a node rectangle is a (label) group
     const elemTree = group.parentElement; // The parent element of a label group is a tree group
@@ -317,9 +318,18 @@ class mindmapClick {
     if (this.parentNode) {
       newParentTree = this.parentNode.parentElement;
     }
-    const oldParent = element.__data__.data.parent;
+    const switchingTrees = (newParentTree && newParentTree != elemTree);
 
-    if ((newParentTree && newParentTree != elemTree) || !newParentTree && oldParent != "null") {
+    let snapback = false;
+    const oldParent = element.__data__.data.parent;
+    if (oldParent != "null") {
+      const oldParentGroup = this.d3Functions.objects[oldParent].DOMelements.group;
+      snapback = oldParentGroup.classList.contains("currentParent");
+    }
+    const wholeTree = this.elemsToMove.indexOf(elemTree) != -1; // If the tree itself is being moved, its index is NOT -1 because it's in the list
+    const leavingTree = (!newParentTree && !snapback && !wholeTree);
+
+    if ((switchingTrees) || leavingTree) {
         element.removeAttribute("onmouseout");
     }
     else {
