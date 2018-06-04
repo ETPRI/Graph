@@ -43,7 +43,9 @@ class widgetSVG {
     }
 
     const html = app.widgetHeader() +
-      `<b idr="name">${this.name}</b>
+      `<b idr="name" contenteditable="true"
+                     onfocus="this.parentNode.draggable = false;"
+                     onblur="this.parentNode.draggable = true;">${this.name}</b>
       <input type="button" idr="save" value="Save" onclick="app.widget('save', this)">
       <input type="button" idr="saveAs" value="Save As" onclick="app.widget('save', this)">
       <input type="button" idr="details" value="Show Details" onclick="app.widget('toggleWidgetDetails', this)">
@@ -543,11 +545,14 @@ class widgetSVG {
 
   // REFACTOR THIS LATER - there's no point right now, the whole thing needs to be overhauled.
   save (button) { // Saves the current state of the graph to the database.
-    let name = this.name;
+    let name = app.domFunctions.getChildByIdr(this.widgetDOM, "name").textContent;
     const id = this.mapID;
-    if (name == "Untitled mind map" || !id || button.getAttribute("idr") == "saveAs") {  // If the mind map doesn't have a name or doesn't have an ID (indicating that it hasn't been saved),
-                                                                        // or if the user clicked the "Save As" button, indicating they want to change the name, ask for a name.
+    let newMap = false;
+    // If the mind map doesn't have an ID (indicating that it hasn't been saved),
+    // or if the user clicked the "Save As" button, indicating they want to make a copy with a new name, ask for a name.
+    if (!id || button.getAttribute("idr") == "saveAs") {
       name = prompt("Please enter the name for this mind map", name);
+      newMap = true;
     }
 
     // Create array of parents (starts empty)
@@ -648,14 +653,35 @@ class widgetSVG {
         root.y = parseFloat(transform[1]);
     }
 
-    // DBREPLACE DB function: createNode
-    // JSON object: {name:"mindmap"; type:"mindmap"; details:{name:name}; merge:true; changes:{roots:app.stringEscape(JSON.stringify(rootsCopy)); count:this.count}}
-    const query = `merge (mindmap: mindmap {name:"${name}"}) with mindmap set mindmap.roots="${app.stringEscape(JSON.stringify(rootsCopy))}", mindmap.count = ${this.d3Functions.count}`;
+    // Write save query.  If saving as (making a copy), create new node.
+    // If just saving but the map ID is null (this map didn't already exist), create new node.
+    // If just saving and the map ID is not null (did already exist), overwrite.
+
+    let query = "";
+
+    if (newMap) { // Creating a new map, either because we're saving a copy or this map has never been saved before
+      // DBREPLACE DB function: createNode
+      // JSON object: {name:"mindmap"; type:"mindmap"; details:{name:name; roots:app.stringEscape(JSON.stringify(rootsCopy)); count:this.d3Functions.count}; merge:false}
+      query = `create (mindmap:mindmap
+          {roots:"${app.stringEscape(JSON.stringify(rootsCopy))}",
+          count:${this.d3Functions.count},
+          name:"${name}"}) return ID(mindmap) as ID`;
+    }
+    else { // Updating an existing map
+      // DBREPLACE DB function: changeNode
+      // JSON object:{ID:this.mapID; changes:{ roots:app.stringEscape(JSON.stringify(rootsCopy)); count:this.d3Functions.count; name:name}}
+      query = `match (mindmap:mindmap) where ID(mindmap) = ${this.mapID} set
+                mindmap.roots="${app.stringEscape(JSON.stringify(rootsCopy))}",
+                mindmap.count = ${this.d3Functions.count},
+                mindmap.name = "${name}"`
+    }
+
+    // Update name in title, if necessary
+    app.domFunctions.getChildByIdr(this.widgetDOM, "name").textContent = name;
+
 
     app.db.setQuery(query);
-    app.db.runQuery();
-    // Can call this here, rather than from runQuery, because the DB changes won't affect what update does.
-    this.d3Functions.update();
+    app.db.runQuery(this.d3Functions, 'update');
   }
 
   lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (e. g. inserting a new node or changing an existing one)
