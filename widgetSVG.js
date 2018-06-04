@@ -366,6 +366,16 @@ class widgetSVG {
       this.currentY = evnt.clientY;
       // Now check whether the shift key is down - If it is, we're selecting multiple nodes.
       if (!(evnt.shiftKey)) {
+        // Deselect all selected nodes
+        if (this.selectedNodes.size > 0) {
+          for (let node of this.selectedNodes) {
+            const id = node.getAttribute("idr").slice(5); // groupxxx
+            this.hideEverything(id);
+            node.classList.remove("selected");
+          }
+          this.selectedNodes.clear();
+        }
+
         SVG.setAttribute("onmousemove", "app.widget('drag', this, event)");
         SVG.setAttribute("onmouseup", "this.removeAttribute('onmousemove'); this.removeAttribute('onmouseup')");
       }
