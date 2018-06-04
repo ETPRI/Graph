@@ -18,6 +18,7 @@ class d3Functions {
 
     this.roots = [];
     this.objects = [];
+    this.savedObjects = [];
     this.editNode = null;
     this.newObject = null;
     this.count = 0;
@@ -459,6 +460,20 @@ class d3Functions {
       });
 
     const allNodes = nodeEnter.merge(node);
+
+    allNodes.selectAll(".nodeRect")
+      .classed("changedData", function(d) {
+        const saved = d.data.instance.savedObjects[d.data.id];
+        if (saved) { // If saved data for this node exists and...
+          if (saved.name != d.data.name) return true; // the name...
+          if (saved.type != d.data.type) return true; // type...
+          if (saved.nodeID != d.data.nodeID) return true; // node ID...
+          if (saved.parent != d.data.parent) return true; // parent...
+          if (saved.notes != d.data.notes) return true; // or notes have changed, it's changed data.
+        }
+        return false; // Otherwise it's not changed (it's either new or the same as it was before).
+      })
+      .classed("newData", function(d) {if (d.data.instance.savedObjects[d.data.id]) return false; else return true;})
 
     allNodes.selectAll(".notesRect")
       .classed("noNotes", function(d) {if (d.data.notes) return false; else return true;})

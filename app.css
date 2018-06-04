@@ -57,9 +57,15 @@ td {
 	background-color:yellow;
 }
 
-.changedData {background-color: yellow}
+.changedData {
+	background-color: yellow;
+	fill: yellow !important;
+}
 
-.newData {background-color: limegreen}
+.newData {
+	background-color: limegreen;
+	fill: limegreen !important;
+}
 
 .deletedData {background-color: palevioletred}
 

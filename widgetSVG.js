@@ -111,6 +111,9 @@ class widgetSVG {
         let nonRootObjs = [];
         for (let i = 0; i < this.d3Functions.roots.length; i++) { // for every root...
           const root = this.d3Functions.roots[i];
+          // Make a deep copy and store in d3Functions' savedObjects array
+          this.d3Functions.savedObjects[root.id] = JSON.parse(JSON.stringify(root));
+
           root.instance = this.d3Functions;
           for (let j = 0; j < root.details.length; j++) {
             root.details[j].instance = this.d3Functions;
@@ -130,6 +133,9 @@ class widgetSVG {
 
         while (nonRootObjs.length > 0) { // If there are more objects...
           const label = nonRootObjs.pop();
+          // Make a deep copy and store in d3Functions' savedObjects array
+          this.d3Functions.savedObjects[label.id] = JSON.parse(JSON.stringify(label));
+
           label.instance = this.d3Functions;
           for (let j = 0; j < label.details.length; j++) {
             label.details[j].instance = this.d3Functions;
@@ -288,7 +294,7 @@ class widgetSVG {
 
   connectNode(group, newObj) { // Connect a node to a label
     const id = group.getAttribute("idr").slice(5);
-    const labelObj = this.d3Functions.objects[ID].JSobj;
+    const labelObj = this.d3Functions.objects[id].JSobj;
 
     labelObj.name = newObj.name;
     labelObj.nodeID = newObj.nodeID;
@@ -603,7 +609,35 @@ class widgetSVG {
       }
     }
 
-    // I REALLY REALLY hope that when we get here, rootsCopy is a copy of roots with no instances, which can be stringified.
+    // At this point, rootsCopy is a copy of roots with no instances, which can be stringified.
+
+    // Store updated information about what labels have been saved
+    let nonRootObjs = [];
+    for (let i = 0; i < rootsCopy.length; i++) { // for every root...
+      const root = rootsCopy[i];
+      // Make a deep copy and store in d3Functions' savedObjects array
+      this.d3Functions.savedObjects[root.id] = JSON.parse(JSON.stringify(root));
+
+      if (root.children) {
+        nonRootObjs = nonRootObjs.concat(root.children);
+      }
+      else if (root._children) {
+        nonRootObjs = nonRootObjs.concat(root._children);
+      }
+    }
+
+    while (nonRootObjs.length > 0) { // If there are more objects...
+      const label = nonRootObjs.pop();
+      // Make a deep copy and store in d3Functions' savedObjects array
+      this.d3Functions.savedObjects[label.id] = JSON.parse(JSON.stringify(label));
+
+      if (label.children) {
+        nonRootObjs = nonRootObjs.concat(label.children);
+      }
+      else if (label._children) {
+        nonRootObjs = nonRootObjs.concat(label._children);
+      }
+    }
 
     for (let i=0; i< rootsCopy.length; i++) { // Go through all the roots and add their transform values to their coordinates, so they'll display in the right places.
         const root = rootsCopy[i];
@@ -620,6 +654,8 @@ class widgetSVG {
 
     app.db.setQuery(query);
     app.db.runQuery();
+    // Can call this here, rather than from runQuery, because the DB changes won't affect what update does.
+    this.d3Functions.update();
   }
 
   lookForEnter(input, evnt) { // Makes hitting enter do the same thing as blurring (e. g. inserting a new node or changing an existing one)
