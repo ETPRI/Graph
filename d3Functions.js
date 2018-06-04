@@ -318,10 +318,10 @@ class d3Functions {
       });
 
     nodeEnter.append("rect") // Details explanation box...
-      .attr("width", 340)
+      .attr("width", 300)
       .attr("height", 20)
       .attr("idr", function(d) {return `detailExpBox${d.data.id}`})
-      .attr("transform", `translate (${this.getAttribute("nodeHeight")/2 - 170} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
+      .attr("transform", `translate (${this.getAttribute("nodeHeight")/2 - 150} ${this.getAttribute("nodeHeight") *-0.5 - 10})`)
       .attr("class", "detailExpBox hidden")
       .each(function(d) {
         d.data.instance.objects[d.data.id].DOMelements.detailExpBox = this;
@@ -331,7 +331,7 @@ class d3Functions {
       .attr("idr", function(d) {return `detailExpln${d.data.id}`;})
       .attr("transform", `translate (${this.getAttribute("nodeHeight")*1/2} ${this.getAttribute("nodeHeight") *-0.5 + 4})`)
       .attr("class", "detailExpln unselectable hidden")
-      .text("Toggle details (disabled for labels with no link or node attached)")
+      .text("Toggle details (disabled for labels with nothing attached)")
       .each(function(d) {
         d.data.instance.objects[d.data.id].DOMelements.detailExpln = this;
       });
@@ -480,10 +480,10 @@ class d3Functions {
       .text(function(d) {if (d.data.children && d.data.children.length > 0) return "-"; else return "+";});
 
     allNodes.selectAll(".detailsRect")
-      .classed("inactive", function(d) {if (d.data.nodeID == null && d.data.type != "link") return true; else return false});
+      .classed("inactive", function(d) {if (d.data.type == "") return true; else return false});
 
     allNodes.selectAll(".detailButtonText")
-      .classed("inactiveText", function(d) {if (d.data.nodeID == null && d.data.type != "link") return true; else return false});
+      .classed("inactiveText", function(d) {if (d.data.type == "") return true; else return false});
 
     allNodes.selectAll(".editRect")
       .classed("inactive", function(d) {if (d.data.nodeID) return true; else return false});

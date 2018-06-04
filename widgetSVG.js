@@ -193,6 +193,17 @@ class widgetSVG {
       data.details.push(uri);
     }
 
+    else if (evnt.dataTransfer.files.length > 0) {
+      data.name = evnt.dataTransfer.files[0].name;
+      data.nodeID = null;
+      data.type = "file";
+      const type = {};
+      type.field = "filetype";
+      type.value = evnt.dataTransfer.files[0].type;
+      data.details = [];
+      data.details.push(type);
+    }
+
     else { // If it's not a link, check whether it's a node...
       const dataText = evnt.dataTransfer.getData("text/plain");
       if (dataText) {
@@ -647,7 +658,7 @@ class widgetSVG {
     const group = button.parentElement;
     const ID = group.getAttribute("idr").slice(5); // the IDR will be like groupxxx
     const obj = this.d3Functions.objects[ID].JSobj;
-    if (obj.nodeID || obj.type == "link") {
+    if (obj.type != "") {
       // Look for an existing popup for this node (there should be one).
       const popup = this.d3Functions.objects[ID].DOMelements.popupGroup;
       const tree = group.parentElement;
@@ -752,6 +763,9 @@ class widgetSVG {
         break;
       case 'link':
         window.open(data.details[0].value); // For now, assume the uri is the first (and only) detail
+        break;
+      case 'file':
+        alert ("Still working on this");
         break;
       default:
         new widgetNode(this.widgetID, type, id);
