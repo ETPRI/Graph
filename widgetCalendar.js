@@ -7,6 +7,7 @@ class widgetCalendar {
     this.calendarDOM = null;
     this.widgetDOM = null;
     this.callerID = callerID;
+    this.selectedButton = null;
 
     this.hourHeight = "30px";
     this.dayWidth = "600px";
@@ -35,7 +36,7 @@ class widgetCalendar {
     }
     const html = app.widgetHeader() + `<b idr="name">${this.name}</b>
                                        <input type="button" idr="backButton" value="<" onclick="app.widget('page', this)">
-                                       <input type="button" idr="dayButton" value="Day" onclick="app.widget('changeView', this)">
+                                       <input type="button" class="selectedButton" idr="dayButton" value="Day" onclick="app.widget('changeView', this)">
                                        <input type="button" idr="weekButton" value="Week" onclick="app.widget('changeView', this)">
                                        <input type="button" idr="monthButton" value="Month" onclick="app.widget('changeView', this)">
                                        <input type="button" idr="yearButton" value="Year" onclick="app.widget('changeView', this)">
@@ -58,6 +59,8 @@ class widgetCalendar {
     }
     app.activeWidget = this.widgetDOM;
     this.widgetDOM.classList.add("activeWidget");
+
+    this.selectedButton = app.domFunctions.getChildByIdr(this.widgetDOM, "dayButton");
 
     this.buildDay(this.day);
   }
@@ -91,6 +94,12 @@ class widgetCalendar {
   }
 
   changeView(button) {
+    if (this.selectedButton) {
+      this.selectedButton.classList.remove("selectedButton");
+    }
+    button.classList.add("selectedButton");
+    this.selectedButton = button;
+
     switch(button.getAttribute("idr")) {
       case "dayButton":
         this.mode = "day";
@@ -176,9 +185,10 @@ class widgetCalendar {
     for (let i = 0; i < 7; i++) {
       const day = new Date(sunday);
       day.setDate(day.getDate() + i); // Move to the correct day of the week
-      const dayString = `${this.days[i]}, ${this.months[day.getMonth()]} ${day.getDate()}, ${day.getFullYear()}`;
+      const dayString = `${this.shortDays[i]} ${day.getDate()}`;
       const dayText = document.createTextNode(dayString);
       const dayCell = document.createElement("th");
+      dayCell.setAttribute("class", "weekDayCell");
       dayCell.setAttribute("width", this.weekWidth);
       dayCell.appendChild(dayText);
       days.appendChild(dayCell);
@@ -302,7 +312,6 @@ class widgetCalendar {
       this.day.setDate(this.day.getDate() + offset*7);
     }
     else if (this.mode == "month") {
-//      this.day.setDate(1);
       const oldMonth = this.day.getMonth();
       let newMonth = oldMonth + offset; // Get the month we SHOULD end up in
       if (newMonth < 0) newMonth += 12;

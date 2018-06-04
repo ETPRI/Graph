@@ -45,8 +45,16 @@ td {
 	color: gray;
 }
 
+.weekDayCell {
+	font-size: 16px;
+}
+
 .today {
 	color: red;
+}
+
+.selectedButton {
+	background-color:yellow;
 }
 
 .changedData {background-color: yellow}
