@@ -259,6 +259,9 @@ class mindmapClick {
 
   checkNear(element, x, y) {
     const groups = this.SVG_DOM.getElementsByClassName("node"); // Get all rectangles in the mind map
+    let prev = null;
+    let next = null;
+    let parent = null;
     for (let i = 0; i < groups.length; i++) { // Loop through all rectangles
       const group=groups[i];
       const bound = group.getBoundingClientRect(); // Get bounds of each rectangle
@@ -275,29 +278,35 @@ class mindmapClick {
       const kids = group.__data__.data.children;
       const noKids = (kids == null || kids.length < 1); // true if the group represents a node with no chldren visible
       if (top < y && y < bottom && right < x && x < right + this.frontCushion && !contains && noKids) {
-        return group;
+        parent = group;
       }
 
       // Then check for prospective sibling
-      const notRoot = !(group.__data__.data.parent == "null"); // true if the group represents a node that isn't a root
-      let topBound = top - 20;
-      let bottomBound = top;
-      if (topBound < y && y < bottomBound && left < x && x < right && !contains && notRoot) {
-        this.nextSibling = group;
-        const parentID = group.__data__.data.parent;
-        parent = this.d3Functions.objects[parentID].DOMelements.group;
-        return parent;
+      if (!parent) {
+        const notRoot = !(group.__data__.data.parent == "null"); // true if the group represents a node that isn't a root
+        const topBound = top - 20;
+        const bottomBound = top;
+        if (topBound < y && y < bottomBound && left < x && x < right && !contains && notRoot) {
+          next = group;
+          const parentID = group.__data__.data.parent;
+          parent = this.d3Functions.objects[parentID].DOMelements.group;
+        }
       }
 
-      topBound = bottom;
-      bottomBound = bottom + 20;
-      if (topBound < y && y < bottomBound && left < x && x < right && !contains && notRoot) {
-        this.prevSibling = group;
-        const parentID = group.__data__.data.parent;
-        parent = this.d3Functions.objects[parentID].DOMelements.group;
-        return parent;
-      }
-    }
+      if (!parent) {
+        const notRoot = !(group.__data__.data.parent == "null"); // true if the group represents a node that isn't a root
+        const topBound = bottom;
+        const bottomBound = bottom + 20;
+        if (topBound < y && y < bottomBound && left < x && x < right && !contains && notRoot) {
+          prev = group;
+          const parentID = group.__data__.data.parent;
+          parent = this.d3Functions.objects[parentID].DOMelements.group;
+        } // end if (group is previous sibling)
+      } // end if (parent not found)
+    } // end for (all labels)
+    this.prevSibling = prev;
+    this.nextSibling = next;
+    return parent;
   }
 
   releaseNode(element, evnt) { // Removes all the onmousemove, onmouseup and onmouseout events which were set when the node was selected.
