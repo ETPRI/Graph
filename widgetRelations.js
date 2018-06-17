@@ -362,6 +362,59 @@ createDragDrop(widgetRel) {
     app.regression.log(JSON.stringify(obj));
     app.regression.record(obj);
   } // end dragDrop.drag function
+
+  const updateNumbers = function(tbody) {
+    const rows = Array.from(tbody.children);
+
+    // Remove the input row and any rows marked for deletion from the array of children
+    let i = 0;
+    while (i < rows.length) {
+      const row = rows[i];
+      // If the row is the input row or marked for deletion...
+      if (row.getAttribute("idr") == "insertContainer" || row.classList.contains("deletedData")) {
+        const numCell = row.children[0];
+        numCell.textContent = ""; // ... ensure the number for the row is blank...
+        rows.splice(i, 1); // ... and remove the row from the rows array
+        // No need to increment i in this case - removing this row means the next row will have the same index.
+      }
+      // Otherwise, increment i to go on to the next row
+      else {
+        i++;
+      }
+    }
+
+    // Go through the remaining rows (which should be numbered) and number them
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const numCell = row.children[0];
+      numCell.textContent = i + 1;
+    }
+  }
+
+  const oldInsert = dragDrop.insert.bind(dragDrop);
+  dragDrop.insert = function(input, row) {
+    oldInsert(input, row);
+    updateNumbers(input.parentElement.parentElement.parentElement); // tbody -> tr -> td -> input
+  }
+
+  const oldDrop = dragDrop.drop.bind(dragDrop);
+  dragDrop.drop = function(row, evnt) {
+    oldDrop(row, evnt);
+    updateNumbers(row.parentElement);
+  }
+
+  const oldDelete = dragDrop.delete.bind(dragDrop);
+  dragDrop.delete = function(button) {
+    const tbody = button.parentElement.parentElement.parentElement; // tbody -> tr -> td -> button
+    oldDelete(button);
+    updateNumbers(tbody);
+  }
+
+  const oldMark = dragDrop.markForDeletion.bind(dragDrop);
+  dragDrop.markForDeletion = function(button) {
+    oldMark(button);
+    updateNumbers(button.parentElement.parentElement.parentElement); // tbody -> tr -> td -> button
+  }
 }
 
 // If the logged-in user is looking at their own view, calls this.processNext(), which will save all rows, save their ordering,

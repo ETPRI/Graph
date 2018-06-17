@@ -117,6 +117,7 @@ class dragDrop {
   	evnt.preventDefault();
   }
 
+  // clean up - input is never used
   drop(input, evnt) { // drops the active node above or below the target. evnt is the drop event and its target is what's being dropped onto.
   	evnt.preventDefault();
 
@@ -202,7 +203,6 @@ class dragDrop {
       // Insert the new element before the input
       this.container.insertBefore(newEl, this.insertContainer);
     }
-    // this.activeNode = newEl; // remember item that we are editing
 
     // set all the draggable functions
     if (!newEl.hasAttribute("ondrop")) { // If there's already an ondrop event set up, don't replace it
@@ -216,10 +216,6 @@ class dragDrop {
       newEl.setAttribute("ondragstart", "app.widget('drag', this, event)");
     }
 
-    // newEl.setAttribute("ondrop"        ,"app.widget('drop', this, event)"     );
-    // newEl.setAttribute("ondragover"    ,"app.widget('allowDrop', this, event)");
-    // newEl.setAttribute("ondragstart"   ,"app.widget('drag', this, event)"     );
-    // newEl.draggable  = true;
     newEl.setAttribute("idr", `item${this.itemCount}`);
     newEl.setAttribute("class", "newData");
 
